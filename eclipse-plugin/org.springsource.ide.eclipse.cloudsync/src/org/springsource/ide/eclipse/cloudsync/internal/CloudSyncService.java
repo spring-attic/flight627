@@ -21,6 +21,12 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 public class CloudSyncService {
+	
+	private String api;
+
+	public CloudSyncService(String apiURL) {
+		this.api = apiURL;
+	}
 
 	public ConnectedProject connect(IProject project) {
 		ConnectedProject connectedProject = getProject(project);
@@ -79,7 +85,7 @@ public class CloudSyncService {
 
 	private ConnectedProject getProject(IProject project) {
 		try {
-			URL url = new URL("http://localhost:3000/" + project.getName());
+			URL url = new URL(api + project.getName());
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
 			urlConn.setRequestMethod("GET");
 			urlConn.setAllowUserInteraction(false); // no user interaction
@@ -99,7 +105,7 @@ public class CloudSyncService {
 
 	private ConnectedProject createProject(IProject project) {
 		try {
-			URL url = new URL("http://localhost:3000/" + project.getName());
+			URL url = new URL(api + project.getName());
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
 			urlConn.setRequestMethod("PUT");
 			urlConn.setAllowUserInteraction(false); // no user interaction
@@ -123,7 +129,7 @@ public class CloudSyncService {
 			return;
 
 		try {
-			URL url = new URL("http://localhost:3000/" + project.getName() + "/" + resource.getProjectRelativePath());
+			URL url = new URL(api + project.getName() + "/" + resource.getProjectRelativePath());
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
 			urlConn.setRequestMethod("PUT");
 			urlConn.setAllowUserInteraction(false); // no user interaction
@@ -160,7 +166,7 @@ public class CloudSyncService {
 		String resourcePath = resource.getProjectRelativePath().toString();
 
 		try {
-			URL url = new URL("http://localhost:3000/" + project.getName() + "/" + resourcePath);
+			URL url = new URL(api + project.getName() + "/" + resourcePath);
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
 			urlConn.setRequestMethod("POST");
 			urlConn.setAllowUserInteraction(false); // no user interaction
@@ -191,7 +197,7 @@ public class CloudSyncService {
 
 	private byte[] getResource(IProject project, String resourcePath) {
 		try {
-			URL url = new URL("http://localhost:3000/" + project.getName() + "/" + resourcePath);
+			URL url = new URL(api + project.getName() + "/" + resourcePath);
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
 			urlConn.setRequestMethod("GET");
 			urlConn.setAllowUserInteraction(false); // no user interaction
@@ -217,7 +223,7 @@ public class CloudSyncService {
 			return;
 
 		try {
-			URL url = new URL("http://localhost:3000/" + project.getName() + "/" + resource.getProjectRelativePath());
+			URL url = new URL(api + project.getName() + "/" + resource.getProjectRelativePath());
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
 			urlConn.setRequestMethod("DELETE");
 			urlConn.setAllowUserInteraction(false); // no user interaction

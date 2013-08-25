@@ -17,9 +17,9 @@ public class CloudSyncController {
 	
 	private CloudSyncService syncService;
 	private ConcurrentMap<IProject, ConnectedProject> syncedProjects;
-	
+
 	public CloudSyncController() {
-		this.syncService = new CloudSyncService();
+		this.syncService = new CloudSyncService("http://localhost:3000/api/");
 		this.syncedProjects = new ConcurrentHashMap<IProject, ConnectedProject>();
 		
 		CloudSyncResourceListener listener = new CloudSyncResourceListener(this, this.syncService);

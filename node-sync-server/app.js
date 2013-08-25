@@ -97,12 +97,14 @@ var getResource = function(req, res) {
 
 app.get('/', getProjects);
 
-app.get('/:project', getProject);
-app.put('/:project', createProject);
+app.get('/api/:project', getProject);
+app.put('/api/:project', createProject);
 
-app.get('/:project/:resource(*)', getResource);
-app.put('/:project/:resource(*)', putResource);
-app.post('/:project/:resource(*)', postResource);
+app.get('/api/:project/:resource(*)', getResource);
+app.put('/api/:project/:resource(*)', putResource);
+app.post('/api/:project/:resource(*)', postResource);
+
+app.use("/client", express.static(__dirname + '/web-client'));
 
 // server.listen(3000);
 console.log('Express server started on port 3000');
