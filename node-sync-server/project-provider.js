@@ -68,6 +68,27 @@ ProjectProvider.prototype.updateResource = function(projectName, resourcePath, d
 	}
 };
 
+ProjectProvider.prototype.updateMetadata = function(projectName, resourcePath, metadata, type, callback) {
+	if (this.stored[projectName] !== undefined) {
+		console.log('updateResource ' + resourcePath);
+		var project = this.stored[projectName];
+		var resource = project.resources[resourcePath];
+		
+		if (resource !== undefined) {
+			resource.metadata = metadata;
+			
+		    callback(null, {'project' : projectName
+							});
+		}
+		else {
+			callback(404);
+		}
+	}
+	else {
+		callback(404);
+	}
+};
+
 ProjectProvider.prototype.getResource = function(projectName, resourcePath, callback) {
 	if (this.stored[projectName] !== undefined) {
 		console.log('getResource ' + resourcePath);

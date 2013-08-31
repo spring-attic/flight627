@@ -22,8 +22,11 @@ public class CloudSyncController {
 		this.syncService = new CloudSyncService("http://localhost:3000/api/");
 		this.syncedProjects = new ConcurrentHashMap<IProject, ConnectedProject>();
 		
-		CloudSyncResourceListener listener = new CloudSyncResourceListener(this, this.syncService);
-		ResourcesPlugin.getWorkspace().addResourceChangeListener(listener, IResourceChangeEvent.POST_CHANGE);
+		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(this, this.syncService);
+		ResourcesPlugin.getWorkspace().addResourceChangeListener(resourceListener, IResourceChangeEvent.POST_CHANGE);
+		
+		CloudSyncMetadataListener metadataListener = new CloudSyncMetadataListener(this, this.syncService);
+		ResourcesPlugin.getWorkspace().addResourceChangeListener(metadataListener, IResourceChangeEvent.POST_BUILD);
 		
 		try {
 			IOSocket socket = new IOSocket("http://localhost:3000", new MessageCallback() {

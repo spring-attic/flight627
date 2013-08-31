@@ -35,7 +35,7 @@ var createProject = function(req, res) {
     });
 }
 
-var putResource = function(req, res) {
+var postResource = function(req, res) {
 	var body = '';
 	req.on('data', function(buffer) {
 		console.log("Chunk:", buffer.length );
@@ -54,7 +54,7 @@ var putResource = function(req, res) {
 	});
 }
 
-var postResource = function(req, res) {
+var putResource = function(req, res) {
 	var body = '';
 	req.on('data', function(buffer) {
 		console.log("Chunk:", buffer.length );
@@ -62,18 +62,39 @@ var postResource = function(req, res) {
 	});
 	
 	req.on('end', function() {
-	    projectProvider.updateResource(req.params.project, req.params.resource, body, function(error, result) {
-			if (error == null) {
-	        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
-				io.sockets.emit('resourceupdate', { 'project' : req.params.project,
-													'resource' : req.params.resource,
-													'newversion' : result.newversion,
-													'fingerprint' : result.fingerprint});
-			}
-			else {
-				res.send(error);
-			}
-	    });
+		if (req.param('meta') !== undefined) {
+			var metadata = JSON.parse(body);
+			var type = req.param('meta');
+		    projectProvider.updateMetadata(req.params.project, req.params.resource, metadata, type, function(error, result) {
+				if (error == null) {
+		        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
+
+					io.sockets.emit('metadataupdate', { 'project' : req.params.project,
+														'resource' : req.params.resource,
+														type : metadata
+													  });
+				}
+				else {
+					res.send(error);
+				}
+		    });
+		}
+		else {
+		    projectProvider.updateResource(req.params.project, req.params.resource, body, function(error, result) {
+				if (error == null) {
+		        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
+
+					io.sockets.emit('resourceupdate', { 'project' : req.params.project,
+														'resource' : req.params.resource,
+														'newversion' : result.newversion,
+														'fingerprint' : result.fingerprint});
+				}
+				else {
+					res.send(error);
+				}
+		    });
+		}
+		
 	});
 	
 	req.on('error', function(error) {
@@ -98,7 +119,7 @@ var getResource = function(req, res) {
 app.get('/', getProjects);
 
 app.get('/api/:project', getProject);
-app.put('/api/:project', createProject);
+app.post('/api/:project', createProject);
 
 app.get('/api/:project/:resource(*)', getResource);
 app.put('/api/:project/:resource(*)', putResource);

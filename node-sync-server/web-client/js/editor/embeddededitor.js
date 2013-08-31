@@ -24,7 +24,8 @@ define([
 	"orion/editor/editor",
 	"orion/editor/editorFeatures",
 	"orion/editor/contentAssist",
-	"orion/editor/javaContentAssist"],
+	"orion/editor/javaContentAssist",
+	"editor/socket.io"],
 
 function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGrammar, mEditor, mEditorFeatures, mContentAssist, mJavaContentAssist){
 	var editorDomNode = document.getElementById("editor");
@@ -79,12 +80,21 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	
 	var annotationFactory = new mEditorFeatures.AnnotationFactory();
 
-	/*function save(editor) {
-		editor.setInput(null, null, null, true);
+	function save(editor) {
 		setTimeout(function() {
-			window.alert("Save hook.");
+			xhr.open("PUT", "/api/" + filePath, true);
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState == 4) {
+			        if (xhr.status==200) {
+						var response = xhr.responseText;
+			        } else {
+						window.alert("Error during save.");
+			        }
+			    }
+			}
+			xhr.send(editor.getText());
 		}, 0);
-	}*/
+	}
 	
 	var keyBindingFactory = function(editor, keyModeStack, undoStack, contentAssist) {
 		
@@ -99,7 +109,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		// save binding
 		editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding("s", true), "save");
 		editor.getTextView().setAction("save", function(){
-				// save(editor);
+				save(editor);
 				if( editor.__javaObject ) {
 					editor.__javaObject._js_Action("Save");
 				}
@@ -206,5 +216,30 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 		xhr.send();
 	}
+	
+	var socket = io.connect('http://localhost');
+  	socket.on('metadataupdate', function (data) {
+    	console.log(data);
+		if (data.project !== undefined && data.resource !== undefined && data.type !== undefined
+			&& filePath === data.project + "/" + data.resource) {
+			
+			var markers = [];
+			for(i = 0; i < data.type.length; i++) {
+				var lineOffset = editor.getModel().getLineStart(data.type[i].line - 1);
+				
+				console.log(lineOffset);
+				
+				markers[i] = {
+					'description' : data.type[i].description,
+					'line' : data.type[i].line,
+					'severity' : data.type[i].severity,
+					'start' : (data.type[i].start - lineOffset) + 1,
+					'end' : data.type[i].end - lineOffset
+				};
+			}
+			
+			editor.showProblems(markers);
+		}
+  	});
 	
 });

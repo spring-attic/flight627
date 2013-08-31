@@ -6,12 +6,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
 
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
@@ -62,7 +64,7 @@ public class CloudSyncService {
 			break;
 		}
 	}
-
+	
 	public void receivedResourceUpdate(ConnectedProject connectedProject, String resourcePath, int newVersion, String fingerprint) {
 		IProject project = connectedProject.getProject();
 		IResource resource = project.findMember(resourcePath);
@@ -83,7 +85,7 @@ public class CloudSyncService {
 		}
 	}
 
-	private ConnectedProject getProject(IProject project) {
+	public ConnectedProject getProject(IProject project) {
 		try {
 			URL url = new URL(api + project.getName());
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
@@ -103,11 +105,11 @@ public class CloudSyncService {
 		return null;
 	}
 
-	private ConnectedProject createProject(IProject project) {
+	public ConnectedProject createProject(IProject project) {
 		try {
 			URL url = new URL(api + project.getName());
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
-			urlConn.setRequestMethod("PUT");
+			urlConn.setRequestMethod("POST");
 			urlConn.setAllowUserInteraction(false); // no user interaction
 			urlConn.setDoOutput(false);
 			urlConn.setRequestProperty("accept", "application/json");
@@ -124,14 +126,14 @@ public class CloudSyncService {
 		return null;
 	}
 
-	private void putResource(ConnectedProject project, IResource resource) {
+	public void putResource(ConnectedProject project, IResource resource) {
 		if (project == resource)
 			return;
 
 		try {
 			URL url = new URL(api + project.getName() + "/" + resource.getProjectRelativePath());
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
-			urlConn.setRequestMethod("PUT");
+			urlConn.setRequestMethod("POST");
 			urlConn.setAllowUserInteraction(false); // no user interaction
 			urlConn.setDoOutput(true);
 
@@ -155,20 +157,20 @@ public class CloudSyncService {
 		}
 	}
 
-	private void updateResource(ConnectedProject project, IResource resource) {
+	public void updateResource(ConnectedProject project, IResource resource) {
 		if (project == resource)
 			return;
 		if (resource.getType() == IResource.FOLDER)
 			return;
 		if (resource.getType() == IResource.PROJECT)
 			return;
-
-		String resourcePath = resource.getProjectRelativePath().toString();
-
+		
 		try {
+			String resourcePath = resource.getProjectRelativePath().toString();
+
 			URL url = new URL(api + project.getName() + "/" + resourcePath);
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
-			urlConn.setRequestMethod("POST");
+			urlConn.setRequestMethod("PUT");
 			urlConn.setAllowUserInteraction(false); // no user interaction
 			urlConn.setDoOutput(true);
 
@@ -194,8 +196,35 @@ public class CloudSyncService {
 			e.printStackTrace();
 		}
 	}
+	
+	public void updateMetadata(ConnectedProject project, IResource resource) {
+		try {
+			IMarker[] markers = resource.findMarkers(null, true, IResource.DEPTH_INFINITE);
+			String markerJSON = toJSON(markers);
+			
+			URL url = new URL(api + project.getName() + "/" + resource.getProjectRelativePath().toString() + "?meta=marker");
+			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
+			urlConn.setRequestMethod("PUT");
+			urlConn.setAllowUserInteraction(false); // no user interaction
+			urlConn.setDoOutput(true);
 
-	private byte[] getResource(IProject project, String resourcePath) {
+			if (resource instanceof IFile) {
+				PrintWriter output = new PrintWriter(urlConn.getOutputStream());
+				output.write(markerJSON);
+				output.flush();
+			}
+
+			int rspCode = urlConn.getResponseCode();
+			if (rspCode != HttpURLConnection.HTTP_OK) {
+				throw new Exception("error " + rspCode + " while updating resource metadata: " + resource.getProjectRelativePath());
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public byte[] getResource(IProject project, String resourcePath) {
 		try {
 			URL url = new URL(api + project.getName() + "/" + resourcePath);
 			HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
@@ -218,7 +247,7 @@ public class CloudSyncService {
 		return null;
 	}
 
-	private void deleteResource(ConnectedProject project, IResource resource) {
+	public void deleteResource(ConnectedProject project, IResource resource) {
 		if (project == resource)
 			return;
 
@@ -297,6 +326,30 @@ public class CloudSyncService {
 		} catch (Exception e) {
 			return null;
 		}
+	}
+	
+	public String toJSON(IMarker[] markers) {
+		StringBuilder result = new StringBuilder();
+		boolean flag = false;
+		result.append("[");
+		for (IMarker m : markers) {
+			if (flag) {
+				result.append(",");
+			}
+
+			result.append("{");
+			result.append("\"description\":" + JSONObject.quote(m.getAttribute("message", "")));
+			result.append(",\"line\":" + m.getAttribute("lineNumber", 0));
+			result.append(",\"severity\":\"" + (m.getAttribute("severity", IMarker.SEVERITY_WARNING) == IMarker.SEVERITY_ERROR ? "error" : "warning") + "\"");
+			result.append(",\"start\":" + m.getAttribute("charStart", 0));
+			result.append(",\"end\":" + m.getAttribute("charEnd", 0));
+			result.append("}");
+
+			flag = true;
+		}
+		result.append("]");
+		System.err.println(" =========> " + result);
+		return result.toString();
 	}
 
 }
