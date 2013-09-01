@@ -32,7 +32,6 @@ public class CloudSyncController {
 			IOSocket socket = new IOSocket("http://localhost:3000", new MessageCallback() {
 				  @Override
 				  public void on(String event, JSONObject... data) {
-					  System.out.println("message");
 					  if ("resourceupdate".equals(event)) {
 						  updateResource(data[0]);
 					  }
@@ -40,12 +39,10 @@ public class CloudSyncController {
 
 				  @Override
 				  public void onMessage(String message) {
-					  System.out.println("message");
 				  }
 
 				  @Override
 				  public void onMessage(JSONObject message) {
-					  System.out.println("message");
 				  }
 
 				  @Override
