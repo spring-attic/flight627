@@ -70,7 +70,7 @@ ProjectProvider.prototype.updateResource = function(projectName, resourcePath, d
 
 ProjectProvider.prototype.updateMetadata = function(projectName, resourcePath, metadata, type, callback) {
 	if (this.stored[projectName] !== undefined) {
-		console.log('updateResource ' + resourcePath);
+		console.log('updateMetadata ' + resourcePath);
 		var project = this.stored[projectName];
 		var resource = project.resources[resourcePath];
 		
