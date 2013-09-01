@@ -43,7 +43,7 @@ var postResource = function(req, res) {
 	});
 	
 	req.on('end', function() {
-	    projectProvider.putResource(req.params.project, req.params.resource, body, function(error, result) {
+	    projectProvider.createResource(req.params.project, req.params.resource, body, req.headers['resource-type'], function(error, result) {
 			if (error == null) {
 	        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
 			}
@@ -69,10 +69,13 @@ var putResource = function(req, res) {
 				if (error == null) {
 		        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
 
-					io.sockets.emit('metadataupdate', { 'project' : req.params.project,
-														'resource' : req.params.resource,
-														type : metadata
-													  });
+					var metadataMessage = {
+						'project' : req.params.project,
+						'resource' : req.params.resource,
+						'type' : type,
+						'metadata' : metadata
+					};
+					io.sockets.emit('metadataupdate', metadataMessage);
 				}
 				else {
 					res.send(error);
@@ -116,7 +119,7 @@ var getResource = function(req, res) {
 
 // app.use(express.methodOverride());
 
-app.get('/', getProjects);
+app.get('/api', getProjects);
 
 app.get('/api/:project', getProject);
 app.post('/api/:project', createProject);

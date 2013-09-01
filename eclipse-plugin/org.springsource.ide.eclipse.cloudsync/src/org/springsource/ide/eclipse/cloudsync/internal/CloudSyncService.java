@@ -13,6 +13,7 @@ import java.security.MessageDigest;
 
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
@@ -151,12 +152,17 @@ public class CloudSyncService {
 			urlConn.setDoOutput(true);
 
 			if (resource instanceof IFile) {
+				urlConn.setRequestProperty("resource-type", "file");
+				
 				IFile file = (IFile) resource;
 
 				OutputStream outputStream = urlConn.getOutputStream();
 				pipe(file.getContents(), outputStream);
 				outputStream.flush();
 				outputStream.close();
+			}
+			else if (resource instanceof IFolder) {
+				urlConn.setRequestProperty("resource-type", "folder");
 			}
 
 			int rspCode = urlConn.getResponseCode();
@@ -188,6 +194,7 @@ public class CloudSyncService {
 			urlConn.setDoOutput(true);
 
 			if (resource instanceof IFile) {
+				urlConn.setRequestProperty("resource-type", "file");
 				IFile file = (IFile) resource;
 
 				OutputStream outputStream = urlConn.getOutputStream();
@@ -224,11 +231,9 @@ public class CloudSyncService {
 			urlConn.setAllowUserInteraction(false); // no user interaction
 			urlConn.setDoOutput(true);
 
-			if (resource instanceof IFile) {
-				PrintWriter output = new PrintWriter(urlConn.getOutputStream());
-				output.write(markerJSON);
-				output.flush();
-			}
+			PrintWriter output = new PrintWriter(urlConn.getOutputStream());
+			output.write(markerJSON);
+			output.flush();
 
 			int rspCode = urlConn.getResponseCode();
 			if (rspCode != HttpURLConnection.HTTP_OK) {

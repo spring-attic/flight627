@@ -220,21 +220,21 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	var socket = io.connect('http://localhost');
   	socket.on('metadataupdate', function (data) {
     	console.log(data);
-		if (data.project !== undefined && data.resource !== undefined && data.type !== undefined
+		if (data.project !== undefined && data.resource !== undefined && data.metadata !== undefined && data.type === 'marker'
 			&& filePath === data.project + "/" + data.resource) {
 			
 			var markers = [];
-			for(i = 0; i < data.type.length; i++) {
-				var lineOffset = editor.getModel().getLineStart(data.type[i].line - 1);
+			for(i = 0; i < data.metadata.length; i++) {
+				var lineOffset = editor.getModel().getLineStart(data.metadata[i].line - 1);
 				
 				console.log(lineOffset);
 				
 				markers[i] = {
-					'description' : data.type[i].description,
-					'line' : data.type[i].line,
-					'severity' : data.type[i].severity,
-					'start' : (data.type[i].start - lineOffset) + 1,
-					'end' : data.type[i].end - lineOffset
+					'description' : data.metadata[i].description,
+					'line' : data.metadata[i].line,
+					'severity' : data.metadata[i].severity,
+					'start' : (data.metadata[i].start - lineOffset) + 1,
+					'end' : data.metadata[i].end - lineOffset
 				};
 			}
 			
