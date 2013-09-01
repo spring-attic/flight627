@@ -51,16 +51,28 @@ public class CloudSyncService {
 		if (resource != null && resource.isDerived(IResource.CHECK_ANCESTORS)) {
 			return;
 		}
-
+		
 		switch (delta.getKind()) {
 		case IResourceDelta.ADDED:
-			putResource(project, resource);
+			createResource(project, resource);
 			break;
 		case IResourceDelta.REMOVED:
 			deleteResource(project, resource);
 			break;
 		case IResourceDelta.CHANGED:
-			updateResource(project, resource);
+			if (resource != null && resource instanceof IFile) {
+				IFile file = (IFile) resource;
+				String checksum = checksum(file);
+				String updateChecksum = project.getLastFingerprint(resource.getProjectRelativePath().toString());
+				
+				if (updateChecksum == null || (checksum != null && !checksum.equals(updateChecksum))) {
+					updateResource(project, resource);
+				}
+			}
+			else {
+				updateResource(project, resource);
+			}
+
 			break;
 		}
 	}
@@ -76,8 +88,9 @@ public class CloudSyncService {
 			if (checksum != null && !checksum.equals(fingerprint)) {
 				try {
 					byte[] newResourceContent = getResource(project, resourcePath);
-					file.setContents(new ByteArrayInputStream(newResourceContent), true, true, null);
 					connectedProject.setVersion(resourcePath, newVersion);
+					connectedProject.setFingerprint(resourcePath, fingerprint);
+					file.setContents(new ByteArrayInputStream(newResourceContent), true, true, null);
 				} catch (CoreException e) {
 					e.printStackTrace();
 				}
@@ -126,7 +139,7 @@ public class CloudSyncService {
 		return null;
 	}
 
-	public void putResource(ConnectedProject project, IResource resource) {
+	public void createResource(ConnectedProject project, IResource resource) {
 		if (project == resource)
 			return;
 
@@ -191,7 +204,10 @@ public class CloudSyncService {
 			JSONObject returnJSONObject = new JSONObject(tokener);
 
 			int newVersion = returnJSONObject.getInt("newversion");
+			String fingerprint = returnJSONObject.getString("fingerprint");
 			project.setVersion(resourcePath, newVersion);
+			project.setFingerprint(resourcePath, fingerprint);
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -289,7 +305,7 @@ public class CloudSyncService {
 					System.out.println("upload resource: " + resource.getName());
 					IProject project = resource.getProject();
 					if (project != null) {
-						putResource(connectedProject, resource);
+						createResource(connectedProject, resource);
 					}
 					return true;
 				}

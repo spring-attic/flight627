@@ -9,11 +9,13 @@ import org.eclipse.core.resources.IProject;
 public class ConnectedProject {
 	
 	private IProject project;
-	private Map<String, Integer> resourceVersions; 
+	private Map<String, Integer> resourceVersions;
+	private Map<String, String> resourceFingerprints; 
 	
 	public ConnectedProject(IProject project) {
 		this.project = project;
 		this.resourceVersions = new ConcurrentHashMap<String, Integer>();
+		this.resourceFingerprints = new ConcurrentHashMap<String, String>();
 	}
 	
 	public IProject getProject() {
@@ -34,6 +36,14 @@ public class ConnectedProject {
 	
 	public int getVersion(String resourcePath) {
 		return this.resourceVersions.get(resourcePath);
+	}
+
+	public void setFingerprint(String resourcePath, String fingerprint) {
+		this.resourceFingerprints.put(resourcePath, fingerprint);
+	}
+	
+	public String getLastFingerprint(String resourcePath) {
+		return this.resourceFingerprints.get(resourcePath);
 	}
 
 }
