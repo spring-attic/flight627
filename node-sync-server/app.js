@@ -137,6 +137,21 @@ io.set('transports', ['websocket']);
 
 io.sockets.on('connection', function (socket) {
 	console.log('client connected for update notifications');
+	
+	socket.on('startedediting', function(data) {
+		console.log('startedediting' + data);
+		socket.broadcast.emit('startedediting', data);
+	});
+
+	socket.on('modelchanged', function(data) {
+		console.log('modelchanged' + data);
+		socket.broadcast.emit('modelchanged', data);
+	});
+
+	socket.on('livemetadata', function(data) {
+		console.log('livemetadata' + data);
+		socket.broadcast.emit('livemetadata', data);
+	});
 
 	socket.on('disconnect', function () {
 		console.log('client disconnected from update notifications');

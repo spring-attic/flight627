@@ -165,17 +165,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	
 	editor.installTextView();
 	
-	editor.getTextView().addEventListener("Modify", function(evt) {
-		if( editor.getTextView().__javaObject ) {
-			editor.getTextView().__javaObject._js_Event("Modify","orion.textview.ModifyEvent",evt);
-		}
-	});
-	editor.getTextView().addEventListener("ModelChanged", function(evt) {
-		if( editor.getTextView().__javaObject ) {
-			editor.getTextView().__javaObject._js_Event("ModelChanged","orion.textview.ModelChangedEvent",evt);
-		}
-	});
-	
 	// if there is a mechanism to change which file is being viewed, this code would be run each time it changed.
 	var contentName = "sample.java";  // for example, a file name, something the user recognizes as the content.
 	var initialContent = "window.alert('this is some javascript code');  // try pasting in some real code";
@@ -199,27 +188,8 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 	};
 	
-	var xhr = new XMLHttpRequest();
-
-	var filePath = window.location.href.split('#')[1];
-	if (filePath !== undefined) {
-		xhr.open("GET", "/api/" + filePath, true);
-		xhr.onreadystatechange = function() {
-			if (xhr.readyState == 4) {
-		        if (xhr.status==200) {
-					var response = xhr.responseText;
-					editor.setInput("HomeController.java", null, response);
-		        } else {
-					editor.setInput("Error", null, xhr.status);
-		        }
-		    }
-		}
-		xhr.send();
-	}
-	
 	var socket = io.connect('http://localhost');
   	socket.on('metadataupdate', function (data) {
-    	console.log(data);
 		if (data.project !== undefined && data.resource !== undefined && data.metadata !== undefined && data.type === 'marker'
 			&& filePath === data.project + "/" + data.resource) {
 			
@@ -241,5 +211,66 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			editor.showProblems(markers);
 		}
   	});
+	
+  	socket.on('livemetadata', function (data) {
+		if (data.resource !== undefined && data.problems !== undefined && filePath === data.resource) {
+			var markers = [];
+			for(i = 0; i < data.problems.length; i++) {
+				var lineOffset = editor.getModel().getLineStart(data.problems[i].line - 1);
+				
+				console.log(lineOffset);
+				
+				markers[i] = {
+					'description' : data.problems[i].description,
+					'line' : data.problems[i].line,
+					'severity' : data.problems[i].severity,
+					'start' : (data.problems[i].start - lineOffset) + 1,
+					'end' : data.problems[i].end - lineOffset
+				};
+			}
+			
+			editor.showProblems(markers);
+		}
+    	console.log(data);
+  	});
+	
+	var xhr = new XMLHttpRequest();
+
+	var filePath = window.location.href.split('#')[1];
+	if (filePath !== undefined) {
+		xhr.open("GET", "/api/" + filePath, true);
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState == 4) {
+		        if (xhr.status==200) {
+					var response = xhr.responseText;
+					editor.setInput("HomeController.java", null, response);
+					socket.emit('startedediting', {'resource' : filePath})
+					
+					editor.getTextView().addEventListener("ModelChanged", function(evt) {
+						console.log(evt);
+						
+						var changeData = {
+										'resource' : filePath,
+										'start' : evt.start,
+										'addedCharCount' : evt.addedCharCount,
+										'addedLineCount' : evt.addedLineCount,
+										'removedCharCount' : evt.removedCharCount,
+										'removedLineCount' : evt.removedLineCount
+										};
+										
+						if (evt.addedCharCount > 0) {
+							var addedText = editor.getModel().getText(evt.start, evt.start + evt.addedCharCount);
+							changeData.addedCharacters = addedText;
+						}
+						
+						socket.emit('modelchanged', changeData);
+					});
+		        } else {
+					editor.setInput("Error", null, xhr.status);
+		        }
+		    }
+		}
+		xhr.send();
+	}
 	
 });
