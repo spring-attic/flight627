@@ -153,6 +153,16 @@ io.sockets.on('connection', function (socket) {
 		socket.broadcast.emit('livemetadata', data);
 	});
 
+	socket.on('contentassistrequest', function(data) {
+		console.log('contentassistrequest' + data);
+		socket.broadcast.emit('contentassistrequest', data);
+	});
+
+	socket.on('contentassistresponse', function(data) {
+		console.log('contentassistresponse' + data);
+		socket.broadcast.emit('contentassistresponse', data);
+	});
+
 	socket.on('disconnect', function () {
 		console.log('client disconnected from update notifications');
 	});

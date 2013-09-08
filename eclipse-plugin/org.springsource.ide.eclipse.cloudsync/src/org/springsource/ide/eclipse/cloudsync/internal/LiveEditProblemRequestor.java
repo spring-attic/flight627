@@ -85,10 +85,7 @@ public class LiveEditProblemRequestor implements IProblemRequestor {
 			result.append(",\"severity\":\"" + (problem.isError() ? "error" : "warning") + "\"");
 			result.append(",\"start\":" + problem.getSourceStart());
 			
-			int end = problem.getSourceEnd();
-			if (end == problem.getSourceStart()) {
-				end++;
-			}
+			int end = problem.getSourceEnd() + 1;
 			
 			result.append(",\"end\":" + end);
 			result.append("}");

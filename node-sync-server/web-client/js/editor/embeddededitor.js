@@ -46,7 +46,9 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 	};
 	
-	var javaContentAssistProvider = new mJavaContentAssist.JavaContentAssistProvider();
+	var socket = io.connect('http://localhost');
+	var javaContentAssistProvider = new mJavaContentAssist.JavaContentAssistProvider(socket);
+	javaContentAssistProvider.setSocket(socket);
 	
 	// Canned highlighters for js, java, and css. Grammar-based highlighter for html
 	var syntaxHighlighter = {
@@ -110,9 +112,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding("s", true), "save");
 		editor.getTextView().setAction("save", function(){
 				save(editor);
-				if( editor.__javaObject ) {
-					editor.__javaObject._js_Action("Save");
-				}
 				return true;
 		});
 		
@@ -125,10 +124,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	var status = "";
 	
 	var statusReporter = function(message, isError) {
-		if( editor.__javaObject ) {
-			editor.__javaObject._js_StatusReporter(message, isError);
-		}
-		
 		/*if (isError) {
 			status =  "ERROR: " + message;
 		} else {
@@ -153,10 +148,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			dirtyIndicator = "*";
 		} else {
 			dirtyIndicator = "";
-		}
-		
-		if( editor.__javaObject ) {
-			editor.__javaObject._js_Event("DirtyChanged", "Event", evt);
 		}
 		
 		// alert("Dirty changes: " + editor.__javaObject);
@@ -188,7 +179,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 	};
 	
-	var socket = io.connect('http://localhost');
   	socket.on('metadataupdate', function (data) {
 		if (data.project !== undefined && data.resource !== undefined && data.metadata !== undefined && data.type === 'marker'
 			&& filePath === data.project + "/" + data.resource) {
@@ -244,6 +234,9 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		        if (xhr.status==200) {
 					var response = xhr.responseText;
 					editor.setInput("HomeController.java", null, response);
+					
+					javaContentAssistProvider.setResourcePath(filePath);
+					
 					socket.emit('startedediting', {'resource' : filePath})
 					
 					editor.getTextView().addEventListener("ModelChanged", function(evt) {

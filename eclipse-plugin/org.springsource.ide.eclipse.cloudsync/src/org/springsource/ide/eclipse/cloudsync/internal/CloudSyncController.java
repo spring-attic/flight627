@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.springsource.ide.eclipse.cloudsync.internal;
 
+import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -24,6 +25,7 @@ import org.eclipse.jdt.core.IProblemRequestor;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.WorkingCopyOwner;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -64,6 +66,9 @@ public class CloudSyncController {
 					  }
 					  else if ("modelchanged".equals(event)) {
 						  modelChanged(data[0]);
+					  }
+					  else if ("contentassistrequest".equals(event)) {
+						  contentAssistRequest(data[0]);
 					  }
 				  }
 
@@ -155,6 +160,33 @@ public class CloudSyncController {
 				}
 			}
 		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+
+	protected void contentAssistRequest(JSONObject jsonObject) {
+		try {
+			String resourcePath = jsonObject.getString("resource");
+			int callbackID = jsonObject.getInt("callback_id");
+			if (liveEditUnits.containsKey(resourcePath)) {
+				
+				ContentAssistService assistService = new ContentAssistService(resourcePath, liveEditUnits.get(resourcePath));
+
+				int offset = jsonObject.getInt("offset");
+				String proposalsSource = assistService.compute(offset);
+
+				JSONObject message = new JSONObject();
+				message.put("resource", resourcePath);
+				message.put("callback_id", callbackID);
+				
+				JSONArray proposals = new JSONArray(proposalsSource);
+				message.put("proposals", proposals);
+				
+				socket.emit("contentassistresponse", message);
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
