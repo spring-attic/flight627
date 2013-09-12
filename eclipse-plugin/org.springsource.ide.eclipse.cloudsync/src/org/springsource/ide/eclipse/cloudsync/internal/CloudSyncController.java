@@ -10,9 +10,15 @@
  *******************************************************************************/
 package org.springsource.ide.eclipse.cloudsync.internal;
 
-import java.io.IOException;
+import io.socket.IOAcknowledge;
+import io.socket.IOCallback;
+import io.socket.SocketIO;
+import io.socket.SocketIOException;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import javax.net.ssl.SSLContext;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -29,18 +35,23 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.clwillingham.socket.io.IOSocket;
-import com.clwillingham.socket.io.MessageCallback;
-
 /**
  * @author Martin Lippert
  */
 public class CloudSyncController {
-	
+
+	static {
+		javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(new javax.net.ssl.HostnameVerifier() {
+			public boolean verify(String hostname, javax.net.ssl.SSLSession sslSession) {
+				return true;
+			}
+		});
+	}
+
 	private CloudSyncService syncService;
 	private ConcurrentMap<IProject, ConnectedProject> syncedProjects;
 	private ConcurrentMap<String, ICompilationUnit> liveEditUnits;
-	private IOSocket socket;
+	private SocketIO socket;
 
 	public CloudSyncController() {
 		String host = System.getProperty("flight627-host", "http://localhost:3000");
@@ -48,60 +59,68 @@ public class CloudSyncController {
 		this.syncService = new CloudSyncService(host + "/api/");
 		this.syncedProjects = new ConcurrentHashMap<IProject, ConnectedProject>();
 		this.liveEditUnits = new ConcurrentHashMap<String, ICompilationUnit>();
-		
+
 		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(this, this.syncService);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(resourceListener, IResourceChangeEvent.POST_CHANGE);
-		
+
 		CloudSyncMetadataListener metadataListener = new CloudSyncMetadataListener(this, this.syncService);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(metadataListener, IResourceChangeEvent.POST_BUILD);
-		
+
 		try {
-			socket = new IOSocket(host, new MessageCallback() {
-				  @Override
-				  public void on(String event, JSONObject... data) {
-					  System.out.println("websocket message arrived: " + event);
-					  if ("resourceupdate".equals(event)) {
-						  updateResource(data[0]);
-					  }
-					  else if ("startedediting".equals(event)) {
-						  startedEditing(data[0]);
-					  }
-					  else if ("modelchanged".equals(event)) {
-						  modelChanged(data[0]);
-					  }
-					  else if ("contentassistrequest".equals(event)) {
-						  contentAssistRequest(data[0]);
-					  }
-				  }
+			SocketIO.setDefaultSSLSocketFactory(SSLContext.getInstance("Default"));
+			socket = new SocketIO(host);
+			socket.connect(new IOCallback() {
 
-				  @Override
-				  public void onMessage(String message) {
-					  System.out.println("websocket message arrived: " + message);
-				  }
+				@Override
+				public void onMessage(JSONObject arg0, IOAcknowledge arg1) {
+					System.out.println("websocket message arrived");
+				}
 
-				  @Override
-				  public void onMessage(JSONObject message) {
-					  System.out.println("websocket message arrived with pure message object");
-				  }
+				@Override
+				public void onMessage(String arg0, IOAcknowledge arg1) {
+					System.out.println("websocket message arrived");
+				}
 
-				  @Override
-				  public void onConnect() {
-					  System.out.println("websocket connected");
-				  }
+				@Override
+				public void onError(SocketIOException ex) {
+					System.out.println("websocket error");
+					ex.printStackTrace();
+				}
 
-				  @Override
-				  public void onDisconnect() {
-					  System.out.println("websocket disconnected");
-				  }
-				});
+				@Override
+				public void onDisconnect() {
+					System.out.println("websocket disconnect");
+				}
 
-			socket.connect();			
+				@Override
+				public void onConnect() {
+					System.out.println("websocket connect");
+				}
 
+				@Override
+				public void on(String event, IOAcknowledge ack, Object... data) {
+					System.out.println("websocket message arrived: " + event);
+
+					if (data.length == 1 && data[0] instanceof JSONObject) {
+						if ("resourceupdate".equals(event)) {
+							updateResource((JSONObject) data[0]);
+						} else if ("startedediting".equals(event)) {
+							startedEditing((JSONObject) data[0]);
+						} else if ("modelchanged".equals(event)) {
+							modelChanged((JSONObject) data[0]);
+						} else if ("contentassistrequest".equals(event)) {
+							contentAssistRequest((JSONObject) data[0]);
+						}
+					} else {
+						System.out.println("unknown data on websocket");
+					}
+				}
+			});
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	protected void modelChanged(JSONObject jsonObject) {
 		try {
 			String resourcePath = jsonObject.getString("resource");
@@ -110,25 +129,24 @@ public class CloudSyncController {
 				ICompilationUnit unit = liveEditUnits.get(resourcePath);
 				try {
 					IBuffer buffer = unit.getBuffer();
-					
+
 					int start = jsonObject.getInt("start");
 					int addedCharCount = jsonObject.getInt("addedCharCount");
 					int removedCharCount = jsonObject.getInt("removedCharCount");
-					
-					String addedChars = jsonObject.has("addedCharacters") ? jsonObject.getString("addedCharacters") : ""; 
-					
+
+					String addedChars = jsonObject.has("addedCharacters") ? jsonObject.getString("addedCharacters") : "";
+
 					if (removedCharCount > 0) {
 						buffer.replace(start, removedCharCount, "");
 						unit.reconcile(ICompilationUnit.NO_AST, true, null, null);
-					}
-					else if (addedCharCount > 0) {
+					} else if (addedCharCount > 0) {
 						buffer.replace(start, 0, addedChars);
 						unit.reconcile(ICompilationUnit.NO_AST, true, null, null);
 					}
 				} catch (JavaModelException e) {
 					e.printStackTrace();
 				}
-				
+
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -146,18 +164,18 @@ public class CloudSyncController {
 				if (project != null && isConnected(project)) {
 					IFile file = project.getFile(relativeResourcePath);
 					if (file != null) {
-							try {
-								final LiveEditProblemRequestor liveEditProblemRequestor = new LiveEditProblemRequestor(socket, resourcePath);
-								ICompilationUnit unit = ((ICompilationUnit) JavaCore.create(file)).getWorkingCopy(new WorkingCopyOwner() {
-									@Override
-									public IProblemRequestor getProblemRequestor(ICompilationUnit workingCopy) {
-										return liveEditProblemRequestor;
-									}
-								}, new NullProgressMonitor());
-								liveEditUnits.put(resourcePath, unit);
-							} catch (JavaModelException e) {
-								e.printStackTrace();
-							}
+						try {
+							final LiveEditProblemRequestor liveEditProblemRequestor = new LiveEditProblemRequestor(socket, resourcePath);
+							ICompilationUnit unit = ((ICompilationUnit) JavaCore.create(file)).getWorkingCopy(new WorkingCopyOwner() {
+								@Override
+								public IProblemRequestor getProblemRequestor(ICompilationUnit workingCopy) {
+									return liveEditProblemRequestor;
+								}
+							}, new NullProgressMonitor());
+							liveEditUnits.put(resourcePath, unit);
+						} catch (JavaModelException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}
@@ -171,7 +189,7 @@ public class CloudSyncController {
 			String resourcePath = jsonObject.getString("resource");
 			int callbackID = jsonObject.getInt("callback_id");
 			if (liveEditUnits.containsKey(resourcePath)) {
-				
+
 				ContentAssistService assistService = new ContentAssistService(resourcePath, liveEditUnits.get(resourcePath));
 
 				int offset = jsonObject.getInt("offset");
@@ -180,15 +198,13 @@ public class CloudSyncController {
 				JSONObject message = new JSONObject();
 				message.put("resource", resourcePath);
 				message.put("callback_id", callbackID);
-				
+
 				JSONArray proposals = new JSONArray(proposalsSource);
 				message.put("proposals", proposals);
-				
+
 				socket.emit("contentassistresponse", message);
 			}
 		} catch (JSONException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
@@ -199,7 +215,7 @@ public class CloudSyncController {
 			String updatedResource = jsonObject.getString("resource");
 			int newVersion = jsonObject.getInt("newversion");
 			String fingerprint = jsonObject.getString("fingerprint");
-			
+
 			IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(projectName);
 			if (project != null && isConnected(project)) {
 				ConnectedProject connectedProject = getProject(project);
@@ -222,8 +238,7 @@ public class CloudSyncController {
 		try {
 			ConnectedProject connected = this.syncService.connect(project);
 			this.syncedProjects.putIfAbsent(project, connected);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 		}
 	}
 
@@ -231,8 +246,7 @@ public class CloudSyncController {
 		try {
 			this.syncService.disconnect(project);
 			this.syncedProjects.remove(project);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 		}
 	}
 

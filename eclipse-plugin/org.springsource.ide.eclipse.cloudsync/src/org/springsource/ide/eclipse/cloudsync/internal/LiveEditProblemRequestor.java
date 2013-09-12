@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.springsource.ide.eclipse.cloudsync.internal;
 
+import io.socket.SocketIO;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,18 +20,16 @@ import org.eclipse.jdt.core.compiler.IProblem;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import com.clwillingham.socket.io.IOSocket;
-
 /**
  * @author Martin Lippert
  */
 public class LiveEditProblemRequestor implements IProblemRequestor {
 
-	private IOSocket socket;
+	private SocketIO socket;
 	private String resourcePath;
 	private List<IProblem> problems;
 
-	public LiveEditProblemRequestor(IOSocket socket, String resourcePath) {
+	public LiveEditProblemRequestor(SocketIO socket, String resourcePath) {
 		this.socket = socket;
 		this.resourcePath = resourcePath;
 		this.problems = new ArrayList<IProblem>();

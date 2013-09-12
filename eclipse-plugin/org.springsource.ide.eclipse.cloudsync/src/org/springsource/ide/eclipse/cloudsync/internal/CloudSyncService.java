@@ -14,13 +14,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
 
+import org.apache.commons.io.IOUtils;
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.resources.IContainer;
@@ -167,6 +167,8 @@ public class CloudSyncService {
 	public void createResource(ConnectedProject project, IResource resource) {
 		if (project == resource)
 			return;
+		if (resource.getType() == IResource.PROJECT)
+			return;
 
 		try {
 			URL url = new URL(api + project.getName() + "/" + resource.getProjectRelativePath());
@@ -249,7 +251,8 @@ public class CloudSyncService {
 				System.err.println(urlConn.getResponseMessage());
 			}
 
-			JSONTokener tokener = new JSONTokener(new InputStreamReader(urlConn.getInputStream()));
+			String result = IOUtils.toString(urlConn.getInputStream());
+			JSONTokener tokener = new JSONTokener(result);
 			JSONObject returnJSONObject = new JSONObject(tokener);
 
 			int newVersion = returnJSONObject.getInt("newversion");
