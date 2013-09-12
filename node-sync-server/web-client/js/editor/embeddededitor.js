@@ -46,7 +46,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 	};
 	
-	var socket = io.connect('http://localhost');
+	var socket = io.connect();
 	var javaContentAssistProvider = new mJavaContentAssist.JavaContentAssistProvider(socket);
 	javaContentAssistProvider.setSocket(socket);
 	

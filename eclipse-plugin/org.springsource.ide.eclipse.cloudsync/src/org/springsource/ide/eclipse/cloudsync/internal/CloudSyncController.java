@@ -43,7 +43,9 @@ public class CloudSyncController {
 	private IOSocket socket;
 
 	public CloudSyncController() {
-		this.syncService = new CloudSyncService("http://localhost:3000/api/");
+		String host = System.getProperty("flight627-host", "http://localhost:3000");
+
+		this.syncService = new CloudSyncService(host + "/api/");
 		this.syncedProjects = new ConcurrentHashMap<IProject, ConnectedProject>();
 		this.liveEditUnits = new ConcurrentHashMap<String, ICompilationUnit>();
 		
@@ -54,7 +56,7 @@ public class CloudSyncController {
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(metadataListener, IResourceChangeEvent.POST_BUILD);
 		
 		try {
-			socket = new IOSocket("http://localhost:3000", new MessageCallback() {
+			socket = new IOSocket(host, new MessageCallback() {
 				  @Override
 				  public void on(String event, JSONObject... data) {
 					  System.out.println("websocket message arrived: " + event);

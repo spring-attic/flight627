@@ -21,6 +21,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
 
+import org.eclipse.core.filesystem.EFS;
+import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -125,6 +127,10 @@ public class CloudSyncService {
 			if (rspCode == HttpURLConnection.HTTP_OK) {
 				return ConnectedProject.readFromJSON(urlConn.getInputStream(), project);
 			}
+			else {
+				System.err.println("getProject returned: " + rspCode);
+				System.err.println(urlConn.getResponseMessage());
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -140,11 +146,16 @@ public class CloudSyncService {
 			urlConn.setAllowUserInteraction(false); // no user interaction
 			urlConn.setDoOutput(false);
 			urlConn.setRequestProperty("accept", "application/json");
+			urlConn.setRequestProperty( "Content-Length", "0");
 
 			int rspCode = urlConn.getResponseCode();
 
 			if (rspCode == HttpURLConnection.HTTP_OK) {
 				return ConnectedProject.readFromJSON(urlConn.getInputStream(), project);
+			}
+			else {
+				System.err.println("createProject returned: " + rspCode);
+				System.err.println(urlConn.getResponseMessage());
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -165,6 +176,9 @@ public class CloudSyncService {
 			urlConn.setDoOutput(true);
 
 			if (resource instanceof IFile) {
+				IFileStore store = EFS.getStore(resource.getLocationURI());
+				long length = store.fetchInfo().getLength();
+				urlConn.setRequestProperty("Content-Length", String.valueOf(length));
 				urlConn.setRequestProperty("resource-type", "file");
 				
 				IFile file = (IFile) resource;
@@ -175,12 +189,17 @@ public class CloudSyncService {
 				outputStream.close();
 			}
 			else if (resource instanceof IFolder) {
+				urlConn.setRequestProperty( "Content-Length", "0");
 				urlConn.setRequestProperty("resource-type", "folder");
 			}
-
+			
 			int rspCode = urlConn.getResponseCode();
 			if (rspCode != HttpURLConnection.HTTP_OK) {
 				throw new Exception("error " + rspCode + " while putting resource: " + resource.getProjectRelativePath());
+			}
+			else {
+				System.err.println("createResource returned: " + rspCode);
+				System.err.println(urlConn.getResponseMessage());
 			}
 
 			project.setVersion(resource.getProjectRelativePath().toString(), 0);
@@ -207,6 +226,9 @@ public class CloudSyncService {
 			urlConn.setDoOutput(true);
 
 			if (resource instanceof IFile) {
+				IFileStore store = EFS.getStore(resource.getLocationURI());
+				long length = store.fetchInfo().getLength();
+				urlConn.setRequestProperty( "Content-Length", String.valueOf(length));
 				urlConn.setRequestProperty("resource-type", "file");
 				IFile file = (IFile) resource;
 
@@ -214,10 +236,17 @@ public class CloudSyncService {
 				pipe(file.getContents(), outputStream);
 				outputStream.flush();
 			}
+			else {
+				urlConn.setRequestProperty( "Content-Length", "0");
+			}
 
 			int rspCode = urlConn.getResponseCode();
 			if (rspCode != HttpURLConnection.HTTP_OK) {
 				throw new Exception("error " + rspCode + " while updating resource: " + resource.getProjectRelativePath());
+			}
+			else {
+				System.err.println("updateResource returned: " + rspCode);
+				System.err.println(urlConn.getResponseMessage());
 			}
 
 			JSONTokener tokener = new JSONTokener(new InputStreamReader(urlConn.getInputStream()));
@@ -244,6 +273,8 @@ public class CloudSyncService {
 			urlConn.setAllowUserInteraction(false); // no user interaction
 			urlConn.setDoOutput(true);
 
+			urlConn.setRequestProperty( "Content-Length", String.valueOf(markerJSON.length()));
+
 			PrintWriter output = new PrintWriter(urlConn.getOutputStream());
 			output.write(markerJSON);
 			output.flush();
@@ -251,6 +282,10 @@ public class CloudSyncService {
 			int rspCode = urlConn.getResponseCode();
 			if (rspCode != HttpURLConnection.HTTP_OK) {
 				throw new Exception("error " + rspCode + " while updating resource metadata: " + resource.getProjectRelativePath());
+			}
+			else {
+				System.err.println("updateMetadata returned: " + rspCode);
+				System.err.println(urlConn.getResponseMessage());
 			}
 
 		} catch (Exception e) {
@@ -273,6 +308,10 @@ public class CloudSyncService {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				pipe(urlConn.getInputStream(), bos);
 				return bos.toByteArray();
+			}
+			else {
+				System.err.println("getResource returned: " + rspCode);
+				System.err.println(urlConn.getResponseMessage());
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -297,6 +336,10 @@ public class CloudSyncService {
 
 			if (rspCode != HttpURLConnection.HTTP_OK) {
 				throw new Exception("error " + rspCode + " while deleting resource: " + resource.getProjectRelativePath());
+			}
+			else {
+				System.err.println("deleteResource returned: " + rspCode);
+				System.err.println(urlConn.getResponseMessage());
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

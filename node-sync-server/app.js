@@ -1,8 +1,6 @@
 
-var express = require('express')
-  , app = express()
-  , server = app.listen(3000)
-  , io = require('socket.io').listen(server);
+var express = require('express');
+var app = express();
 
 var ProjectProvider = require('./project-provider').ProjectProvider;
 var projectProvider = new ProjectProvider();
@@ -130,8 +128,14 @@ app.post('/api/:project/:resource(*)', postResource);
 
 app.use("/client", express.static(__dirname + '/web-client'));
 
-// server.listen(3000);
-console.log('Express server started on port 3000');
+var host = process.env.VCAP_APP_HOST || 'localhost';
+var port = process.env.VCAP_APP_PORT || '3000';
+
+var server = app.listen(port, host);
+var io = require('socket.io').listen(server);
+
+
+console.log('Express server started on port ' + port);
 
 io.set('transports', ['websocket']);
 

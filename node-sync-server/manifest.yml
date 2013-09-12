@@ -1,0 +1,9 @@
+---
+applications:
+- name: flight627
+  memory: 256M
+  instances: 1
+  host: flight627
+  domain: cfapps.io
+  path: .
+  command: node app.js

@@ -1,0 +1,11 @@
+{
+  "name": "flight627-server",
+  "preferGlobal": true,
+  "version": "0.1.0",
+  "author": "Martin Lippert <mlippert@gopivotal.com>",
+  "description": "prototype work",
+  "dependencies" : {
+    "express"    :  "3.0.x",
+    "socket.io" :  "0.9.x"
+  }
+}
