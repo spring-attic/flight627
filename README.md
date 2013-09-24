@@ -57,6 +57,27 @@
 
   The sync backbone provides a RESTful API to access and change resources and metadata. Additional communication
   (announcing changes, sending around metadata) is implemented using WebSockets.
+  
+## Running the prototype
+
+  The node.js-based server can be found in the "node-sync-server" folder. In that folder, you can start the
+  node app:
+  
+  ```
+  node app.js
+  ```
+  
+  The Eclipse plugin can be found in the folder "eclipse-plugin" and is just an Eclipse project at the moment.
+  That means you have to import it into a workspace and start a runtime workbench from there.
+  
+  In case you target the locally running node server, you don't have to specify anything. The node server will
+  listen on port 3000 and the Eclipse plugin will use http://localhost:3000 for all the server
+  communication. In case you have the server running somewhere else, you can set this system property in the
+  launch config of your runtime workbench to direct the plugin towards the right server:
+  
+  ```
+  -Dflight627-host=https://flight627.cfapps.io:4443
+  ```
 
 ## Status
 
