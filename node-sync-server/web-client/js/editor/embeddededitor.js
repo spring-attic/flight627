@@ -181,7 +181,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 	};
 	
-  	socket.on('metadataupdate', function (data) {
+  	socket.on('metadataChanged', function (data) {
 		if (data.project !== undefined && data.resource !== undefined && data.metadata !== undefined && data.type === 'marker'
 			&& filePath === data.project + "/" + data.resource) {
 			

@@ -16,12 +16,27 @@ exports.MessageCore = MessageCore;
 MessageCore.prototype.initialize = function(socket, sockets) {
 	console.log('client connected for update notifications');
 	
+	this.configureBroadcast(socket, 'projectCreated');
+	this.configureBroadcast(socket, 'projectDeleted');
+
+	this.configureBroadcast(socket, 'resourceCreated');
+	this.configureBroadcast(socket, 'resourceChanged');
+	this.configureBroadcast(socket, 'resourceDeleted');
+
+	this.configureRequest(socket, 'getProjectsRequest');
+	this.configureRequest(socket, 'getProjectRequest');
+	this.configureRequest(socket, 'getResourceRequest');
+	this.configureResponse(socket, sockets, 'getProjectsResponse');
+	this.configureResponse(socket, sockets, 'getProjectResponse');
+	this.configureResponse(socket, sockets, 'getResourceResponse');
+
 	this.configureBroadcast(socket, 'startedediting');
 	this.configureBroadcast(socket, 'modelchanged');
 	this.configureBroadcast(socket, 'livemetadata');
+	
 	this.configureRequest(socket, 'contentassistrequest');
 	this.configureResponse(socket, sockets, 'contentassistresponse');
-
+	
 	socket.on('disconnect', function () {
 		console.log('client disconnected from update notifications');
 	});

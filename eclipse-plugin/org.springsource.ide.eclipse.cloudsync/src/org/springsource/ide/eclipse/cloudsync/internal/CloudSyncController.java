@@ -52,6 +52,7 @@ public class CloudSyncController {
 	private ConcurrentMap<IProject, ConnectedProject> syncedProjects;
 	private ConcurrentMap<String, ICompilationUnit> liveEditUnits;
 	private SocketIO socket;
+	private CloudRepository cloudRepository;
 
 	public CloudSyncController() {
 		String host = System.getProperty("flight627-host", "http://localhost:3000");
@@ -65,6 +66,8 @@ public class CloudSyncController {
 
 		CloudSyncMetadataListener metadataListener = new CloudSyncMetadataListener(this, this.syncService);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(metadataListener, IResourceChangeEvent.POST_BUILD);
+		
+		cloudRepository = new CloudRepository();
 
 		try {
 			SocketIO.setDefaultSSLSocketFactory(SSLContext.getInstance("Default"));
@@ -90,11 +93,13 @@ public class CloudSyncController {
 				@Override
 				public void onDisconnect() {
 					System.out.println("websocket disconnect");
+					cloudRepository.disconnect();
 				}
 
 				@Override
 				public void onConnect() {
 					System.out.println("websocket connect");
+					cloudRepository.connect(socket);
 				}
 
 				@Override
@@ -102,7 +107,7 @@ public class CloudSyncController {
 					System.out.println("websocket message arrived: " + event);
 
 					if (data.length == 1 && data[0] instanceof JSONObject) {
-						if ("resourceupdate".equals(event)) {
+						if ("resourceChanged".equals(event)) {
 							updateResource((JSONObject) data[0]);
 						} else if ("startedediting".equals(event)) {
 							startedEditing((JSONObject) data[0]);
@@ -110,6 +115,12 @@ public class CloudSyncController {
 							modelChanged((JSONObject) data[0]);
 						} else if ("contentassistrequest".equals(event)) {
 							contentAssistRequest((JSONObject) data[0]);
+						} else if ("getProjectsRequest".equals(event)) {
+							cloudRepository.getProjects((JSONObject) data[0]);
+						} else if ("getProjectRequest".equals(event)) {
+							cloudRepository.getProject((JSONObject) data[0]);
+						} else if ("getResourceRequest".equals(event)) {
+							cloudRepository.getResource((JSONObject) data[0]);
 						}
 					} else {
 						System.out.println("unknown data on websocket");

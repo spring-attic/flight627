@@ -34,9 +34,15 @@ io.sockets.on('connection', function (socket) {
 	messageSync.initialize(socket, io.sockets);
 });
 
+var client_io = require('socket.io-client');
+var client_socket = client_io.connect('localhost');
+
 var Repository = require('./repository-inmemory.js').Repository;
-var repository = new Repository(io.sockets);
+var repository = new Repository(client_socket);
 
 var RestRepository = require('./repository-rest-api.js').RestRepository;
 var restrepository = new RestRepository(app, repository);
+
+var MessagesRepository = require('./repository-message-api.js').MessagesRepository;
+var messagesrepository = new MessagesRepository(client_socket, repository);
 

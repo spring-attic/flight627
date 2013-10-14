@@ -69,6 +69,8 @@ InMemoryRepository.prototype.createProject = function(projectName, callback) {
 	if (this.projectsStorage[projectName] === undefined) {
 		this.projectsStorage[projectName] = {'name' : projectName, 'resources' : {}};
 	    callback(null, {'project': projectName});
+	
+		this.notificationSender.emit('projectCreated', { 'project' : projectName});
 	}
 	else {
 		callback(404);
@@ -82,6 +84,9 @@ InMemoryRepository.prototype.createResource = function(projectName, resourcePath
 		project.resources[resourcePath] = {'data' : data, 'type' : type, 'version' : 0, 'metadata' : {}};
 
 	    callback(null, {'project': projectName});
+
+		this.notificationSender.emit('resourceCreated', { 'project' : projectName,
+														'resource' : resourcePath});
 	}
 	else {
 		callback(404);
@@ -105,7 +110,7 @@ InMemoryRepository.prototype.updateResource = function(projectName, resourcePath
 							'fingerprint' : fingerprint
 							});
 							
-			this.notificationSender.emit('resourceupdate', { 'project' : projectName,
+			this.notificationSender.emit('resourceChanged', { 'project' : projectName,
 												'resource' : resourcePath,
 												'newversion' : resource.version,
 												'fingerprint' : fingerprint});
@@ -137,7 +142,7 @@ InMemoryRepository.prototype.updateMetadata = function(projectName, resourcePath
 				'type' : type,
 				'metadata' : metadata
 			};
-			this.notificationSender.emit('metadataupdate', metadataMessage);
+			this.notificationSender.emit('metadataChanged', metadataMessage);
 		}
 		else {
 			callback(404);
@@ -175,6 +180,9 @@ InMemoryRepository.prototype.deleteResource = function(projectName, resourcePath
 		if (resource !== undefined) {
 			project.resources[resourcePath] = undefined;
 			callback(null, {});
+			
+			this.notificationSender.emit('resourceDeleted', { 'project' : projectName,
+															'resource' : resourcePath});
 		}
 		else {
 			callback(404);
