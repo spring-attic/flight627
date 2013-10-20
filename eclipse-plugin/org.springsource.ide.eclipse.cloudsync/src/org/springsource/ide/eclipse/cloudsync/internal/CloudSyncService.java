@@ -20,6 +20,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
@@ -79,7 +80,7 @@ public class CloudSyncService {
 			if (resource != null && resource instanceof IFile) {
 				IFile file = (IFile) resource;
 				String checksum = checksum(file);
-				String updateChecksum = project.getLastFingerprint(resource.getProjectRelativePath().toString());
+				String updateChecksum = project.getHash(resource.getProjectRelativePath().toString());
 				
 				if (updateChecksum == null || (checksum != null && !checksum.equals(updateChecksum))) {
 					updateResource(project, resource);
@@ -104,8 +105,7 @@ public class CloudSyncService {
 			if (checksum != null && !checksum.equals(fingerprint)) {
 				try {
 					byte[] newResourceContent = getResource(project, resourcePath);
-					connectedProject.setVersion(resourcePath, newVersion);
-					connectedProject.setFingerprint(resourcePath, fingerprint);
+					connectedProject.setHash(resourcePath, fingerprint);
 					file.setContents(new ByteArrayInputStream(newResourceContent), true, true, null);
 				} catch (CoreException e) {
 					e.printStackTrace();
@@ -204,7 +204,6 @@ public class CloudSyncService {
 				System.err.println(urlConn.getResponseMessage());
 			}
 
-			project.setVersion(resource.getProjectRelativePath().toString(), 0);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -255,10 +254,8 @@ public class CloudSyncService {
 			JSONTokener tokener = new JSONTokener(result);
 			JSONObject returnJSONObject = new JSONObject(tokener);
 
-			int newVersion = returnJSONObject.getInt("newversion");
 			String fingerprint = returnJSONObject.getString("fingerprint");
-			project.setVersion(resourcePath, newVersion);
-			project.setFingerprint(resourcePath, fingerprint);
+			project.setHash(resourcePath, fingerprint);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -385,24 +382,7 @@ public class CloudSyncService {
 
 	public String checksum(IFile file) {
 		try {
-			InputStream fin = file.getContents(true);
-			MessageDigest md5er = MessageDigest.getInstance("MD5");
-			byte[] buffer = new byte[1024];
-			int read;
-			do {
-				read = fin.read(buffer);
-				if (read > 0)
-					md5er.update(buffer, 0, read);
-			} while (read != -1);
-			fin.close();
-			byte[] digest = md5er.digest();
-			if (digest == null)
-				return null;
-			String strDigest = "";
-			for (int i = 0; i < digest.length; i++) {
-				strDigest += Integer.toString((digest[i] & 0xff) + 0x100, 16).substring(1);
-			}
-			return strDigest;
+			return DigestUtils.shaHex(file.getContents(true));
 		} catch (Exception e) {
 			return null;
 		}

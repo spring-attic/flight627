@@ -10,11 +10,18 @@
  *******************************************************************************/
 package org.springsource.ide.eclipse.cloudsync.internal;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import org.eclipse.core.resources.IContainer;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IResourceVisitor;
+import org.eclipse.core.runtime.CoreException;
 
 /**
  * @author Martin Lippert
@@ -22,13 +29,37 @@ import org.eclipse.core.resources.IProject;
 public class ConnectedProject {
 	
 	private IProject project;
-	private Map<String, Integer> resourceVersions;
-	private Map<String, String> resourceFingerprints; 
+	private Map<String, String> resourceHash; 
+	private Map<String, Long> resourceTimestamp; 
 	
 	public ConnectedProject(IProject project) {
 		this.project = project;
-		this.resourceVersions = new ConcurrentHashMap<String, Integer>();
-		this.resourceFingerprints = new ConcurrentHashMap<String, String>();
+		this.resourceHash = new ConcurrentHashMap<String, String>();
+		this.resourceTimestamp = new ConcurrentHashMap<String, Long>();
+		
+		try {
+			project.accept(new IResourceVisitor() {
+				@Override
+				public boolean visit(IResource resource) throws CoreException {
+					String path = resource.getProjectRelativePath().toString();
+					ConnectedProject.this.setTimestamp(path, resource.getLocalTimeStamp());
+					
+					if (resource instanceof IFile) {
+						try {
+							IFile file = (IFile) resource;
+							ConnectedProject.this.setHash(path, DigestUtils.shaHex(file.getContents()));
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+					
+					return true;
+				}
+			}, IResource.DEPTH_INFINITE, IContainer.EXCLUDE_DERIVED);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
 	}
 	
 	public IProject getProject() {
@@ -43,20 +74,20 @@ public class ConnectedProject {
 		return new ConnectedProject(project);
 	}
 	
-	public void setVersion(String resourcePath, int newVersion) {
-		this.resourceVersions.put(resourcePath, newVersion);
+	public void setTimestamp(String resourcePath, long newTimestamp) {
+		this.resourceTimestamp.put(resourcePath, newTimestamp);
 	}
 	
-	public int getVersion(String resourcePath) {
-		return this.resourceVersions.get(resourcePath);
+	public long getTimestamp(String resourcePath) {
+		return this.resourceTimestamp.get(resourcePath);
 	}
 
-	public void setFingerprint(String resourcePath, String fingerprint) {
-		this.resourceFingerprints.put(resourcePath, fingerprint);
+	public void setHash(String resourcePath, String hash) {
+		this.resourceHash.put(resourcePath, hash);
 	}
 	
-	public String getLastFingerprint(String resourcePath) {
-		return this.resourceFingerprints.get(resourcePath);
+	public String getHash(String resourcePath) {
+		return this.resourceHash.get(resourcePath);
 	}
 
 }

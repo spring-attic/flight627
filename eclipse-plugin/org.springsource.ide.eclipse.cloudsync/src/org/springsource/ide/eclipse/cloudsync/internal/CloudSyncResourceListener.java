@@ -10,7 +10,6 @@
  *******************************************************************************/
 package org.springsource.ide.eclipse.cloudsync.internal;
 
-import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.IResourceDelta;
@@ -22,12 +21,10 @@ import org.eclipse.core.runtime.CoreException;
  */
 public class CloudSyncResourceListener implements IResourceChangeListener {
 
-	private CloudSyncController controller;
-	private CloudSyncService service;
+	private CloudRepository repository;
 
-	public CloudSyncResourceListener(CloudSyncController controller, CloudSyncService service) {
-		this.controller = controller;
-		this.service = service;
+	public CloudSyncResourceListener(CloudRepository repository) {
+		this.repository = repository;
 	}
 
 	@Override
@@ -36,12 +33,7 @@ public class CloudSyncResourceListener implements IResourceChangeListener {
 			event.getDelta().accept(new IResourceDeltaVisitor() {
 				@Override
 				public boolean visit(IResourceDelta delta) throws CoreException {
-					IProject project = delta.getResource().getProject();
-					if (project != null) {
-						if (controller.isConnected(project)) {
-							service.sendResourceUpdate(controller.getProject(project), delta);
-						}
-					}
+					repository.resourceChanged(delta);
 					return true;
 				}
 			});

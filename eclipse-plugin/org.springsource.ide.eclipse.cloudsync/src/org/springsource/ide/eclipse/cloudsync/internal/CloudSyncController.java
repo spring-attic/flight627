@@ -48,27 +48,23 @@ public class CloudSyncController {
 		});
 	}
 
-	private CloudSyncService syncService;
-	private ConcurrentMap<IProject, ConnectedProject> syncedProjects;
 	private ConcurrentMap<String, ICompilationUnit> liveEditUnits;
+	
 	private SocketIO socket;
 	private CloudRepository cloudRepository;
 
 	public CloudSyncController() {
 		String host = System.getProperty("flight627-host", "http://localhost:3000");
-
-		this.syncService = new CloudSyncService(host + "/api/");
-		this.syncedProjects = new ConcurrentHashMap<IProject, ConnectedProject>();
-		this.liveEditUnits = new ConcurrentHashMap<String, ICompilationUnit>();
-
-		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(this, this.syncService);
-		ResourcesPlugin.getWorkspace().addResourceChangeListener(resourceListener, IResourceChangeEvent.POST_CHANGE);
-
-		CloudSyncMetadataListener metadataListener = new CloudSyncMetadataListener(this, this.syncService);
-		ResourcesPlugin.getWorkspace().addResourceChangeListener(metadataListener, IResourceChangeEvent.POST_BUILD);
-		
 		cloudRepository = new CloudRepository();
 
+		this.liveEditUnits = new ConcurrentHashMap<String, ICompilationUnit>();
+
+		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(this.cloudRepository);
+		ResourcesPlugin.getWorkspace().addResourceChangeListener(resourceListener, IResourceChangeEvent.POST_CHANGE);
+
+		CloudSyncMetadataListener metadataListener = new CloudSyncMetadataListener(this.cloudRepository);
+		ResourcesPlugin.getWorkspace().addResourceChangeListener(metadataListener, IResourceChangeEvent.POST_BUILD);
+		
 		try {
 			SocketIO.setDefaultSSLSocketFactory(SSLContext.getInstance("Default"));
 			socket = new SocketIO(host);
@@ -108,7 +104,7 @@ public class CloudSyncController {
 
 					if (data.length == 1 && data[0] instanceof JSONObject) {
 						if ("resourceChanged".equals(event)) {
-							updateResource((JSONObject) data[0]);
+							cloudRepository.updateResource((JSONObject) data[0]);
 						} else if ("startedediting".equals(event)) {
 							startedEditing((JSONObject) data[0]);
 						} else if ("modelchanged".equals(event)) {
@@ -121,6 +117,10 @@ public class CloudSyncController {
 							cloudRepository.getProject((JSONObject) data[0]);
 						} else if ("getResourceRequest".equals(event)) {
 							cloudRepository.getResource((JSONObject) data[0]);
+						} else if ("getResourceResponse".equals(event)) {
+							cloudRepository.getResourceResponse((JSONObject) data[0]);
+						} else if ("getMetadataRequest".equals(event)) {
+							cloudRepository.getMetadata((JSONObject) data[0]);
 						}
 					} else {
 						System.out.println("unknown data on websocket");
@@ -222,44 +222,23 @@ public class CloudSyncController {
 		}
 	}
 
-	protected void updateResource(JSONObject jsonObject) {
-		try {
-			String projectName = jsonObject.getString("project");
-			String updatedResource = jsonObject.getString("resource");
-			int newVersion = jsonObject.getInt("newversion");
-			String fingerprint = jsonObject.getString("fingerprint");
-
-			IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(projectName);
-			if (project != null && isConnected(project)) {
-				ConnectedProject connectedProject = getProject(project);
-				this.syncService.receivedResourceUpdate(connectedProject, updatedResource, newVersion, fingerprint);
-			}
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-	}
-
 	public ConnectedProject getProject(IProject project) {
-		return this.syncedProjects.get(project);
+		return this.cloudRepository.getProject(project);
 	}
 
 	public boolean isConnected(IProject project) {
-		return this.syncedProjects.containsKey(project);
+		return this.cloudRepository.isConnected(project);
 	}
 
 	public void connect(IProject project) {
-		try {
-			ConnectedProject connected = this.syncService.connect(project);
-			this.syncedProjects.putIfAbsent(project, connected);
-		} catch (Exception e) {
+		if (!this.cloudRepository.isConnected(project)) {
+			this.cloudRepository.addProject(project);
 		}
 	}
 
 	public void disconnect(IProject project) {
-		try {
-			this.syncService.disconnect(project);
-			this.syncedProjects.remove(project);
-		} catch (Exception e) {
+		if (this.cloudRepository.isConnected(project)) {
+			this.cloudRepository.removeProject(project);
 		}
 	}
 

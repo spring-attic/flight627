@@ -22,13 +22,17 @@ MessageCore.prototype.initialize = function(socket, sockets) {
 	this.configureBroadcast(socket, 'resourceCreated');
 	this.configureBroadcast(socket, 'resourceChanged');
 	this.configureBroadcast(socket, 'resourceDeleted');
-
+	
+	this.configureBroadcast(socket, 'metadataChanged');
+	
 	this.configureRequest(socket, 'getProjectsRequest');
 	this.configureRequest(socket, 'getProjectRequest');
 	this.configureRequest(socket, 'getResourceRequest');
+	this.configureRequest(socket, 'getMetadataRequest');
 	this.configureResponse(socket, sockets, 'getProjectsResponse');
 	this.configureResponse(socket, sockets, 'getProjectResponse');
 	this.configureResponse(socket, sockets, 'getResourceResponse');
+	this.configureResponse(socket, sockets, 'getMetadataResponse');
 
 	this.configureBroadcast(socket, 'startedediting');
 	this.configureBroadcast(socket, 'modelchanged');

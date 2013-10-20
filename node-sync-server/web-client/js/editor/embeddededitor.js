@@ -27,6 +27,7 @@ define([
 	"orion/editor/editorFeatures",
 	"orion/editor/contentAssist",
 	"orion/editor/javaContentAssist",
+	"editor/sha1",
 	"editor/socket.io"],
 
 function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGrammar, mEditor, mEditorFeatures, mContentAssist, mJavaContentAssist){
@@ -83,22 +84,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	};
 	
 	var annotationFactory = new mEditorFeatures.AnnotationFactory();
-
-	function save(editor) {
-		setTimeout(function() {
-			xhr.open("PUT", "/api/" + filePath, true);
-			xhr.onreadystatechange = function() {
-				if (xhr.readyState == 4) {
-			        if (xhr.status==200) {
-						var response = xhr.responseText;
-			        } else {
-						window.alert("Error during save.");
-			        }
-			    }
-			}
-			xhr.send(editor.getText());
-		}, 0);
-	}
 	
 	var keyBindingFactory = function(editor, keyModeStack, undoStack, contentAssist) {
 		
@@ -168,13 +153,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	});
 	// end of code to run when content changes.
 	
-	if( window.javaEditor ) {
-	  window.EditorImpl = editor;
-	  window.TextViewImpl = editor.getTextView();
-	  window.javaEditor.initJava(editor);
-	  window.javaContentAssist.initJava(javaContentAssistProvider);
-	}
-	
 	window.onbeforeunload = function() {
 		if (editor.isDirty()) {
 			 return "There are unsaved changes.";
@@ -229,7 +207,110 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	var xhr = new XMLHttpRequest();
 
 	var filePath = window.location.href.split('#')[1];
+	var project = undefined;
+	var resource = undefined;
+	
+	var lastSavePointContent = '';
+	var lastSavePointHash = 0;
+	var lastSavePointTimestamp = 0;
+	
 	if (filePath !== undefined) {
+		project = filePath.split('/', 2)[0];
+		resource = filePath.slice(project.length + 1);
+		
+		socket.emit('getResourceRequest', {
+			'callback_id' : 0,
+			'project' : project,
+			'resource' : resource
+		});
+	}
+	
+	socket.on('getResourceResponse', function(data) {
+		var text = data.content;
+		
+		editor.setInput("HomeController.java", null, text);
+		javaContentAssistProvider.setResourcePath(filePath);
+		
+		lastSavePointContent = text;
+		lastSavePointHash = CryptoJS.SHA1(text);
+		lastSavePointTime = data.timestamp;
+
+		socket.emit('startedediting', {'resource' : filePath})
+		
+		editor.getTextView().addEventListener("ModelChanged", function(evt) {
+//			console.log(evt);
+			
+			var changeData = {
+							'resource' : filePath,
+							'start' : evt.start,
+							'addedCharCount' : evt.addedCharCount,
+							'addedLineCount' : evt.addedLineCount,
+							'removedCharCount' : evt.removedCharCount,
+							'removedLineCount' : evt.removedLineCount
+							};
+							
+			if (evt.addedCharCount > 0) {
+				var addedText = editor.getModel().getText(evt.start, evt.start + evt.addedCharCount);
+				changeData.addedCharacters = addedText;
+			}
+			
+			socket.emit('modelchanged', changeData);
+		});
+		
+	});
+	
+	socket.on('getResourceRequest', function(data) {
+		if (data.project == project && data.resource == resource && data.callback_id !== undefined) {
+			
+			if ((data.hash === undefined || data.hash === lastSavePointHash)
+				&& data.timestamp === undefined || data.timestamp === lastSavePointTimestamp) {
+
+				socket.emit('getResourceResponse', {
+					'callback_id' 		: data.callback_id,
+					'requestSenderID' 	: data.requestSenderID,
+					'project' 			: project,
+					'resource' 			: resource,
+					'timestamp' 		: lastSavePointTimestamp,
+					'hash' 				: lastSavePointHash,
+					'content' 			: lastSavePointContent
+				});
+			}
+
+		}
+	});
+	
+	function save(editor) {
+		setTimeout(function() {
+			lastSavePointContent = editor.getText();
+			
+			var hash = CryptoJS.SHA1(lastSavePointContent);
+			lastSavePointHash = hash.toString(CryptoJS.enc.Hex);
+			lastSavePointTimestamp = Date.now();
+			
+			socket.emit('resourceChanged', {
+				'project' : project,
+				'resource' : resource,
+				'timestamp' : lastSavePointTimestamp,
+				'hash' : lastSavePointHash
+			});
+			
+			/*
+			xhr.open("PUT", "/api/" + filePath, true);
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState == 4) {
+			        if (xhr.status==200) {
+						var response = xhr.responseText;
+			        } else {
+						window.alert("Error during save.");
+			        }
+			    }
+			}
+			xhr.send(editor.getText()); */
+		}, 0);
+	}
+
+		
+/*
 		xhr.open("GET", "/api/" + filePath, true);
 		xhr.onreadystatechange = function() {
 			if (xhr.readyState == 4) {
@@ -267,5 +348,5 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 		xhr.send();
 	}
-	
+*/
 });
