@@ -35,14 +35,21 @@ io.sockets.on('connection', function (socket) {
 });
 
 var client_io = require('socket.io-client');
-var client_socket = client_io.connect('localhost');
+var client_socket = client_io.connect('localhost', {
+	port : 3000
+});
 
 var Repository = require('./repository-inmemory.js').Repository;
-var repository = new Repository(client_socket);
+var repository = new Repository();
 
 var RestRepository = require('./repository-rest-api.js').RestRepository;
 var restrepository = new RestRepository(app, repository);
 
 var MessagesRepository = require('./repository-message-api.js').MessagesRepository;
-var messagesrepository = new MessagesRepository(client_socket, repository);
+var messagesrepository = new MessagesRepository(repository);
 
+client_socket.on('connect', function() {
+	console.log('client socket connected');
+	repository.setNotificationSender(client_socket);
+	messagesrepository.setSocket(client_socket);
+});

@@ -13,12 +13,15 @@
 var sys = require('sys')
 var crypto = require('crypto');
 
-InMemoryRepository = function(notificationSender) {
-	this.notificationSender = notificationSender;
+InMemoryRepository = function() {
 };
 
 InMemoryRepository.prototype.projectsStorage = {};
 exports.Repository = InMemoryRepository;
+
+InMemoryRepository.prototype.setNotificationSender = function(notificationSender) {
+	this.notificationSender = notificationSender;
+};
 
 InMemoryRepository.prototype.getProjects = function(callback) {
 	var projects = [];
@@ -34,31 +37,35 @@ InMemoryRepository.prototype.getProjects = function(callback) {
     callback(null, projects);
 };
 
+InMemoryRepository.prototype.hasProject = function(projectName) {
+	return this.projectsStorage[projectName] !== undefined;
+}
+
 InMemoryRepository.prototype.getProject = function(projectName, callback) {
 	var project = this.projectsStorage[projectName];
 	if (project !== undefined) {
-		var result = {};
-		result.name = project.name;
-		result.files = [];
+		var resources = [];
 
 		var i = 0;
 		for (resourcePath in project.resources) {
 			if (typeof project.resources[resourcePath] !== 'function') {
 				var resourceDescription = {};
 				resourceDescription.path = resourcePath;
-				resourceDescription.version = project.resources[resourcePath].version;
 				resourceDescription.type = project.resources[resourcePath].type;
+				resourceDescription.timestamp = project.resources[resourcePath].timestamp;
+
 				resourceDescription.uri = '/api/' + projectName + '/' + resourcePath;
 
 				if (resourceDescription.type == 'file') {
 					resourceDescription.edit = '/client/html/editor.html#' + projectName + '/' + resourcePath;
+					resourceDescription.hash = project.resources[resourcePath].hash;
 				}
 
-				result.files[i++] = resourceDescription;
+				resources[i++] = resourceDescription;
 			}
 		}
 
-	    callback(null, result);
+	    callback(null, resources);
 	}
 	else {
 	    callback(404);
@@ -70,50 +77,60 @@ InMemoryRepository.prototype.createProject = function(projectName, callback) {
 		this.projectsStorage[projectName] = {'name' : projectName, 'resources' : {}};
 	    callback(null, {'project': projectName});
 	
-		this.notificationSender.emit('projectCreated', { 'project' : projectName});
+		this.notificationSender.emit('projectCreated', {
+			'project' : projectName
+		});
 	}
 	else {
 		callback(404);
 	}
 };
 
-InMemoryRepository.prototype.createResource = function(projectName, resourcePath, data, type, callback) {
+InMemoryRepository.prototype.createResource = function(projectName, resourcePath, data, hash, timestamp, type, callback) {
 	if (this.projectsStorage[projectName] !== undefined) {
 		console.log('putResource ' + resourcePath);
 		var project = this.projectsStorage[projectName];
-		project.resources[resourcePath] = {'data' : data, 'type' : type, 'version' : 0, 'metadata' : {}};
+		project.resources[resourcePath] = {
+			'data' : data,
+			'type' : type,
+			'hash' : hash,
+			'timestamp' : timestamp,
+			'metadata' : {}
+		};
 
 	    callback(null, {'project': projectName});
 
-		this.notificationSender.emit('resourceCreated', { 'project' : projectName,
-														'resource' : resourcePath});
+		this.notificationSender.emit('resourceCreated', {
+			'project' : projectName,
+			'resource' : resourcePath,
+			'hash' : hash,
+			'timestamp' : timestamp
+		});
 	}
 	else {
 		callback(404);
 	}
 };
 
-InMemoryRepository.prototype.updateResource = function(projectName, resourcePath, data, callback) {
+InMemoryRepository.prototype.updateResource = function(projectName, resourcePath, data, hash, timestamp, callback) {
 	if (this.projectsStorage[projectName] !== undefined) {
 		console.log('updateResource ' + resourcePath);
 		var project = this.projectsStorage[projectName];
 		var resource = project.resources[resourcePath];
 
-		if (resource !== undefined) {
+		if (resource !== undefined && timestamp > resource.timestamp) {
 			resource.data = data;
-			resource.version = resource.version + 1;
-
-			var fingerprint = crypto.createHash('md5').update(data).digest("hex");
+			resource.hash = hash;
+			resource.timestamp = timestamp;
 
 		    callback(null, {'project' : projectName,
-							'newversion' : resource.version,
-							'fingerprint' : fingerprint
+							'hash' : hash
 							});
 							
 			this.notificationSender.emit('resourceChanged', { 'project' : projectName,
 												'resource' : resourcePath,
-												'newversion' : resource.version,
-												'fingerprint' : fingerprint});
+												'timestamp' : timestamp,
+												'hash' : hash});
 		}
 		else {
 			callback(404);
@@ -123,6 +140,30 @@ InMemoryRepository.prototype.updateResource = function(projectName, resourcePath
 		callback(404);
 	}
 };
+
+InMemoryRepository.prototype.hasResource = function(projectName, resourcePath, type) {
+	var project = this.projectsStorage[projectName];
+	if (project !== undefined) {
+		var resource = project.resources[resourcePath];
+		if (resource !== undefined) {
+			return true;
+		}
+	}
+	return false;
+}
+
+InMemoryRepository.prototype.needsUpdate = function(projectName, resourcePath, type, timestamp, hash) {
+	var project = this.projectsStorage[projectName];
+	if (project !== undefined) {
+		var resource = project.resources[resourcePath];
+		if (resource !== undefined) {
+			if (resource.type != type || resource.timestamp < timestamp) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 InMemoryRepository.prototype.updateMetadata = function(projectName, resourcePath, metadata, type, callback) {
 	if (this.projectsStorage[projectName] !== undefined) {
@@ -153,14 +194,22 @@ InMemoryRepository.prototype.updateMetadata = function(projectName, resourcePath
 	}
 };
 
-InMemoryRepository.prototype.getResource = function(projectName, resourcePath, callback) {
+InMemoryRepository.prototype.getResource = function(projectName, resourcePath, timestamp, hash, callback) {
 	if (this.projectsStorage[projectName] !== undefined) {
 		console.log('getResource ' + resourcePath);
 		var project = this.projectsStorage[projectName];
 		var resource = project.resources[resourcePath];
 
 		if (resource !== undefined) {
-			callback(null, resource.data);
+			if (timestamp !== undefined && timestamp !== resource.timestamp) {
+				callback(404);
+			}
+			else if (hash !== undefined && hash !== resource.hash) {
+				callback(404);
+			}
+			else {
+				callback(null, resource.data, resource.timestamp, resource.hash);
+			}
 		}
 		else {
 			callback(404);

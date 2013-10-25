@@ -115,6 +115,8 @@ public class CloudSyncController {
 							cloudRepository.getProjects((JSONObject) data[0]);
 						} else if ("getProjectRequest".equals(event)) {
 							cloudRepository.getProject((JSONObject) data[0]);
+						} else if ("getProjectResponse".equals(event)) {
+							cloudRepository.getProjectResponse((JSONObject) data[0]);
 						} else if ("getResourceRequest".equals(event)) {
 							cloudRepository.getResource((JSONObject) data[0]);
 						} else if ("getResourceResponse".equals(event)) {

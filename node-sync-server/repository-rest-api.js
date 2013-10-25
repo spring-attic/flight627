@@ -64,7 +64,9 @@ RestRepository.prototype.postResource = function(req, res) {
 	});
 
 	req.on('end', function() {
-	    that.repository.createResource(req.params.project, req.params.resource, body, req.headers['resource-type'], function(error, result) {
+	    that.repository.createResource(req.params.project, req.params.resource, body, req.headers['resource-sha1'],
+				req.headers['resource-timestamp'], req.headers['resource-type'], function(error, result) {
+
 			if (error == null) {
 	        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
 			}
@@ -96,7 +98,8 @@ RestRepository.prototype.putResource = function(req, res) {
 		    });
 		}
 		else {
-		    that.repository.updateResource(req.params.project, req.params.resource, body, function(error, result) {
+		    that.repository.updateResource(req.params.project, req.params.resource, body, req.headers['resource-sha1'],
+					req.headers['resource-timestamp'], function(error, result) {
 				if (error == null) {
 		        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
 				}
@@ -115,7 +118,7 @@ RestRepository.prototype.putResource = function(req, res) {
 }
 
 RestRepository.prototype.getResource = function(req, res) {
-    that.repository.getResource(req.params.project, req.params.resource, function(error, result) {
+    that.repository.getResource(req.params.project, req.params.resource, undefined, undefined, function(error, result) {
 		if (error == null) {
         	res.send(result, 200);
 		}

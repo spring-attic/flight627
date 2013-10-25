@@ -16,8 +16,8 @@ exports.MessageCore = MessageCore;
 MessageCore.prototype.initialize = function(socket, sockets) {
 	console.log('client connected for update notifications');
 	
-	this.configureBroadcast(socket, 'projectCreated');
-	this.configureBroadcast(socket, 'projectDeleted');
+	this.configureBroadcast(socket, 'projectConnected');
+	this.configureBroadcast(socket, 'projectDisconnected');
 
 	this.configureBroadcast(socket, 'resourceCreated');
 	this.configureBroadcast(socket, 'resourceChanged');

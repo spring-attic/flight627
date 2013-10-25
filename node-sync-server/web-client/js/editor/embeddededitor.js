@@ -211,7 +211,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	var resource = undefined;
 	
 	var lastSavePointContent = '';
-	var lastSavePointHash = 0;
+	var lastSavePointHash = '';
 	var lastSavePointTimestamp = 0;
 	
 	if (filePath !== undefined) {
@@ -226,14 +226,18 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	}
 	
 	socket.on('getResourceResponse', function(data) {
+		if (lastSavePointTimestamp != 0 && lastSavePointHash !== '') {
+			return;
+		}
+
 		var text = data.content;
 		
 		editor.setInput("HomeController.java", null, text);
 		javaContentAssistProvider.setResourcePath(filePath);
 		
 		lastSavePointContent = text;
-		lastSavePointHash = CryptoJS.SHA1(text);
-		lastSavePointTime = data.timestamp;
+		lastSavePointHash = data.hash;
+		lastSavePointTimestamp = data.timestamp;
 
 		socket.emit('startedediting', {'resource' : filePath})
 		

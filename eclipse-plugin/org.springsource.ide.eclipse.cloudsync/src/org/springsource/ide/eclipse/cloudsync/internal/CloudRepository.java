@@ -47,6 +47,11 @@ public class CloudRepository {
 
 	public void connect(SocketIO socket) {
 		this.socket = socket;
+
+		for (String projectName : syncedProjects.keySet()) {
+			sendProjectConnectedMessage(projectName);
+			syncConnectedProject(projectName);
+		}
 	}
 
 	public void disconnect() {
@@ -66,14 +71,54 @@ public class CloudRepository {
 	}
 
 	public void addProject(IProject project) {
-		if (!this.syncedProjects.containsKey(project.getName())) {
-			this.syncedProjects.put(project.getName(), new ConnectedProject(project));
+		String projectName = project.getName();
+		if (!this.syncedProjects.containsKey(projectName)) {
+			this.syncedProjects.put(projectName, new ConnectedProject(project));
+
+			if (isConnected()) {
+				sendProjectConnectedMessage(projectName);
+				syncConnectedProject(projectName);
+			}
+		}
+	}
+
+	protected void syncConnectedProject(String projectName) {
+		try {
+			JSONObject message = new JSONObject();
+			message.put("project", projectName);
+
+			socket.emit("getProjectRequest", message);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+
+	protected void sendProjectConnectedMessage(String projectName) {
+		try {
+			JSONObject message = new JSONObject();
+			message.put("project", projectName);
+
+			socket.emit("projectConnected", message);
+		} catch (JSONException e) {
+			e.printStackTrace();
 		}
 	}
 
 	public void removeProject(IProject project) {
-		if (this.syncedProjects.containsKey(project.getName())) {
-			this.syncedProjects.remove(project.getName());
+		String projectName = project.getName();
+		if (this.syncedProjects.containsKey(projectName)) {
+			this.syncedProjects.remove(projectName);
+
+			if (isConnected()) {
+				try {
+					JSONObject message = new JSONObject();
+					message.put("project", projectName);
+
+					socket.emit("projectDisconnected", message);
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
@@ -106,10 +151,8 @@ public class CloudRepository {
 			final String sender = request.getString("requestSenderID");
 			final String projectName = request.getString("project");
 
-			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
+			final ConnectedProject connectedProject = this.syncedProjects.get(projectName);
 			if (connectedProject != null) {
-				JSONObject content = new JSONObject();
-				content.put("name", projectName);
 
 				final JSONArray files = new JSONArray();
 
@@ -124,12 +167,15 @@ public class CloudRepository {
 							try {
 								projectResource.put("path", path);
 								projectResource.put("uri", "/api/" + projectName + "/" + path);
+								projectResource.put("timestamp", connectedProject.getTimestamp(path));
 
 								if (resource instanceof IFile) {
 									projectResource.put("type", "file");
+									projectResource.put("hash", connectedProject.getHash(path));
 								} else if (resource instanceof IFolder) {
 									projectResource.put("type", "folder");
 								}
+
 								files.put(projectResource);
 							} catch (JSONException e) {
 								e.printStackTrace();
@@ -141,17 +187,50 @@ public class CloudRepository {
 					e.printStackTrace();
 				}
 
-				content.put("files", files);
-
 				JSONObject message = new JSONObject();
 				message.put("callback_id", callbackID);
 				message.put("requestSenderID", sender);
 				message.put("project", projectName);
-				message.put("content", content);
+				message.put("files", files);
 
 				socket.emit("getProjectResponse", message);
 			}
 		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void getProjectResponse(JSONObject response) {
+		try {
+			final String projectName = response.getString("project");
+			final JSONArray files = response.getJSONArray("files");
+
+			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
+			if (connectedProject != null) {
+				for (int i = 0; i < files.length(); i++) {
+					JSONObject resource = files.getJSONObject(i);
+
+					String resourcePath = resource.getString("path");
+					long timestamp = resource.getLong("timestamp");
+
+					String type = resource.optString("type");
+					String hash = resource.optString("hash");
+
+					if (type != null && type.equals("file") && !connectedProject.getHash(resourcePath).equals(hash)
+							&& connectedProject.getTimestamp(resourcePath) < timestamp) {
+
+						JSONObject message = new JSONObject();
+						message.put("callback_id", 0);
+						message.put("project", projectName);
+						message.put("resource", resourcePath);
+						message.put("timestamp", timestamp);
+						message.put("hash", hash);
+
+						socket.emit("getResourceRequest", message);
+					}
+				}
+			}
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -164,8 +243,13 @@ public class CloudRepository {
 			final String resourcePath = request.getString("resource");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
-			if (connectedProject != null) {
+			if (connectedProject != null && connectedProject.containsResource(resourcePath)) {
 				IProject project = connectedProject.getProject();
+
+				if (request.has("timestamp") && request.getLong("timestamp") != connectedProject.getTimestamp(resourcePath)) {
+					return;
+				}
+
 				IResource resource = project.findMember(resourcePath);
 
 				JSONObject message = new JSONObject();
@@ -173,9 +257,13 @@ public class CloudRepository {
 				message.put("requestSenderID", sender);
 				message.put("project", projectName);
 				message.put("resource", resourcePath);
-				message.put("timestamp", resource.getLocalTimeStamp());
+				message.put("timestamp", connectedProject.getTimestamp(resourcePath));
 
 				if (resource instanceof IFile) {
+					if (request.has("hash") && !request.getString("hash").equals(connectedProject.getHash(resourcePath))) {
+						return;
+					}
+
 					IFile file = (IFile) resource;
 
 					ByteArrayOutputStream array = new ByteArrayOutputStream();
@@ -184,6 +272,10 @@ public class CloudRepository {
 					String content = new String(array.toByteArray(), file.getCharset());
 
 					message.put("content", content);
+					message.put("type", "file");
+					message.put("hash", connectedProject.getHash(resourcePath));
+				} else if (resource instanceof IFolder) {
+					message.put("type", "folder");
 				}
 
 				socket.emit("getResourceResponse", message);
@@ -242,21 +334,27 @@ public class CloudRepository {
 				IResource resource = project.findMember(resourcePath);
 
 				if (resource instanceof IFile) {
-					IFile file = (IFile) resource;
-					String newResourceContent = response.getString("content");
 
-					connectedProject.setTimestamp(resourcePath, updateTimestamp);
-					connectedProject.setHash(resourcePath, updateHash);
+					String localHash = connectedProject.getHash(resourcePath);
+					long localTimestamp = connectedProject.getTimestamp(resourcePath);
 
-					file.setContents(new ByteArrayInputStream(newResourceContent.getBytes()), true, true, null);
-					file.setLocalTimeStamp(updateTimestamp);
+					if (localHash != null && !localHash.equals(updateHash) && localTimestamp < updateTimestamp) {
+						IFile file = (IFile) resource;
+						String newResourceContent = response.getString("content");
+
+						connectedProject.setTimestamp(resourcePath, updateTimestamp);
+						connectedProject.setHash(resourcePath, updateHash);
+
+						file.setContents(new ByteArrayInputStream(newResourceContent.getBytes()), true, true, null);
+						file.setLocalTimeStamp(updateTimestamp);
+					}
 				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void getMetadata(JSONObject request) {
 		try {
 			final int callbackID = request.getInt("callback_id");
@@ -311,7 +409,7 @@ public class CloudRepository {
 		if (resource != null && resource.isDerived(IResource.CHECK_ANCESTORS)) {
 			return;
 		}
-		
+
 		switch (delta.getKind()) {
 		case IResourceDelta.ADDED:
 			break;
@@ -320,10 +418,10 @@ public class CloudRepository {
 		case IResourceDelta.CHANGED:
 			if (resource != null && resource instanceof IFile) {
 				IFile file = (IFile) resource;
-				
+
 				ConnectedProject connectedProject = this.syncedProjects.get(file.getProject().getName());
 				String resourcePath = resource.getProjectRelativePath().toString();
-				
+
 				try {
 
 					long changeTimestamp = file.getLocalTimeStamp();
@@ -360,18 +458,17 @@ public class CloudRepository {
 			message.put("project", project);
 			message.put("resource", resourcePath);
 			message.put("type", "marker");
-			
+
 			IMarker[] markers = resource.findMarkers(null, true, IResource.DEPTH_INFINITE);
 			String markerJSON = toJSON(markers);
 			JSONArray content = new JSONArray(markerJSON);
 			message.put("metadata", content);
 
 			this.socket.emit("metadataChanged", message);
+		} catch (Exception e) {
+
 		}
-		catch (Exception e) {
-			
-		}
-		
+
 	}
 
 	public String toJSON(IMarker[] markers) {
@@ -386,7 +483,8 @@ public class CloudRepository {
 			result.append("{");
 			result.append("\"description\":" + JSONObject.quote(m.getAttribute("message", "")));
 			result.append(",\"line\":" + m.getAttribute("lineNumber", 0));
-			result.append(",\"severity\":\"" + (m.getAttribute("severity", IMarker.SEVERITY_WARNING) == IMarker.SEVERITY_ERROR ? "error" : "warning") + "\"");
+			result.append(",\"severity\":\"" + (m.getAttribute("severity", IMarker.SEVERITY_WARNING) == IMarker.SEVERITY_ERROR ? "error" : "warning")
+					+ "\"");
 			result.append(",\"start\":" + m.getAttribute("charStart", 0));
 			result.append(",\"end\":" + m.getAttribute("charEnd", 0));
 			result.append("}");

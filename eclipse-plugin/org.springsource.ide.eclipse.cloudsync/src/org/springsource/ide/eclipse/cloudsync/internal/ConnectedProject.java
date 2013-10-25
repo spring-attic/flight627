@@ -90,4 +90,8 @@ public class ConnectedProject {
 		return this.resourceHash.get(resourcePath);
 	}
 
+	public boolean containsResource(String resourcePath) {
+		return this.resourceTimestamp.containsKey(resourcePath);
+	}
+	
 }
