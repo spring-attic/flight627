@@ -29,9 +29,12 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jface.viewers.LabelProviderChangedEvent;
+import org.eclipse.swt.widgets.Display;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springsource.ide.eclipse.cloudsync.CloudProjectDecorator;
 
 /**
  * @author Martin Lippert
@@ -74,10 +77,29 @@ public class CloudRepository {
 		String projectName = project.getName();
 		if (!this.syncedProjects.containsKey(projectName)) {
 			this.syncedProjects.put(projectName, new ConnectedProject(project));
+			updateProjectLabel(project);
 
 			if (isConnected()) {
 				sendProjectConnectedMessage(projectName);
 				syncConnectedProject(projectName);
+			}
+		}
+	}
+
+	public void removeProject(IProject project) {
+		String projectName = project.getName();
+		if (this.syncedProjects.containsKey(projectName)) {
+			this.syncedProjects.remove(projectName);
+			updateProjectLabel(project);
+
+			if (isConnected()) {
+				try {
+					JSONObject message = new JSONObject();
+					message.put("project", projectName);
+					socket.emit("projectDisconnected", message);
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -102,20 +124,14 @@ public class CloudRepository {
 		}
 	}
 
-	public void removeProject(IProject project) {
-		String projectName = project.getName();
-		if (this.syncedProjects.containsKey(projectName)) {
-			this.syncedProjects.remove(projectName);
-
-			if (isConnected()) {
-				try {
-					JSONObject message = new JSONObject();
-					message.put("project", projectName);
-					socket.emit("projectDisconnected", message);
-				} catch (JSONException e) {
-					e.printStackTrace();
+	protected void updateProjectLabel(final IProject project) {
+		final CloudProjectDecorator projectDecorator = CloudProjectDecorator.getInstance();
+		if (projectDecorator != null) {
+			Display.getDefault().asyncExec(new Runnable() {
+				public void run() {
+					projectDecorator.fireLabelProviderChanged(new LabelProviderChangedEvent(projectDecorator, project));
 				}
-			}
+			});
 		}
 	}
 

@@ -77,5 +77,19 @@
             name="Disconnect">
       </command>
    </extension>
+   
+   <extension point="org.eclipse.ui.decorators">
+      <decorator
+            id="org.springsource.ide.eclipse.cloudsync.projectdecorator"
+            label="Cloud Sync Project Decorator"
+            state="true"
+            class="org.springsource.ide.eclipse.cloudsync.CloudProjectDecorator"
+            adaptable="true"
+            lightweight="true">
+            <enablement>
+                <objectClass name="org.eclipse.core.resources.IProject"/>
+            </enablement>
+      </decorator>
+   </extension>
 
 </plugin>
