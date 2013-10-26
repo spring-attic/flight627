@@ -86,7 +86,6 @@ public class CloudRepository {
 		try {
 			JSONObject message = new JSONObject();
 			message.put("project", projectName);
-
 			socket.emit("getProjectRequest", message);
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -97,7 +96,6 @@ public class CloudRepository {
 		try {
 			JSONObject message = new JSONObject();
 			message.put("project", projectName);
-
 			socket.emit("projectConnected", message);
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -113,7 +111,6 @@ public class CloudRepository {
 				try {
 					JSONObject message = new JSONObject();
 					message.put("project", projectName);
-
 					socket.emit("projectDisconnected", message);
 				} catch (JSONException e) {
 					e.printStackTrace();
@@ -168,10 +165,10 @@ public class CloudRepository {
 								projectResource.put("path", path);
 								projectResource.put("uri", "/api/" + projectName + "/" + path);
 								projectResource.put("timestamp", connectedProject.getTimestamp(path));
+								projectResource.put("hash", connectedProject.getHash(path));
 
 								if (resource instanceof IFile) {
 									projectResource.put("type", "file");
-									projectResource.put("hash", connectedProject.getHash(path));
 								} else if (resource instanceof IFolder) {
 									projectResource.put("type", "folder");
 								}
@@ -258,6 +255,7 @@ public class CloudRepository {
 				message.put("project", projectName);
 				message.put("resource", resourcePath);
 				message.put("timestamp", connectedProject.getTimestamp(resourcePath));
+				message.put("hash", connectedProject.getHash(resourcePath));
 
 				if (resource instanceof IFile) {
 					if (request.has("hash") && !request.getString("hash").equals(connectedProject.getHash(resourcePath))) {
@@ -273,7 +271,6 @@ public class CloudRepository {
 
 					message.put("content", content);
 					message.put("type", "file");
-					message.put("hash", connectedProject.getHash(resourcePath));
 				} else if (resource instanceof IFolder) {
 					message.put("type", "folder");
 				}
@@ -298,10 +295,8 @@ public class CloudRepository {
 				IResource resource = project.findMember(resourcePath);
 
 				if (resource != null && resource instanceof IFile) {
-					IFile file = (IFile) resource;
-
-					String localHash = DigestUtils.shaHex(file.getContents());
-					long localTimestamp = file.getLocalTimeStamp();
+					String localHash = connectedProject.getHash(resourcePath);
+					long localTimestamp = connectedProject.getTimestamp(resourcePath);
 
 					if (localHash != null && !localHash.equals(updateHash) && localTimestamp < updateTimestamp) {
 						JSONObject message = new JSONObject();

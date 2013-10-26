@@ -53,12 +53,12 @@ InMemoryRepository.prototype.getProject = function(projectName, callback) {
 				resourceDescription.path = resourcePath;
 				resourceDescription.type = project.resources[resourcePath].type;
 				resourceDescription.timestamp = project.resources[resourcePath].timestamp;
+				resourceDescription.hash = project.resources[resourcePath].hash;
 
 				resourceDescription.uri = '/api/' + projectName + '/' + resourcePath;
 
 				if (resourceDescription.type == 'file') {
 					resourceDescription.edit = '/client/html/editor.html#' + projectName + '/' + resourcePath;
-					resourceDescription.hash = project.resources[resourcePath].hash;
 				}
 
 				resources[i++] = resourceDescription;

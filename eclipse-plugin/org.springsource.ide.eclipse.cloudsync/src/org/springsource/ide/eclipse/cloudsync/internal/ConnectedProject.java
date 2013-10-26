@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceVisitor;
@@ -51,6 +52,9 @@ public class ConnectedProject {
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
+					}
+					else if (resource instanceof IFolder) {
+						ConnectedProject.this.setHash(path, "0");
 					}
 					
 					return true;
