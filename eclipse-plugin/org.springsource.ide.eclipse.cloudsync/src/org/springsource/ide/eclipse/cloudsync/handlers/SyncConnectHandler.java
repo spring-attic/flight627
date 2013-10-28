@@ -11,16 +11,17 @@
 package org.springsource.ide.eclipse.cloudsync.handlers;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.expressions.IEvaluationContext;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.ui.ISources;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.springsource.ide.eclipse.cloudsync.Activator;
 import org.springsource.ide.eclipse.cloudsync.internal.CloudSyncController;
@@ -30,11 +31,48 @@ import org.springsource.ide.eclipse.cloudsync.internal.CloudSyncController;
  */
 public class SyncConnectHandler extends AbstractHandler {
 
+	public static final String ID = "org.springsource.ide.eclipse.ui.cloudsync.connect";
+	
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		List<IProject> selectedProjects = new ArrayList<IProject>();
-		
 		ISelection selection = HandlerUtil.getCurrentSelection(event);
+		IProject[] selectedProjects = getSelectedProjects(selection);
+		
+		CloudSyncController syncController = Activator.getDefault().getController();
+
+		for (IProject project : selectedProjects) {
+			if (!syncController.isConnected(project)) {
+				syncController.connect(project);
+			}
+		}
+		
+		return null;
+	}
+
+	@Override
+	public void setEnabled(Object evaluationContext) {
+		if (evaluationContext instanceof IEvaluationContext) {
+			IEvaluationContext evalContext = (IEvaluationContext) evaluationContext;
+			Object selection = evalContext.getVariable(ISources.ACTIVE_CURRENT_SELECTION_NAME);
+			if (selection instanceof ISelection) {
+				IProject[] selectedProjects = getSelectedProjects((ISelection) selection);
+				
+				CloudSyncController syncController = Activator.getDefault().getController();
+				for (IProject project : selectedProjects) {
+					if (!syncController.isConnected(project)) {
+						setBaseEnabled(true);
+						return;
+					}
+				}
+			}
+		}
+		
+		setBaseEnabled(false);
+	}
+	
+	protected IProject[] getSelectedProjects(ISelection selection) {
+		List<IProject>selectedProjects = new ArrayList<IProject>();
+		
 		if (selection instanceof IStructuredSelection) {
 			IStructuredSelection structuredSelection = (IStructuredSelection) selection;
 			Object[] selectedObjects = structuredSelection.toArray();
@@ -48,16 +86,7 @@ public class SyncConnectHandler extends AbstractHandler {
 			}
 		}
 		
-		CloudSyncController syncController = Activator.getDefault().getController();
-
-		for (Iterator<IProject> iterator = selectedProjects.iterator(); iterator.hasNext();) {
-			IProject project = iterator.next();
-			if (!syncController.isConnected(project)) {
-				syncController.connect(project);
-			}
-		}
-		
-		return null;
+		return (IProject[]) selectedProjects.toArray(new IProject[selectedProjects.size()]);
 	}
-
+	
 }
