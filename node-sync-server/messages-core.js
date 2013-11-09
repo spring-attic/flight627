@@ -41,6 +41,9 @@ MessageCore.prototype.initialize = function(socket, sockets) {
 	this.configureRequest(socket, 'contentassistrequest');
 	this.configureResponse(socket, sockets, 'contentassistresponse');
 	
+	this.configureRequest(socket, 'navigationrequest');
+	this.configureResponse(socket, sockets, 'navigationresponse');
+
 	socket.on('disconnect', function () {
 		console.log('client disconnected from update notifications');
 	});

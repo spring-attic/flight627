@@ -102,6 +102,12 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				return true;
 		});
 		
+		editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding(114), "navigate");
+		editor.getTextView().setAction("navigate", function(){
+				navigate(editor);
+				return true;
+		});
+
 		// speaking of save...
 		// document.getElementById("save").onclick = function() {save(editor);};
 
@@ -200,6 +206,25 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			}
 			
 			editor.showProblems(markers);
+		}
+    	console.log(data);
+  	});
+	
+  	socket.on('navigationresponse', function (data) {
+		if (project === data.project && resource === data.resource && data.navigation !== undefined) {
+			var navigationTarget = data.navigation;
+			if (navigationTarget.project === project && navigationTarget.resource === resource) {
+				var offset = navigationTarget.offset;
+				var length = navigationTarget.length;
+				
+				editor.setSelection(offset, offset + length, true);
+			}
+			else {
+				var baseURL = window.location.origin + window.location.pathname;
+				var resourceID = navigationTarget.project + "/" + navigationTarget.resource;
+				window.location = baseURL + "#" + resourceID;
+				window.location.reload();
+			}
 		}
     	console.log(data);
   	});
@@ -313,6 +338,21 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}, 0);
 	}
 
+	function navigate(editor) {
+		setTimeout(function() {
+			var selection = editor.getSelection();
+			var offset = selection.start;
+			var length = selection.end - selection.start;
+			
+			socket.emit('navigationrequest', {
+				'project' : project,
+				'resource' : resource,
+				'offset' : offset,
+				'length' : length,
+				'callback_id' : 0
+			});
+		}, 0);
+	}
 		
 /*
 		xhr.open("GET", "/api/" + filePath, true);

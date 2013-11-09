@@ -111,6 +111,8 @@ public class CloudSyncController {
 							modelChanged((JSONObject) data[0]);
 						} else if ("contentassistrequest".equals(event)) {
 							contentAssistRequest((JSONObject) data[0]);
+						} else if ("navigationrequest".equals(event)) {
+							navigationRequest((JSONObject) data[0]);
 						} else if ("getProjectsRequest".equals(event)) {
 							cloudRepository.getProjects((JSONObject) data[0]);
 						} else if ("getProjectRequest".equals(event)) {
@@ -218,6 +220,38 @@ public class CloudSyncController {
 				message.put("proposals", proposals);
 
 				socket.emit("contentassistresponse", message);
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+
+	protected void navigationRequest(JSONObject jsonObject) {
+		try {
+			String projectName = jsonObject.getString("project");
+			String resourcePath = jsonObject.getString("resource");
+			int callbackID = jsonObject.getInt("callback_id");
+			
+			String liveEditID = projectName + "/" + resourcePath;
+			if (liveEditUnits.containsKey(liveEditID)) {
+
+				NavigationService assistService = new NavigationService(resourcePath, liveEditUnits.get(liveEditID));
+
+				int offset = jsonObject.getInt("offset");
+				int length = jsonObject.getInt("length");
+				String sender = jsonObject.getString("requestSenderID");
+				JSONObject navigationResult = assistService.compute(offset, length);
+				
+				if (navigationResult != null) {
+					JSONObject message = new JSONObject();
+					message.put("project", projectName);
+					message.put("resource", resourcePath);
+					message.put("callback_id", callbackID);
+					message.put("requestSenderID", sender);
+					message.put("navigation", navigationResult);
+	
+					socket.emit("navigationresponse", message);
+				}
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();
