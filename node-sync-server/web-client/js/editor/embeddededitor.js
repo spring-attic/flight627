@@ -228,14 +228,17 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	var filePath = window.location.href.split('#')[1];
 	var project = undefined;
 	var resource = undefined;
+	var fileShortName = undefined;
 	
 	var lastSavePointContent = '';
 	var lastSavePointHash = '';
 	var lastSavePointTimestamp = 0;
 	
 	if (filePath !== undefined) {
-		project = filePath.split('/', 2)[0];
+		var sections = filePath.split('/');
+		project = sections[0];
 		resource = filePath.slice(project.length + 1);
+		fileShortName = sections[sections.length - 1];
 		
 		socket.emit('getResourceRequest', {
 			'callback_id' : 0,
@@ -251,8 +254,9 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 
 		var text = data.content;
 		
-		editor.setInput(filePath, null, text);
-		syntaxHighlighter.highlight(filePath, editor);
+		editor.setInput(fileShortName, null, text);
+		syntaxHighlighter.highlight(fileShortName, editor);
+		window.document.title = fileShortName;
 		
 		javaContentAssistProvider.setResourcePath(filePath);
 		
