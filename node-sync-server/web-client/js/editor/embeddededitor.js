@@ -159,6 +159,11 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 	};
 	
+	window.onhashchange = function() {
+		console.log("hash changed: " + window.location.hash);
+		start();
+	}
+	
   	socket.on('metadataChanged', function (data) {
 		if (data.project !== undefined && data.resource !== undefined && data.metadata !== undefined && data.type === 'marker'
 			&& filePath === data.project + "/" + data.resource) {
@@ -216,36 +221,45 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			else {
 				var baseURL = window.location.origin + window.location.pathname;
 				var resourceID = navigationTarget.project + "/" + navigationTarget.resource;
-				window.location = baseURL + "#" + resourceID;
-				window.location.reload();
+				window.location.hash = resourceID;
 			}
 		}
     	console.log(data);
   	});
 	
-	var xhr = new XMLHttpRequest();
-
-	var filePath = window.location.href.split('#')[1];
+	var filePath = undefined;
 	var project = undefined;
 	var resource = undefined;
 	var fileShortName = undefined;
 	
-	var lastSavePointContent = '';
-	var lastSavePointHash = '';
-	var lastSavePointTimestamp = 0;
+	var lastSavePointContent;
+	var lastSavePointHash;
+	var lastSavePointTimestamp;
 	
-	if (filePath !== undefined) {
-		var sections = filePath.split('/');
-		project = sections[0];
-		resource = filePath.slice(project.length + 1);
-		fileShortName = sections[sections.length - 1];
+	function start() {
+		lastSavePointContent = '';
+		lastSavePointHash = '';
+		lastSavePointTimestamp = 0;
+
+		filePath = window.location.href.split('#')[1];
 		
-		socket.emit('getResourceRequest', {
-			'callback_id' : 0,
-			'project' : project,
-			'resource' : resource
-		});
+		if (filePath !== undefined) {
+			var sections = filePath.split('/');
+			project = sections[0];
+			resource = filePath.slice(project.length + 1);
+			fileShortName = sections[sections.length - 1];
+			
+			editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
+		
+			socket.emit('getResourceRequest', {
+				'callback_id' : 0,
+				'project' : project,
+				'resource' : resource
+			});
+		}
 	}
+	
+	start();
 	
 	socket.on('getResourceResponse', function(data) {
 		if (lastSavePointTimestamp != 0 && lastSavePointHash !== '') {
@@ -266,26 +280,26 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 
 		socket.emit('startedediting', {'resource' : filePath})
 		
-		editor.getTextView().addEventListener("ModelChanged", function(evt) {
-			
-			var changeData = {
-							'resource' : filePath,
-							'start' : evt.start,
-							'addedCharCount' : evt.addedCharCount,
-							'addedLineCount' : evt.addedLineCount,
-							'removedCharCount' : evt.removedCharCount,
-							'removedLineCount' : evt.removedLineCount
-							};
-							
-			if (evt.addedCharCount > 0) {
-				var addedText = editor.getModel().getText(evt.start, evt.start + evt.addedCharCount);
-				changeData.addedCharacters = addedText;
-			}
-			
-			socket.emit('modelchanged', changeData);
-		});
-		
+		editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 	});
+	
+	function sendModelChanged(evt) {
+		var changeData = {
+						'resource' : filePath,
+						'start' : evt.start,
+						'addedCharCount' : evt.addedCharCount,
+						'addedLineCount' : evt.addedLineCount,
+						'removedCharCount' : evt.removedCharCount,
+						'removedLineCount' : evt.removedLineCount
+						};
+						
+		if (evt.addedCharCount > 0) {
+			var addedText = editor.getModel().getText(evt.start, evt.start + evt.addedCharCount);
+			changeData.addedCharacters = addedText;
+		}
+		
+		socket.emit('modelchanged', changeData);
+	}
 	
 	socket.on('getResourceRequest', function(data) {
 		if (data.project == project && data.resource == resource && data.callback_id !== undefined) {
