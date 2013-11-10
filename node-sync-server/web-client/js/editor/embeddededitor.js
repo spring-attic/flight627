@@ -26,7 +26,7 @@ define([
 	"orion/editor/editor",
 	"orion/editor/editorFeatures",
 	"orion/editor/contentAssist",
-	"orion/editor/javaContentAssist",
+	"editor/javaContentAssist",
 	"editor/sha1",
 	"editor/socket.io"],
 

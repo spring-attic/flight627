@@ -9,7 +9,7 @@
  *  Contributors:
  *      GoPivotal, Inc. - initial API and implementation
  *******************************************************************************/
-define("orion/editor/javaContentAssist", ['orion/editor/Deferred'], function(Deferred) {
+define("editor/javaContentAssist", ['orion/editor/Deferred'], function(Deferred) {
 	
 	var currentCallbackId = 0;
 	var callbacks = {};
