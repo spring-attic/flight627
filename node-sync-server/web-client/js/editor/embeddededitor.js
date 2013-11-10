@@ -149,15 +149,9 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	
 	editor.installTextView();
 	
-	// if there is a mechanism to change which file is being viewed, this code would be run each time it changed.
-	var contentName = "sample.java";  // for example, a file name, something the user recognizes as the content.
-	var initialContent = "window.alert('this is some javascript code');  // try pasting in some real code";
-	editor.setInput(contentName, null, initialContent);
-	syntaxHighlighter.highlight(contentName, editor);
 	contentAssist.addEventListener("Activating", function() {
 		contentAssist.setProviders([javaContentAssistProvider]);
 	});
-	// end of code to run when content changes.
 	
 	window.onbeforeunload = function() {
 		if (editor.isDirty()) {
@@ -257,7 +251,9 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 
 		var text = data.content;
 		
-		editor.setInput("HomeController.java", null, text);
+		editor.setInput(filePath, null, text);
+		syntaxHighlighter.highlight(filePath, editor);
+		
 		javaContentAssistProvider.setResourcePath(filePath);
 		
 		lastSavePointContent = text;
@@ -267,7 +263,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		socket.emit('startedediting', {'resource' : filePath})
 		
 		editor.getTextView().addEventListener("ModelChanged", function(evt) {
-//			console.log(evt);
 			
 			var changeData = {
 							'resource' : filePath,
@@ -322,19 +317,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				'timestamp' : lastSavePointTimestamp,
 				'hash' : lastSavePointHash
 			});
-			
-			/*
-			xhr.open("PUT", "/api/" + filePath, true);
-			xhr.onreadystatechange = function() {
-				if (xhr.readyState == 4) {
-			        if (xhr.status==200) {
-						var response = xhr.responseText;
-			        } else {
-						window.alert("Error during save.");
-			        }
-			    }
-			}
-			xhr.send(editor.getText()); */
 		}, 0);
 	}
 
@@ -353,44 +335,5 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			});
 		}, 0);
 	}
-		
-/*
-		xhr.open("GET", "/api/" + filePath, true);
-		xhr.onreadystatechange = function() {
-			if (xhr.readyState == 4) {
-		        if (xhr.status==200) {
-					var response = xhr.responseText;
-					editor.setInput("HomeController.java", null, response);
-					
-					javaContentAssistProvider.setResourcePath(filePath);
-					
-					socket.emit('startedediting', {'resource' : filePath})
-					
-					editor.getTextView().addEventListener("ModelChanged", function(evt) {
-						console.log(evt);
-						
-						var changeData = {
-										'resource' : filePath,
-										'start' : evt.start,
-										'addedCharCount' : evt.addedCharCount,
-										'addedLineCount' : evt.addedLineCount,
-										'removedCharCount' : evt.removedCharCount,
-										'removedLineCount' : evt.removedLineCount
-										};
-										
-						if (evt.addedCharCount > 0) {
-							var addedText = editor.getModel().getText(evt.start, evt.start + evt.addedCharCount);
-							changeData.addedCharacters = addedText;
-						}
-						
-						socket.emit('modelchanged', changeData);
-					});
-		        } else {
-					editor.setInput("Error", null, xhr.status);
-		        }
-		    }
-		}
-		xhr.send();
-	}
-*/
+
 });
