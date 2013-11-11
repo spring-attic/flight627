@@ -220,6 +220,15 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			else {
 				var baseURL = window.location.origin + window.location.pathname;
 				var resourceID = navigationTarget.project + "/" + navigationTarget.resource;
+				
+				if (navigationTarget.offset !== undefined) {
+					resourceID += '#offset=' + navigationTarget.offset;
+				}
+				
+				if (navigationTarget.length !== undefined) {
+					resourceID += '#length=' + navigationTarget.length;
+				}
+				
 				window.location.hash = resourceID;
 			}
 		}
@@ -230,6 +239,8 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	var project = undefined;
 	var resource = undefined;
 	var fileShortName = undefined;
+	
+	var jumpTo = undefined;
 	
 	var lastSavePointContent;
 	var lastSavePointHash;
@@ -244,17 +255,59 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		
 		if (filePath !== undefined) {
 			var sections = filePath.split('/');
-			project = sections[0];
-			resource = filePath.slice(project.length + 1);
-			fileShortName = sections[sections.length - 1];
+			var newProject = sections[0];
+			var newResource = filePath.slice(newProject.length + 1);
 			
-			editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
+			if (newProject !== project || newResource !== resource) {
+				project = newProject;
+				resource = newResource;
+				fileShortName = sections[sections.length - 1];
+				jumpTo = extractJumpToInformation(window.location.hash);
+
+				editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
 		
-			socket.emit('getResourceRequest', {
-				'callback_id' : 0,
-				'project' : project,
-				'resource' : resource
-			});
+				socket.emit('getResourceRequest', {
+					'callback_id' : 0,
+					'project' : project,
+					'resource' : resource
+				});
+			}
+			else {
+				jumpTo = extractJumpToInformation(window.location.hash);
+				jump(jumpTo);
+			}
+		}
+	}
+	
+	function extractJumpToInformation(hash) {
+		var hashValues = hash.split('#');
+		var offset = undefined;
+		var length = undefined;
+		
+		for (i = 0; i < hashValues.length; i++) {
+			var param = hashValues[i];
+			var pieces = param.split('=');
+			if (pieces.length == 2) {
+				if (pieces[0] === 'offset' && !isNaN(parseInt(pieces[1]))) {
+					offset = parseInt(pieces[1]);
+				}
+				else if (pieces[0] === 'length' && !isNaN(parseInt(pieces[1]))) {
+					length = parseInt(pieces[1]);
+				}
+			}
+		}
+		
+		if (offset !== undefined) {
+			return {
+				'offset' : offset,
+				'length' : (length !== undefined ? length : 0)
+			}
+		}
+	}
+	
+	function jump(selection) {
+		if (selection !== undefined) {
+			editor.setSelection(selection.offset, selection.offset + selection.length, true);
 		}
 	}
 	
@@ -276,6 +329,8 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		lastSavePointContent = text;
 		lastSavePointHash = data.hash;
 		lastSavePointTimestamp = data.timestamp;
+		
+		jump(jumpTo);
 
 		socket.emit('startedediting', {'resource' : filePath})
 		
