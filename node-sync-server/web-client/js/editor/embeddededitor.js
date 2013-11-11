@@ -85,14 +85,20 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	
 	var annotationFactory = new mEditorFeatures.AnnotationFactory();
 	
+	var linkedMode;
+	
 	var keyBindingFactory = function(editor, keyModeStack, undoStack, contentAssist) {
 		
 		// Create keybindings for generic editing
 		var genericBindings = new mEditorFeatures.TextActions(editor, undoStack);
 		keyModeStack.push(genericBindings);
 		
+		// Linked Mode
+		linkedMode = new mEditorFeatures.LinkedMode(editor);
+		keyModeStack.push(linkedMode);
+
 		// create keybindings for source editing
-		var codeBindings = new mEditorFeatures.SourceCodeActions(editor, undoStack, contentAssist);
+		var codeBindings = new mEditorFeatures.SourceCodeActions(editor, undoStack, contentAssist, linkedMode);
 		keyModeStack.push(codeBindings);
 		
 		// save binding
@@ -105,6 +111,12 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding(114), "navigate");
 		editor.getTextView().setAction("navigate", function(){
 				navigate(editor);
+				return true;
+		});
+
+		editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding(115), "renameinfile");
+		editor.getTextView().setAction("renameinfile", function(){
+				renameInFile(editor);
 				return true;
 		});
 
@@ -231,6 +243,24 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				
 				window.location.hash = resourceID;
 			}
+		}
+    	console.log(data);
+  	});
+	
+  	socket.on('renameinfileresponse', function (data) {
+		if (project === data.project && resource === data.resource && data.references !== undefined) {
+			var references = data.references;
+			
+			var positionGroups = [];
+			positionGroups.push({
+				'positions' : references
+			});
+
+			var linkedModeModel = {
+				groups: positionGroups,
+				escapePosition: 0
+			};
+			linkedMode.enterLinkedMode(linkedModeModel);
 		}
     	console.log(data);
   	});
@@ -412,4 +442,19 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}, 0);
 	}
 
+	function renameInFile(editor) {
+		setTimeout(function() {
+			var selection = editor.getSelection();
+			var offset = selection.start;
+			var length = selection.end - selection.start;
+			
+			socket.emit('renameinfilerequest', {
+				'project' : project,
+				'resource' : resource,
+				'offset' : offset,
+				'length' : length,
+				'callback_id' : 0
+			});
+		}, 0);
+	}
 });

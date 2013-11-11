@@ -113,6 +113,8 @@ public class CloudSyncController {
 							contentAssistRequest((JSONObject) data[0]);
 						} else if ("navigationrequest".equals(event)) {
 							navigationRequest((JSONObject) data[0]);
+						} else if ("renameinfilerequest".equals(event)) {
+							renameInFileRequest((JSONObject) data[0]);
 						} else if ("getProjectsRequest".equals(event)) {
 							cloudRepository.getProjects((JSONObject) data[0]);
 						} else if ("getProjectRequest".equals(event)) {
@@ -251,6 +253,38 @@ public class CloudSyncController {
 					message.put("navigation", navigationResult);
 	
 					socket.emit("navigationresponse", message);
+				}
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+
+	protected void renameInFileRequest(JSONObject jsonObject) {
+		try {
+			String projectName = jsonObject.getString("project");
+			String resourcePath = jsonObject.getString("resource");
+			int callbackID = jsonObject.getInt("callback_id");
+			
+			String liveEditID = projectName + "/" + resourcePath;
+			if (liveEditUnits.containsKey(liveEditID)) {
+
+				RenameService renameService = new RenameService(resourcePath, liveEditUnits.get(liveEditID));
+
+				int offset = jsonObject.getInt("offset");
+				int length = jsonObject.getInt("length");
+				String sender = jsonObject.getString("requestSenderID");
+				JSONArray references = renameService.compute(offset, length);
+				
+				if (references != null) {
+					JSONObject message = new JSONObject();
+					message.put("project", projectName);
+					message.put("resource", resourcePath);
+					message.put("callback_id", callbackID);
+					message.put("requestSenderID", sender);
+					message.put("references", references);
+	
+					socket.emit("renameinfileresponse", message);
 				}
 			}
 		} catch (JSONException e) {
