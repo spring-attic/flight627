@@ -108,9 +108,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				return true;
 		});
 
-		// speaking of save...
-		// document.getElementById("save").onclick = function() {save(editor);};
-
 	};
 		
 	var dirtyIndicator = "";
