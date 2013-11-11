@@ -136,8 +136,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	editor.addEventListener("DirtyChanged", function(evt) {
 		if (editor.isDirty()) {
 			dirtyIndicator = "*";
+			window.document.title = "*" + fileShortName;
 		} else {
 			dirtyIndicator = "";
+			window.document.title = fileShortName;
 		}
 		
 		// alert("Dirty changes: " + editor.__javaObject);
@@ -332,6 +334,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				'timestamp' : lastSavePointTimestamp,
 				'hash' : lastSavePointHash
 			});
+			
+			// this is potentially dangerous because the editor is set to non-dirty
+			// even though we don't know whether anything has been saved by someone else
+			editor.setDirty(false);
 		}, 0);
 	}
 
