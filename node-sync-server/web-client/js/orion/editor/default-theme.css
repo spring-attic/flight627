@@ -1,6 +1,6 @@
 /* Default theme */
 .comment {
-	color: green;
+	color: #3C802C;
 }
 
 .comment-block-documentation {
@@ -31,6 +31,11 @@
 
 .invalid-deprecated {
 	text-decoration: line-through;
+}
+
+.invalid {
+	color: red;
+	font-weight: bold;
 }
 
 .keyword-control {
@@ -80,12 +85,12 @@
 }
 
 /* Hardcoded HTML styles */
-.entity-name-tag {
-	color: #3f7f7f;
+.entity-name-tag /*tag name*/ {
+	color: #CC4C07;
 }
 
 .entity-other-attribute-name {
-	color: #7f007f;
+	color: #3C802C;
 }
 
 .punctuation-definition-comment {

@@ -18,8 +18,8 @@
 
 define([
 	"require", 
-	"orion/textview/textView",
-	"orion/textview/keyBinding",
+	"orion/editor/textView",
+	"orion/keyBinding",
 	"editor/textview/textStyler",
 	"orion/editor/textMateStyler",
 	"orion/editor/htmlGrammar",
@@ -27,10 +27,11 @@ define([
 	"orion/editor/editorFeatures",
 	"orion/editor/contentAssist",
 	"editor/javaContentAssist",
+	"orion/editor/linkedMode",
 	"editor/sha1",
 	"editor/socket.io"],
 
-function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGrammar, mEditor, mEditorFeatures, mContentAssist, mJavaContentAssist){
+function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGrammar, mEditor, mEditorFeatures, mContentAssist, mJavaContentAssist, mLinkedMode){
 	var editorDomNode = document.getElementById("editor");
 	
 	var textViewFactory = function() {
@@ -45,7 +46,9 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		createContentAssistMode: function(editor) {
 			contentAssist = new mContentAssist.ContentAssist(editor.getTextView());
 			var contentAssistWidget = new mContentAssist.ContentAssistWidget(contentAssist);
-			return new mContentAssist.ContentAssistMode(contentAssist, contentAssistWidget);
+			var result = new mContentAssist.ContentAssistMode(contentAssist, contentAssistWidget);
+			contentAssist.setMode(result);
+			return result;
 		}
 	};
 	
@@ -95,7 +98,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		keyModeStack.push(genericBindings);
 		
 		// Linked Mode
-		linkedMode = new mEditorFeatures.LinkedMode(editor);
+		linkedMode = new mLinkedMode.LinkedMode(editor, undoStack, contentAssist);
 		keyModeStack.push(linkedMode);
 
 		// create keybindings for source editing

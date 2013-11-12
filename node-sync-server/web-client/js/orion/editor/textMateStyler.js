@@ -12,7 +12,7 @@
 /*jslint regexp:false laxbreak:true*/
 /*global define */
 
-define("orion/editor/textMateStyler", ['orion/editor/regex'], function(mRegex) {
+define("orion/editor/textMateStyler", ['orion/regex' ], function(mRegex) {
 
 var RegexUtil = {
 	// Rules to detect some unsupported Oniguruma features
@@ -100,8 +100,11 @@ var RegexUtil = {
 	/**
 	 * Checks if flag applies to entire pattern. If so, obtains replacement string by calling processor
 	 * on the unwrapped pattern. Handles 2 possible syntaxes: (?f)pat and (?f:pat)
+	 * @param {String} flag
+	 * @param {String} str
+	 * @param {Function} processor
 	 */
-	processGlobalFlag: function(/**String*/ flag, /**String*/ str, /**Function*/ processor) {
+	processGlobalFlag: function(flag, str, processor) {
 		function getMatchingCloseParen(/*String*/pat, /*Number*/start) {
 			var depth = 0,
 			    len = pat.length,
@@ -424,7 +427,7 @@ var RegexUtil = {
 	 * 
 	 * @description Creates a new TextMateStyler.
 	 * @extends orion.editor.AbstractStyler
-	 * @param {orion.textview.TextView} textView The <code>TextView</code> to provide styling for.
+	 * @param {orion.editor.TextView} textView The <code>TextView</code> to provide styling for.
 	 * @param {Object} grammar The TextMate grammar to use for styling the <code>TextView</code>, as a JavaScript object. You can
 	 * produce this object by running a PList-to-JavaScript conversion tool on a TextMate <code>.tmLanguage</code> file.
 	 * @param {Object[]} [externalGrammars] Additional grammar objects that will be used to resolve named rule references.
@@ -443,7 +446,9 @@ var RegexUtil = {
 	TextMateStyler.prototype = /** @lends orion.editor.TextMateStyler.prototype */ {
 		initialize: function(textView) {
 			this.textView = textView;
+			this.textView.stylerOptions = this;
 			var self = this;
+			
 			this._listener = {
 				onModelChanged: function(e) {
 					self.onModelChanged(e);
@@ -453,6 +458,9 @@ var RegexUtil = {
 				},
 				onLineStyle: function(e) {
 					self.onLineStyle(e);
+				},
+				onStorage: function(e){
+					self.onStorage(e);
 				}
 			};
 			textView.addEventListener("ModelChanged", this._listener.onModelChanged);
@@ -510,8 +518,8 @@ var RegexUtil = {
 		},
 		
 		/**
-		 * @private
 		 * Adds eclipse.Style objects for scope to our _styles cache.
+		 * @private
 		 * @param {String} scope A scope name, like "constant.character.php".
 		 */
 		addStyles: function(scope) {
@@ -648,6 +656,7 @@ var RegexUtil = {
 			}
 			return resolved;
 		},
+
 		/** @private */
 		ContainerNode: (function() {
 			function ContainerNode(parent, rule) {
@@ -1018,10 +1027,10 @@ var RegexUtil = {
 			}
 		},
 		/**
-		 * @param model {orion.textview.TextModel}
-		 * @param node {Node}
-		 * @param pos {Number}
-		 * @param [matchRulesOnly] {Boolean} Optional, if true only "match" subrules will be considered.
+		 * @param model {orion.editor.TextModel}
+		 * @param {Node} node
+		 * @param {Number} pos
+		 * @param {Boolean} [matchRulesOnly] Optional, if true only "match" subrules will be considered.
 		 * @returns {Object} A match info object with properties:
 		 * {Boolean} isEnd
 		 * {Boolean} isSub
@@ -1356,7 +1365,7 @@ var RegexUtil = {
 		},
 		/**
 		 * Applies the grammar to obtain the {@link eclipse.StyleRange[]} for the given line.
-		 * @returns eclipse.StyleRange[]
+		 * @returns {eclipse.StyleRange[]}
 		 * @private
 		 */
 		toStyleRanges: function(/**ScopeRange[]*/ scopeRanges) {
