@@ -449,6 +449,7 @@ define("editor/textview/textStyler", ['orion/textview/annotations'], function(mA
 		var keywords = [];
 		switch (lang) {
 			case "java": keywords = JAVA_KEYWORDS; break;
+			case "class": keywords = JAVA_KEYWORDS; break;
 			case "js": keywords = JS_KEYWORDS; break;
 			case "css": keywords = CSS_KEYWORDS; break;
 		}

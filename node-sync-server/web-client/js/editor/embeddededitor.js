@@ -71,6 +71,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 					switch(extension) {
 						case "js":
 						case "java":
+						case "class":
 						case "css":
 							this.styler = new mTextStyler.TextStyler(textView, extension, annotationModel);
 							break;

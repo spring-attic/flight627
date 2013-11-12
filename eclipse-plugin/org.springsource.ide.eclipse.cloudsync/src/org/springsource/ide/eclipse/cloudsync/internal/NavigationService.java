@@ -11,6 +11,7 @@
 package org.springsource.ide.eclipse.cloudsync.internal;
 
 import org.eclipse.core.resources.IResource;
+import org.eclipse.jdt.core.IClassFile;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.ISourceRange;
@@ -53,6 +54,26 @@ public class NavigationService {
 					}
 					
 					return result;
+				}
+				else {
+					while (element != null && !(element instanceof IClassFile)) {
+						element = element.getParent();
+					}
+					
+					if (element != null && element instanceof IClassFile) {
+						IClassFile classFile = (IClassFile) element;
+						ISourceRange sourceRange = classFile.getSourceRange();
+						if (sourceRange != null) {
+							String projectName = element.getJavaProject().getProject().getName();
+							String resourcePath  = classFile.getParent().getElementName().replace('.', '/');
+							resourcePath = "classpath:/" + resourcePath + "/" + classFile.getElementName();
+							
+							result.put("project", projectName);
+							result.put("resource", resourcePath);
+							
+							return result;
+						}
+					}
 				}
 			}
 

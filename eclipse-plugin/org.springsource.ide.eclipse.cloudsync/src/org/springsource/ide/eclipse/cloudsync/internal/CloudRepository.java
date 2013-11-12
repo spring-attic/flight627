@@ -29,6 +29,11 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jdt.core.IClassFile;
+import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.IType;
+import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jface.viewers.LabelProviderChangedEvent;
 import org.eclipse.swt.widgets.Display;
 import org.json.JSONArray;
@@ -71,6 +76,10 @@ public class CloudRepository {
 
 	public boolean isConnected(IProject project) {
 		return this.syncedProjects.containsKey(project.getName());
+	}
+
+	public boolean isConnected(String project) {
+		return this.syncedProjects.containsKey(project);
 	}
 
 	public void addProject(IProject project) {
@@ -294,6 +303,50 @@ public class CloudRepository {
 				socket.emit("getResourceResponse", message);
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void getClasspathResource(JSONObject request) {
+		try {
+			final int callbackID = request.getInt("callback_id");
+			final String sender = request.getString("requestSenderID");
+			final String projectName = request.getString("project");
+			final String resourcePath = request.getString("resource");
+
+			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
+			if (connectedProject != null) {
+				String typeName = resourcePath.substring("classpath:/".length());
+				if (typeName.endsWith(".class")) {
+					typeName = typeName.substring(0, typeName.length() - ".class".length());
+				}
+				typeName = typeName.replace('/', '.');
+				
+				IJavaProject javaProject = JavaCore.create(connectedProject.getProject());
+				if (javaProject != null) {
+					IType type = javaProject.findType(typeName);
+					IClassFile classFile = type.getClassFile();
+					if (classFile != null && classFile.getSourceRange() != null) {
+						
+						JSONObject message = new JSONObject();
+						message.put("callback_id", callbackID);
+						message.put("requestSenderID", sender);
+						message.put("project", projectName);
+						message.put("resource", resourcePath);
+						
+						String content = classFile.getSource();
+						
+						message.put("content", content);
+						message.put("type", "file");
+						
+						socket.emit("getResourceResponse", message);
+					}
+				}
+			}
+		}
+		catch (JSONException e) {
+			e.printStackTrace();
+		} catch (JavaModelException e) {
 			e.printStackTrace();
 		}
 	}

@@ -122,7 +122,7 @@ public class CloudSyncController {
 						} else if ("getProjectResponse".equals(event)) {
 							cloudRepository.getProjectResponse((JSONObject) data[0]);
 						} else if ("getResourceRequest".equals(event)) {
-							cloudRepository.getResource((JSONObject) data[0]);
+							getResourceRequest((JSONObject) data[0]);
 						} else if ("getResourceResponse".equals(event)) {
 							cloudRepository.getResourceResponse((JSONObject) data[0]);
 						} else if ("getMetadataRequest".equals(event)) {
@@ -291,12 +291,32 @@ public class CloudSyncController {
 			e.printStackTrace();
 		}
 	}
+	
+	protected void getResourceRequest(JSONObject request) {
+		try {
+			final String projectName = request.getString("project");
+			final String resourcePath = request.getString("resource");
+			
+			if (isConnected(projectName) && resourcePath.startsWith("classpath:")) {
+				cloudRepository.getClasspathResource(request);
+			}
+			else {
+				cloudRepository.getResource(request);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 	public ConnectedProject getProject(IProject project) {
 		return this.cloudRepository.getProject(project);
 	}
 
 	public boolean isConnected(IProject project) {
+		return this.cloudRepository.isConnected(project);
+	}
+
+	public boolean isConnected(String project) {
 		return this.cloudRepository.isConnected(project);
 	}
 
