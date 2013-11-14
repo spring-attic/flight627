@@ -155,11 +155,17 @@ public class CloudSyncController {
 
 					if (removedCharCount > 0) {
 						buffer.replace(start, removedCharCount, "");
-						unit.reconcile(ICompilationUnit.NO_AST, true, null, null);
-					} else if (addedCharCount > 0) {
+					}
+					
+					if (addedCharCount > 0) {
 						buffer.replace(start, 0, addedChars);
 						unit.reconcile(ICompilationUnit.NO_AST, true, null, null);
 					}
+					
+					if (removedCharCount > 0 || addedCharCount > 0) {
+						unit.reconcile(ICompilationUnit.NO_AST, true, null, null);
+					}
+
 				} catch (JavaModelException e) {
 					e.printStackTrace();
 				}
