@@ -358,6 +358,13 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		syntaxHighlighter.highlight(fileShortName, editor);
 		window.document.title = fileShortName;
 		
+		if (data.readonly) {
+			editor.getTextView().setOptions({'readonly' : true});
+		}
+		else {
+			editor.getTextView().setOptions({'readonly' : false});
+		}
+		
 		javaContentAssistProvider.setResourcePath(filePath);
 		
 		lastSavePointContent = text;

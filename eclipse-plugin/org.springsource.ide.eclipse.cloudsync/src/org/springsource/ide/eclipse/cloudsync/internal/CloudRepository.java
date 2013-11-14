@@ -333,6 +333,7 @@ public class CloudRepository {
 						message.put("requestSenderID", sender);
 						message.put("project", projectName);
 						message.put("resource", resourcePath);
+						message.put("readonly", true);
 						
 						String content = classFile.getSource();
 						
