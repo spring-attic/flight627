@@ -479,6 +479,9 @@ public class CloudRepository {
 		case IResourceDelta.ADDED:
 			break;
 		case IResourceDelta.REMOVED:
+			if (resource instanceof IProject) {
+				this.removeProject((IProject) resource);
+			}
 			break;
 		case IResourceDelta.CHANGED:
 			if (resource != null && resource instanceof IFile) {
