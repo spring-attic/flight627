@@ -56,6 +56,10 @@
 	               </with>
 	            </visibleWhen>
 	         </command>
+	         <command
+	               commandId="org.springsource.ide.eclipse.ui.cloudsync.download"
+	               style="push">
+	         </command>
           </menu> 
       </menuContribution>
    </extension>
@@ -78,6 +82,15 @@
       </command>
    </extension>
    
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            defaultHandler="org.springsource.ide.eclipse.cloudsync.handlers.SyncDownloadHandler"
+            id="org.springsource.ide.eclipse.ui.cloudsync.download"
+            name="Download">
+      </command>
+   </extension>
+
    <extension point="org.eclipse.ui.decorators">
       <decorator
             id="org.springsource.ide.eclipse.cloudsync.projectdecorator"

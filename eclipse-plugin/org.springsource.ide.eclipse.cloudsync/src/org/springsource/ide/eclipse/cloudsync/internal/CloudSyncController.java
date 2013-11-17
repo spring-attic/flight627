@@ -23,6 +23,7 @@ import javax.net.ssl.SSLContext;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceChangeEvent;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.IBuffer;
@@ -34,6 +35,7 @@ import org.eclipse.jdt.core.WorkingCopyOwner;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springsource.ide.eclipse.cloudsync.internal.DownloadProject.CompletionCallback;
 
 /**
  * @author Martin Lippert
@@ -49,6 +51,7 @@ public class CloudSyncController {
 	}
 
 	private ConcurrentMap<String, ICompilationUnit> liveEditUnits;
+	private ConcurrentMap<Integer, DownloadProject> downloads;
 	
 	private SocketIO socket;
 	private CloudRepository cloudRepository;
@@ -58,6 +61,7 @@ public class CloudSyncController {
 		cloudRepository = new CloudRepository();
 
 		this.liveEditUnits = new ConcurrentHashMap<String, ICompilationUnit>();
+		this.downloads = new ConcurrentHashMap<Integer, DownloadProject>();
 
 		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(this.cloudRepository);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(resourceListener, IResourceChangeEvent.POST_CHANGE);
@@ -120,11 +124,41 @@ public class CloudSyncController {
 						} else if ("getProjectRequest".equals(event)) {
 							cloudRepository.getProject((JSONObject) data[0]);
 						} else if ("getProjectResponse".equals(event)) {
-							cloudRepository.getProjectResponse((JSONObject) data[0]);
+							JSONObject responseData = (JSONObject) data[0];
+							if (responseData.has("callback_id")) {
+								try {
+									int callbackID = responseData.getInt("callback_id");
+									DownloadProject download = downloads.get(callbackID);
+									if (download != null) {
+										download.getProjectResponse(responseData);
+									}
+									else {
+										cloudRepository.getProjectResponse((JSONObject) data[0]);
+									}
+								}
+								catch (JSONException e) {
+									e.printStackTrace();
+								}
+							}
 						} else if ("getResourceRequest".equals(event)) {
 							getResourceRequest((JSONObject) data[0]);
 						} else if ("getResourceResponse".equals(event)) {
-							cloudRepository.getResourceResponse((JSONObject) data[0]);
+							JSONObject responseData = (JSONObject) data[0];
+							if (responseData.has("callback_id")) {
+								try {
+									int callbackID = responseData.getInt("callback_id");
+									DownloadProject download = downloads.get(callbackID);
+									if (download != null) {
+										download.getResourceResponse(responseData);
+									}
+									else {
+										cloudRepository.getResourceResponse(responseData);
+									}
+								}
+								catch (JSONException e) {
+									e.printStackTrace();
+								}
+							}
 						} else if ("getMetadataRequest".equals(event)) {
 							cloudRepository.getMetadata((JSONObject) data[0]);
 						}
@@ -335,6 +369,30 @@ public class CloudSyncController {
 	public void disconnect(IProject project) {
 		if (this.cloudRepository.isConnected(project)) {
 			this.cloudRepository.removeProject(project);
+		}
+	}
+
+	public void download(final String projectName) {
+		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+
+		if (!this.cloudRepository.isConnected(projectName) && !root.getProject(projectName).exists()) {
+			final int callbackID = (projectName + "-download").hashCode();
+			
+			DownloadProject download = new DownloadProject(socket, projectName, callbackID);
+			if (this.downloads.putIfAbsent(callbackID, download) == null) {
+				download.run(new CompletionCallback() {
+					@Override
+					public void downloadComplete(IProject project) {
+						downloads.remove(callbackID);
+						CloudSyncController.this.cloudRepository.addProject(project);
+					}
+					
+					@Override
+					public void downloadFailed() {
+						downloads.remove(callbackID);
+					}
+				});
+			}
 		}
 	}
 
