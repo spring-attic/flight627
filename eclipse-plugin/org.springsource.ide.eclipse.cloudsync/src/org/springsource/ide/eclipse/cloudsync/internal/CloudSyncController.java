@@ -52,6 +52,7 @@ public class CloudSyncController {
 
 	private ConcurrentMap<String, ICompilationUnit> liveEditUnits;
 	private ConcurrentMap<Integer, DownloadProject> downloads;
+	private ConcurrentHashMap<String, RequestResponseHandler> requestResponseHandler;
 	
 	private SocketIO socket;
 	private CloudRepository cloudRepository;
@@ -62,6 +63,7 @@ public class CloudSyncController {
 
 		this.liveEditUnits = new ConcurrentHashMap<String, ICompilationUnit>();
 		this.downloads = new ConcurrentHashMap<Integer, DownloadProject>();
+		this.requestResponseHandler = new ConcurrentHashMap<String, RequestResponseHandler>();
 
 		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(this.cloudRepository);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(resourceListener, IResourceChangeEvent.POST_CHANGE);
@@ -107,24 +109,41 @@ public class CloudSyncController {
 					System.out.println("websocket message arrived: " + event);
 
 					if (data.length == 1 && data[0] instanceof JSONObject) {
+						JSONObject responseData = (JSONObject) data[0];
+
+						if (responseData.has("callback_id")) {
+							try {
+								int callbackID = responseData.getInt("callback_id");
+								String key = event + "-" + callbackID;
+
+								RequestResponseHandler handler = requestResponseHandler.get(key);
+								if (handler != null) {
+									handler.receive(responseData);
+									return;
+								}
+							}
+							catch (JSONException e) {
+								e.printStackTrace();
+							}
+						}
+						
 						if ("resourceChanged".equals(event)) {
-							cloudRepository.updateResource((JSONObject) data[0]);
+							cloudRepository.updateResource(responseData);
 						} else if ("startedediting".equals(event)) {
-							startedEditing((JSONObject) data[0]);
+							startedEditing(responseData);
 						} else if ("modelchanged".equals(event)) {
-							modelChanged((JSONObject) data[0]);
+							modelChanged(responseData);
 						} else if ("contentassistrequest".equals(event)) {
-							contentAssistRequest((JSONObject) data[0]);
+							contentAssistRequest(responseData);
 						} else if ("navigationrequest".equals(event)) {
-							navigationRequest((JSONObject) data[0]);
+							navigationRequest(responseData);
 						} else if ("renameinfilerequest".equals(event)) {
-							renameInFileRequest((JSONObject) data[0]);
+							renameInFileRequest(responseData);
 						} else if ("getProjectsRequest".equals(event)) {
-							cloudRepository.getProjects((JSONObject) data[0]);
+							cloudRepository.getProjects(responseData);
 						} else if ("getProjectRequest".equals(event)) {
-							cloudRepository.getProject((JSONObject) data[0]);
+							cloudRepository.getProject(responseData);
 						} else if ("getProjectResponse".equals(event)) {
-							JSONObject responseData = (JSONObject) data[0];
 							if (responseData.has("callback_id")) {
 								try {
 									int callbackID = responseData.getInt("callback_id");
@@ -133,7 +152,7 @@ public class CloudSyncController {
 										download.getProjectResponse(responseData);
 									}
 									else {
-										cloudRepository.getProjectResponse((JSONObject) data[0]);
+										cloudRepository.getProjectResponse(responseData);
 									}
 								}
 								catch (JSONException e) {
@@ -141,9 +160,8 @@ public class CloudSyncController {
 								}
 							}
 						} else if ("getResourceRequest".equals(event)) {
-							getResourceRequest((JSONObject) data[0]);
+							getResourceRequest(responseData);
 						} else if ("getResourceResponse".equals(event)) {
-							JSONObject responseData = (JSONObject) data[0];
 							if (responseData.has("callback_id")) {
 								try {
 									int callbackID = responseData.getInt("callback_id");
@@ -160,7 +178,7 @@ public class CloudSyncController {
 								}
 							}
 						} else if ("getMetadataRequest".equals(event)) {
-							cloudRepository.getMetadata((JSONObject) data[0]);
+							cloudRepository.getMetadata(responseData);
 						}
 					} else {
 						System.out.println("unknown data on websocket");
@@ -393,6 +411,14 @@ public class CloudSyncController {
 					}
 				});
 			}
+		}
+	}
+
+	public void sendRequest(RequestResponseHandler requestResponseHandler) {
+		if (this.socket.isConnected()) {
+			String key = requestResponseHandler.getResponseType() + "-" + requestResponseHandler.getCallbackID();
+			this.requestResponseHandler.put(key, requestResponseHandler);
+			this.socket.emit(requestResponseHandler.getRequestType(), requestResponseHandler.getMessage());
 		}
 	}
 

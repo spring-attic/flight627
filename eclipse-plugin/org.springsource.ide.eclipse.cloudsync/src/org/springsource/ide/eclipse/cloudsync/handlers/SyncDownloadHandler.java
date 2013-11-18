@@ -13,6 +13,9 @@ package org.springsource.ide.eclipse.cloudsync.handlers;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.swt.widgets.Shell;
 import org.springsource.ide.eclipse.cloudsync.Activator;
 import org.springsource.ide.eclipse.cloudsync.internal.CloudSyncController;
 
@@ -26,8 +29,21 @@ public class SyncDownloadHandler extends AbstractHandler {
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		CloudSyncController syncController = Activator.getDefault().getController();
-		syncController.download("mvc1");
+		Shell shell = Activator.getDefault().getWorkbench().getActiveWorkbenchWindow().getShell();
 
+		SyncDownloadSelectionDialog selectionDialog2 = new SyncDownloadSelectionDialog(shell, new LabelProvider(), syncController);
+		int result = selectionDialog2.open();
+		
+		if (result == Dialog.OK) {
+			Object[] selectedProjects = selectionDialog2.getResult();
+			
+			for (Object selectedProject : selectedProjects) {
+				if (selectedProject instanceof String) {
+					syncController.download((String) selectedProject);
+				}
+			}
+		}
+		
 		return null;
 	}
 
