@@ -20,6 +20,9 @@ import org.eclipse.jdt.core.JavaModelException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+/**
+ * @author Martin Lippert
+ */
 public class NavigationService {
 
 	private String resourcePath;

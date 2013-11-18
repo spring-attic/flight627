@@ -26,6 +26,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+/**
+ * @author Martin Lippert
+ */
 public class DownloadProject {
 	
 	public interface CompletionCallback {

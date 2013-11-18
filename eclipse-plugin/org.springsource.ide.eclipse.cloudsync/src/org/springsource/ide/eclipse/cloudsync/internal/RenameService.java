@@ -24,6 +24,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+/**
+ * @author Martin Lippert
+ */
 public class RenameService {
 
 	private String resourcePath;

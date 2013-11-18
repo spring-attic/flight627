@@ -17,6 +17,9 @@ import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.LabelProviderChangedEvent;
 import org.eclipse.ui.IDecoratorManager;
 
+/**
+ * @author Martin Lippert
+ */
 public class CloudProjectDecorator extends LabelProvider implements ILightweightLabelDecorator {
 
 	public static final String ID = "org.springsource.ide.eclipse.cloudsync.projectdecorator";
