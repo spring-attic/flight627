@@ -31,6 +31,8 @@ MessagesRepository.prototype.setSocket = function(socket) {
 	socket.on('projectDisconnected', that.projectDisconnected);
 	
 	socket.on('resourceChanged', that.resourceChanged);
+	socket.on('resourceCreated', that.resourceCreated);
+	socket.on('resourceDeleted', that.resourceDeleted);
 	
 }
 
@@ -152,4 +154,31 @@ MessagesRepository.prototype.resourceChanged = function(data) {
 		});
 	}
 	
+}
+
+MessagesRepository.prototype.resourceCreated = function(data) {
+	var projectName = data.project;
+	var resource = data.resource;
+	var timestamp = data.timestamp;
+	var hash = data.hash;
+	var type = data.type;
+	
+	if (!that.repository.hasResource(projectName, resource, type)) {
+		that.socket.emit('getResourceRequest', {
+			'callback_id' : 0,
+			'project' : projectName,
+			'resource' : resource,
+			'timestamp' : timestamp,
+			'hash' : hash
+		});
+	}
+	
+}
+
+MessagesRepository.prototype.resourceDeleted = function(data) {
+	var projectName = data.project;
+	var resource = data.resource;
+	var timestamp = data.timestamp;
+	
+	// TODO	
 }

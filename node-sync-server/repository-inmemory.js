@@ -104,7 +104,8 @@ InMemoryRepository.prototype.createResource = function(projectName, resourcePath
 			'project' : projectName,
 			'resource' : resourcePath,
 			'hash' : hash,
-			'timestamp' : timestamp
+			'timestamp' : timestamp,
+			'type' : type
 		});
 	}
 	else {

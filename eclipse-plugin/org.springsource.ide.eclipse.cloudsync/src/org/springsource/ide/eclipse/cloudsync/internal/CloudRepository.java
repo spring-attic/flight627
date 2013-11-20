@@ -14,6 +14,7 @@ import io.socket.SocketIO;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -117,6 +118,7 @@ public class CloudRepository {
 		try {
 			JSONObject message = new JSONObject();
 			message.put("project", projectName);
+			message.put("callback_id", 0);
 			socket.emit("getProjectRequest", message);
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -237,10 +239,12 @@ public class CloudRepository {
 
 					String type = resource.optString("type");
 					String hash = resource.optString("hash");
+					
+					boolean newFile = type != null && type.equals("file") && !connectedProject.containsResource(resourcePath);
+					boolean updatedFile = type != null && type.equals("file") && connectedProject.containsResource(resourcePath)
+							&& !connectedProject.getHash(resourcePath).equals(hash) && connectedProject.getTimestamp(resourcePath) < timestamp;
 
-					if (type != null && type.equals("file") && !connectedProject.getHash(resourcePath).equals(hash)
-							&& connectedProject.getTimestamp(resourcePath) < timestamp) {
-
+					if (newFile || updatedFile) {
 						JSONObject message = new JSONObject();
 						message.put("callback_id", 0);
 						message.put("project", projectName);
@@ -249,6 +253,23 @@ public class CloudRepository {
 						message.put("hash", hash);
 
 						socket.emit("getResourceRequest", message);
+					}
+
+					boolean newFolder = type != null && type.equals("folder") && !connectedProject.containsResource(resourcePath);
+					boolean updatedFolder = type != null && type.equals("folder") && connectedProject.containsResource(resourcePath)
+							&& !connectedProject.getHash(resourcePath).equals(hash) && connectedProject.getTimestamp(resourcePath) < timestamp;
+
+					if (newFolder) {
+						IProject project = connectedProject.getProject();
+						IFolder folder = project.getFolder(resourcePath);
+
+						connectedProject.setHash(resourcePath, hash);
+						connectedProject.setTimestamp(resourcePath, timestamp);
+
+						folder.create(true, true, null);
+						folder.setLocalTimeStamp(timestamp);
+					}
+					else if (updatedFolder) {
 					}
 				}
 			}
@@ -321,31 +342,30 @@ public class CloudRepository {
 					typeName = typeName.substring(0, typeName.length() - ".class".length());
 				}
 				typeName = typeName.replace('/', '.');
-				
+
 				IJavaProject javaProject = JavaCore.create(connectedProject.getProject());
 				if (javaProject != null) {
 					IType type = javaProject.findType(typeName);
 					IClassFile classFile = type.getClassFile();
 					if (classFile != null && classFile.getSourceRange() != null) {
-						
+
 						JSONObject message = new JSONObject();
 						message.put("callback_id", callbackID);
 						message.put("requestSenderID", sender);
 						message.put("project", projectName);
 						message.put("resource", resourcePath);
 						message.put("readonly", true);
-						
+
 						String content = classFile.getSource();
-						
+
 						message.put("content", content);
 						message.put("type", "file");
-						
+
 						socket.emit("getResourceResponse", message);
 					}
 				}
 			}
-		}
-		catch (JSONException e) {
+		} catch (JSONException e) {
 			e.printStackTrace();
 		} catch (JavaModelException e) {
 			e.printStackTrace();
@@ -386,6 +406,67 @@ public class CloudRepository {
 		}
 	}
 
+	public void createResource(JSONObject request) {
+		try {
+			final String projectName = request.getString("project");
+			final String resourcePath = request.getString("resource");
+			final long updateTimestamp = request.getLong("timestamp");
+			final String updateHash = request.getString("hash");
+			final String type = request.getString("type");
+
+			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
+			if (connectedProject != null) {
+				IProject project = connectedProject.getProject();
+				IResource resource = project.findMember(resourcePath);
+				
+				if (resource == null) {
+					if ("folder".equals(type)) {
+						IFolder newFolder = project.getFolder(resourcePath);
+						
+						connectedProject.setHash(resourcePath, updateHash);
+						connectedProject.setTimestamp(resourcePath, updateTimestamp);
+
+						newFolder.create(true, true, null);
+						newFolder.setLocalTimeStamp(updateTimestamp);
+					}
+					else if ("file".equals(type)) {
+						JSONObject message = new JSONObject();
+						message.put("callback_id", 0);
+						message.put("project", projectName);
+						message.put("resource", resourcePath);
+						message.put("timestamp", updateTimestamp);
+						message.put("hash", updateHash);
+
+						socket.emit("getResourceRequest", message);
+					}
+				}
+				else {
+					// TODO
+				}
+			}
+
+		} catch (Exception e) {
+
+		}
+	}
+
+	public void deleteResource(JSONObject request) {
+		try {
+			final String projectName = request.getString("project");
+			final String resourcePath = request.getString("resource");
+			final long updateTimestamp = request.getLong("timestamp");
+			final String updateHash = request.getString("hash");
+
+			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
+			if (connectedProject != null) {
+				// TODO
+			}
+
+		} catch (Exception e) {
+
+		}
+	}
+
 	public void getResourceResponse(JSONObject response) {
 		try {
 			final String projectName = response.getString("project");
@@ -397,22 +478,33 @@ public class CloudRepository {
 			if (connectedProject != null) {
 				IProject project = connectedProject.getProject();
 				IResource resource = project.findMember(resourcePath);
+				
+				if (resource != null) {
+					if (resource instanceof IFile) {
+						String localHash = connectedProject.getHash(resourcePath);
+						long localTimestamp = connectedProject.getTimestamp(resourcePath);
 
-				if (resource instanceof IFile) {
+						if (localHash != null && !localHash.equals(updateHash) && localTimestamp < updateTimestamp) {
+							IFile file = (IFile) resource;
+							String newResourceContent = response.getString("content");
 
-					String localHash = connectedProject.getHash(resourcePath);
-					long localTimestamp = connectedProject.getTimestamp(resourcePath);
+							connectedProject.setTimestamp(resourcePath, updateTimestamp);
+							connectedProject.setHash(resourcePath, updateHash);
 
-					if (localHash != null && !localHash.equals(updateHash) && localTimestamp < updateTimestamp) {
-						IFile file = (IFile) resource;
-						String newResourceContent = response.getString("content");
-
-						connectedProject.setTimestamp(resourcePath, updateTimestamp);
-						connectedProject.setHash(resourcePath, updateHash);
-
-						file.setContents(new ByteArrayInputStream(newResourceContent.getBytes()), true, true, null);
-						file.setLocalTimeStamp(updateTimestamp);
+							file.setContents(new ByteArrayInputStream(newResourceContent.getBytes()), true, true, null);
+							file.setLocalTimeStamp(updateTimestamp);
+						}
 					}
+				}
+				else {
+					IFile newFile = project.getFile(resourcePath);
+					String newResourceContent = response.getString("content");
+
+					connectedProject.setHash(resourcePath, updateHash);
+					connectedProject.setTimestamp(resourcePath, updateTimestamp);
+
+					newFile.create(new ByteArrayInputStream(newResourceContent.getBytes()), true, null);
+					newFile.setLocalTimeStamp(updateTimestamp);
 				}
 			}
 		} catch (Exception e) {
@@ -455,7 +547,7 @@ public class CloudRepository {
 		IProject project = delta.getResource().getProject();
 		if (project != null) {
 			if (isConnected(project)) {
-				sendResourceUpdate(delta);
+				reactToResourceChange(delta);
 			}
 		}
 	}
@@ -468,7 +560,7 @@ public class CloudRepository {
 		}
 	}
 
-	public void sendResourceUpdate(IResourceDelta delta) {
+	public void reactToResourceChange(IResourceDelta delta) {
 		IResource resource = delta.getResource();
 
 		if (resource != null && resource.isDerived(IResource.CHECK_ANCESTORS)) {
@@ -477,43 +569,90 @@ public class CloudRepository {
 
 		switch (delta.getKind()) {
 		case IResourceDelta.ADDED:
+			reactOnResourceAdded(resource);
 			break;
 		case IResourceDelta.REMOVED:
-			if (resource instanceof IProject) {
-				this.removeProject((IProject) resource);
-			}
+			reactOnResourceRemoved(resource);
 			break;
 		case IResourceDelta.CHANGED:
-			if (resource != null && resource instanceof IFile) {
-				IFile file = (IFile) resource;
+			reactOnResourceChange(resource);
+			break;
+		}
+	}
 
-				ConnectedProject connectedProject = this.syncedProjects.get(file.getProject().getName());
-				String resourcePath = resource.getProjectRelativePath().toString();
+	protected void reactOnResourceAdded(IResource resource) {
+		try {
+			ConnectedProject connectedProject = this.syncedProjects.get(resource.getProject().getName());
 
+			String resourcePath = resource.getProjectRelativePath().toString();
+			long timestamp = resource.getLocalTimeStamp();
+			String hash = "0";
+			String type = null;
+
+			connectedProject.setTimestamp(resourcePath, timestamp);
+
+			if (resource instanceof IFile) {
 				try {
-
-					long changeTimestamp = file.getLocalTimeStamp();
-					if (changeTimestamp > connectedProject.getTimestamp(resourcePath)) {
-						String changeHash = DigestUtils.shaHex(file.getContents());
-						if (!changeHash.equals(connectedProject.getHash(resourcePath))) {
-
-							connectedProject.setTimestamp(resourcePath, changeTimestamp);
-							connectedProject.setHash(resourcePath, changeHash);
-
-							JSONObject message = new JSONObject();
-							message.put("project", connectedProject.getName());
-							message.put("resource", resourcePath);
-							message.put("timestamp", changeTimestamp);
-							message.put("hash", changeHash);
-
-							this.socket.emit("resourceChanged", message);
-						}
-					}
-				} catch (Exception e) {
+					IFile file = (IFile) resource;
+					hash = DigestUtils.shaHex(file.getContents());
+					type = "file";
+				} catch (IOException e) {
 					e.printStackTrace();
 				}
+			} else if (resource instanceof IFolder) {
+				type = "folder";
 			}
-			break;
+
+			connectedProject.setHash(resourcePath, hash);
+
+			JSONObject message = new JSONObject();
+			message.put("project", connectedProject.getName());
+			message.put("resource", resourcePath);
+			message.put("timestamp", timestamp);
+			message.put("hash", hash);
+			message.put("type", type);
+
+			this.socket.emit("resourceCreated", message);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	protected void reactOnResourceRemoved(IResource resource) {
+		if (resource instanceof IProject) {
+			this.removeProject((IProject) resource);
+		}
+	}
+
+	protected void reactOnResourceChange(IResource resource) {
+		if (resource != null && resource instanceof IFile) {
+			IFile file = (IFile) resource;
+
+			ConnectedProject connectedProject = this.syncedProjects.get(file.getProject().getName());
+			String resourcePath = resource.getProjectRelativePath().toString();
+
+			try {
+
+				long changeTimestamp = file.getLocalTimeStamp();
+				if (changeTimestamp > connectedProject.getTimestamp(resourcePath)) {
+					String changeHash = DigestUtils.shaHex(file.getContents());
+					if (!changeHash.equals(connectedProject.getHash(resourcePath))) {
+
+						connectedProject.setTimestamp(resourcePath, changeTimestamp);
+						connectedProject.setHash(resourcePath, changeHash);
+
+						JSONObject message = new JSONObject();
+						message.put("project", connectedProject.getName());
+						message.put("resource", resourcePath);
+						message.put("timestamp", changeTimestamp);
+						message.put("hash", changeHash);
+
+						this.socket.emit("resourceChanged", message);
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

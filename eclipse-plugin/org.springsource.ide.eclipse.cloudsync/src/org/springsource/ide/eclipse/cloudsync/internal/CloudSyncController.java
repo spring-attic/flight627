@@ -129,6 +129,10 @@ public class CloudSyncController {
 						
 						if ("resourceChanged".equals(event)) {
 							cloudRepository.updateResource(responseData);
+						} else if ("resourceCreated".equals(event)) {
+							cloudRepository.createResource(responseData);
+						} else if ("resourceDeleted".equals(event)) {
+							cloudRepository.deleteResource(responseData);
 						} else if ("startedediting".equals(event)) {
 							startedEditing(responseData);
 						} else if ("modelchanged".equals(event)) {
