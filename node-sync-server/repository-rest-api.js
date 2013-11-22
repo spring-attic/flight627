@@ -35,9 +35,21 @@ RestRepository.prototype.getProjects = function(req, res) {
 }
 
 RestRepository.prototype.getProject = function(req, res) {
-    that.repository.getProject(req.params.project, function(error, result) {
+	var includeDeleted = req.query.includeDeleted;
+	
+    that.repository.getProject(req.params.project, includeDeleted, function(error, content, deleted) {
 		if (error == null) {
-        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
+			if (includeDeleted) {
+	        	res.send(JSON.stringify({
+	        		'content' : content,
+					'deleted' : deleted
+				}), { 'Content-Type': 'application/json' }, 200);
+			}
+			else {
+	        	res.send(JSON.stringify({
+	        		'content' : content
+				}), { 'Content-Type': 'application/json' }, 200);
+			}
 		}
 		else {
 			res.send(error);

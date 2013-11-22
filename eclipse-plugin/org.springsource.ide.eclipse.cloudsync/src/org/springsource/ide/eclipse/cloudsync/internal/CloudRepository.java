@@ -118,6 +118,7 @@ public class CloudRepository {
 		try {
 			JSONObject message = new JSONObject();
 			message.put("project", projectName);
+			message.put("includeDeleted", true);
 			message.put("callback_id", 0);
 			socket.emit("getProjectRequest", message);
 		} catch (JSONException e) {
@@ -174,6 +175,7 @@ public class CloudRepository {
 			final int callbackID = request.getInt("callback_id");
 			final String sender = request.getString("requestSenderID");
 			final String projectName = request.getString("project");
+			final boolean includeDeleted = request.optBoolean("includeDeleted");
 
 			final ConnectedProject connectedProject = this.syncedProjects.get(projectName);
 			if (connectedProject != null) {
@@ -210,12 +212,27 @@ public class CloudRepository {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-
+				
 				JSONObject message = new JSONObject();
 				message.put("callback_id", callbackID);
 				message.put("requestSenderID", sender);
 				message.put("project", projectName);
 				message.put("files", files);
+				
+				if (includeDeleted) {
+					JSONArray deleted = new JSONArray();
+
+					String[] deletedResources = connectedProject.getDeleted();
+					for (int i = 0; i < deletedResources.length; i++) {
+						String path = deletedResources[i];
+						JSONObject deletedResource = new JSONObject();
+						deletedResource.put("path", path);
+						deletedResource.put("timestamp", connectedProject.getTimestamp(path));
+						deleted.put(deletedResource);
+					}
+					
+					message.put("deleted", deleted);
+				}
 
 				socket.emit("getProjectResponse", message);
 			}
@@ -228,9 +245,11 @@ public class CloudRepository {
 		try {
 			final String projectName = response.getString("project");
 			final JSONArray files = response.getJSONArray("files");
+			final JSONArray deleted = response.optJSONArray("deleted");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
 			if (connectedProject != null) {
+
 				for (int i = 0; i < files.length(); i++) {
 					JSONObject resource = files.getJSONObject(i);
 
@@ -270,6 +289,26 @@ public class CloudRepository {
 						folder.setLocalTimeStamp(timestamp);
 					}
 					else if (updatedFolder) {
+					}
+				}
+				
+				if (deleted != null) {
+					for (int i = 0; i < deleted.length(); i++) {
+						JSONObject deletedResource = deleted.getJSONObject(i);
+
+						String resourcePath = deletedResource.getString("path");
+						long deletedTimestamp = deletedResource.getLong("timestamp");
+
+						IProject project = connectedProject.getProject();
+						IResource resource = project.findMember(resourcePath);
+
+						if (resource != null && resource.exists() && (resource instanceof IFile || resource instanceof IFolder)) {
+							long localTimestamp = connectedProject.getTimestamp(resourcePath);
+
+							if (localTimestamp < deletedTimestamp) {
+								resource.delete(true, null);
+							}
+						}
 					}
 				}
 			}
@@ -402,7 +441,7 @@ public class CloudRepository {
 			}
 
 		} catch (Exception e) {
-
+			e.printStackTrace();
 		}
 	}
 
@@ -446,7 +485,7 @@ public class CloudRepository {
 			}
 
 		} catch (Exception e) {
-
+			e.printStackTrace();
 		}
 	}
 
@@ -454,16 +493,24 @@ public class CloudRepository {
 		try {
 			final String projectName = request.getString("project");
 			final String resourcePath = request.getString("resource");
-			final long updateTimestamp = request.getLong("timestamp");
-			final String updateHash = request.getString("hash");
+			final long deletedTimestamp = request.getLong("timestamp");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
 			if (connectedProject != null) {
-				// TODO
+				IProject project = connectedProject.getProject();
+				IResource resource = project.findMember(resourcePath);
+
+				if (resource != null && resource.exists() && (resource instanceof IFile || resource instanceof IFolder)) {
+					long localTimestamp = connectedProject.getTimestamp(resourcePath);
+
+					if (localTimestamp < deletedTimestamp) {
+						resource.delete(true, null);
+					}
+				}
 			}
 
 		} catch (Exception e) {
-
+			e.printStackTrace();
 		}
 	}
 
@@ -621,6 +668,23 @@ public class CloudRepository {
 	protected void reactOnResourceRemoved(IResource resource) {
 		if (resource instanceof IProject) {
 			this.removeProject((IProject) resource);
+		}
+		else if (!resource.isDerived() && (resource instanceof IFile || resource instanceof IFolder)) {
+			ConnectedProject connectedProject = this.syncedProjects.get(resource.getProject().getName());
+			String resourcePath = resource.getProjectRelativePath().toString();
+			long deletedTimestamp = System.currentTimeMillis();
+			
+			try {
+				JSONObject message = new JSONObject();
+				message.put("project", connectedProject.getName());
+				message.put("resource", resourcePath);
+				message.put("timestamp", deletedTimestamp);
+	
+				this.socket.emit("resourceDeleted", message);
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

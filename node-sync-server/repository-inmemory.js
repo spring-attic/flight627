@@ -25,12 +25,11 @@ InMemoryRepository.prototype.setNotificationSender = function(notificationSender
 
 InMemoryRepository.prototype.getProjects = function(callback) {
 	var projects = [];
-	var i = 0;
 	for (projectName in this.projectsStorage) {
 		if (typeof this.projectsStorage[projectName] !== 'function') {
 			project = {};
 			project[projectName] = '/api/' + projectName;
-			projects[i++] = project;
+			projects.push(project);
 		}
 	}
 
@@ -41,12 +40,10 @@ InMemoryRepository.prototype.hasProject = function(projectName) {
 	return this.projectsStorage[projectName] !== undefined;
 }
 
-InMemoryRepository.prototype.getProject = function(projectName, callback) {
+InMemoryRepository.prototype.getProject = function(projectName, includeDeleted, callback) {
 	var project = this.projectsStorage[projectName];
 	if (project !== undefined) {
 		var resources = [];
-
-		var i = 0;
 		for (resourcePath in project.resources) {
 			if (typeof project.resources[resourcePath] !== 'function') {
 				var resourceDescription = {};
@@ -61,11 +58,26 @@ InMemoryRepository.prototype.getProject = function(projectName, callback) {
 					resourceDescription.edit = '/client/html/editor.html#' + projectName + '/' + resourcePath;
 				}
 
-				resources[i++] = resourceDescription;
+				resources.push(resourceDescription);
 			}
 		}
+		
+		if (includeDeleted) {
+			var deleted = [];
+			for (resourcePath in project.deleted) {
+				if (typeof project.deleted[resourcePath] !== 'function') {
+					var resourceDescription = {};
+					resourceDescription.path = resourcePath;
+					resourceDescription.timestamp = project.deleted[resourcePath].timestamp;
+					deleted.push(resourceDescription);
+				}
+			}
+		    callback(null, resources, deleted);
+		}
+		else {
+		    callback(null, resources);
+		}
 
-	    callback(null, resources);
 	}
 	else {
 	    callback(404);
@@ -74,7 +86,7 @@ InMemoryRepository.prototype.getProject = function(projectName, callback) {
 
 InMemoryRepository.prototype.createProject = function(projectName, callback) {
 	if (this.projectsStorage[projectName] === undefined) {
-		this.projectsStorage[projectName] = {'name' : projectName, 'resources' : {}};
+		this.projectsStorage[projectName] = {'name' : projectName, 'resources' : {}, 'deleted' : {}};
 	    callback(null, {'project': projectName});
 	
 		this.notificationSender.emit('projectCreated', {
@@ -97,6 +109,10 @@ InMemoryRepository.prototype.createResource = function(projectName, resourcePath
 			'timestamp' : timestamp,
 			'metadata' : {}
 		};
+		
+		if (project.deleted[resourcePath] !== undefined) {
+			delete project.deleted[resourcePath];
+		}
 
 	    callback(null, {'project': projectName});
 
@@ -166,6 +182,19 @@ InMemoryRepository.prototype.needsUpdate = function(projectName, resourcePath, t
 	return false;
 }
 
+InMemoryRepository.prototype.gotDeleted = function(projectName, resourcePath, timestamp) {
+	var project = this.projectsStorage[projectName];
+	if (project !== undefined) {
+		var deleted = project.deleted[resourcePath];
+		if (deleted !== undefined) {
+			if (deleted.timestamp > timestamp) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 InMemoryRepository.prototype.updateMetadata = function(projectName, resourcePath, metadata, type, callback) {
 	if (this.projectsStorage[projectName] !== undefined) {
 		console.log('updateMetadata ' + resourcePath);
@@ -221,18 +250,20 @@ InMemoryRepository.prototype.getResource = function(projectName, resourcePath, t
 	}
 };
 
-InMemoryRepository.prototype.deleteResource = function(projectName, resourcePath, callback) {
+InMemoryRepository.prototype.deleteResource = function(projectName, resourcePath, timestamp, callback) {
 	if (this.projectsStorage[projectName] !== undefined) {
 		console.log('deleteResource ' + resourcePath);
 		var project = this.projectsStorage[projectName];
 		var resource = project.resources[resourcePath];
 
-		if (resource !== undefined) {
-			project.resources[resourcePath] = undefined;
+		if (resource !== undefined && resource.timestamp < timestamp) {
+			delete project.resources[resourcePath];
+			project.deleted[resourcePath] = {'timestamp' : timestamp};
 			callback(null, {});
 			
 			this.notificationSender.emit('resourceDeleted', { 'project' : projectName,
-															'resource' : resourcePath});
+															'resource' : resourcePath,
+															'timestamp' : timestamp});
 		}
 		else {
 			callback(404);

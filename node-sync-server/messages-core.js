@@ -29,6 +29,7 @@ MessageCore.prototype.initialize = function(socket, sockets) {
 	this.configureRequest(socket, 'getProjectRequest');
 	this.configureRequest(socket, 'getResourceRequest');
 	this.configureRequest(socket, 'getMetadataRequest');
+	
 	this.configureResponse(socket, sockets, 'getProjectsResponse');
 	this.configureResponse(socket, sockets, 'getProjectResponse');
 	this.configureResponse(socket, sockets, 'getResourceResponse');

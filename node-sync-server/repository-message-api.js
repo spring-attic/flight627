@@ -48,13 +48,23 @@ MessagesRepository.prototype.getProjects = function(data) {
 }
 
 MessagesRepository.prototype.getProject = function(data) {
-    that.repository.getProject(data.project, function(error, resources) {
+    that.repository.getProject(data.project, data.includeDeleted, function(error, resources, deleted) {
 		if (error == null) {
-			that.socket.emit('getProjectResponse', {
-				'callback_id' : data.callback_id,
-				'requestSenderID' : data.requestSenderID,
-				'project' : data.project,
-				'files' : resources});
+			if (data.includeDeleted) {
+				that.socket.emit('getProjectResponse', {
+					'callback_id' : data.callback_id,
+					'requestSenderID' : data.requestSenderID,
+					'project' : data.project,
+					'files' : resources,
+					'deleted' : deleted});
+			}
+			else {
+				that.socket.emit('getProjectResponse', {
+					'callback_id' : data.callback_id,
+					'requestSenderID' : data.requestSenderID,
+					'project' : data.project,
+					'files' : resources});
+			}
 		}
     });
 }
@@ -82,7 +92,8 @@ MessagesRepository.prototype.projectConnected = function(data) {
 	
 	that.socket.emit('getProjectRequest', {
 		'callback_id' : 0,
-		'project' : projectName
+		'project' : projectName,
+		'includeDeleted' : true
 	});
 }
 
@@ -92,6 +103,7 @@ MessagesRepository.prototype.projectDisconnected = function(data) {
 MessagesRepository.prototype.getProjectResponse = function(data) {
 	var projectName = data.project;
 	var files = data.files;
+	var deleted = data.deleted;
 	
 	if (that.repository.hasProject(projectName)) {
 		for (i = 0; i < files.length; i += 1) {
@@ -100,13 +112,29 @@ MessagesRepository.prototype.getProjectResponse = function(data) {
 			var timestamp = files[i].timestamp;
 			var hash = files[i].hash;
 			
-			if (!that.repository.hasResource(projectName, resource, type) || that.repository.needsUpdate(projectName, resource, type, timestamp, hash)) {
+			var newResource = !that.repository.hasResource(projectName, resource, type) && !that.repository.gotDeleted(projectName, resource, timestamp);
+			var updatedResource = that.repository.needsUpdate(projectName, resource, type, timestamp, hash);
+
+			if (newResource || updatedResource) {
 				that.socket.emit('getResourceRequest', {
 					'callback_id' : 0,
 					'project' : projectName,
 					'resource' : resource,
 					'timestamp' : timestamp,
 					'hash' : hash
+				});
+			}
+		}
+		
+		if (deleted !== undefined) {
+			for (i = 0; i < deleted.length; i += 1) {
+				var resource = deleted[i].path;
+				var deletedTimestamp = deleted[i].timestamp;
+			
+				that.repository.deleteResource(projectName, resource, deletedTimestamp, function(error, result) {
+					if (error !== null) {
+						console.log('did not delete resource: ' + projectName + "/" + resource + " - deleted at: " + deletedTimestamp);
+					}	
 				});
 			}
 		}
@@ -131,7 +159,7 @@ MessagesRepository.prototype.getResourceResponse = function(data) {
 	else {
 		that.repository.updateResource(projectName, resource, content, hash, timestamp, function(error, result) {
 			if (error !== null) {
-				console.log('Error updating repository resource: ' + data.project + "/" + data.resource + " - " + data.timestamp);
+				console.log('Error updating repository resource: ' + projectName + "/" + resource + " - " + timestamp);
 			}
 		});
 	}
@@ -180,5 +208,11 @@ MessagesRepository.prototype.resourceDeleted = function(data) {
 	var resource = data.resource;
 	var timestamp = data.timestamp;
 	
-	// TODO	
+	if (that.repository.hasResource(projectName, resource)) {
+		that.repository.deleteResource(projectName, resource, timestamp, function(error, result) {
+			if (error !== null) {
+				console.log('Error deleting repository resource: ' + projectName + "/" + resource + " - " + timestamp);
+			}
+		})
+	}
 }
