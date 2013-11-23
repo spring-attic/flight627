@@ -396,6 +396,15 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		socket.emit('modelchanged', changeData);
 	}
 	
+	socket.on('modelchanged', function(data) {
+		if (data.resource === filePath) {
+			var text = data.addedCharCount > 0 ? data.addedCharacters : "";
+			editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
+			editor.getModel().setText(text, data.start, data.start + data.removedCharCount);
+			editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
+		}
+	});
+	
 	socket.on('getResourceRequest', function(data) {
 		if (data.project == project && data.resource == resource && data.callback_id !== undefined) {
 			
