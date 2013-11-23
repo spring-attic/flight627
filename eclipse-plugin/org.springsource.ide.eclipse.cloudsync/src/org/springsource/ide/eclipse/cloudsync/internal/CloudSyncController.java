@@ -272,8 +272,10 @@ public class CloudSyncController {
 				ContentAssistService assistService = new ContentAssistService(resourcePath, liveEditUnits.get(resourcePath));
 
 				int offset = jsonObject.getInt("offset");
+				String prefix = jsonObject.optString("prefix");
 				String sender = jsonObject.getString("requestSenderID");
-				String proposalsSource = assistService.compute(offset);
+				
+				String proposalsSource = assistService.compute(offset, prefix);
 
 				JSONObject message = new JSONObject();
 				message.put("resource", resourcePath);

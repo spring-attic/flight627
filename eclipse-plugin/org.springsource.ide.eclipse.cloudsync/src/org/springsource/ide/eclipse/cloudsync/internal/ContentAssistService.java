@@ -11,6 +11,8 @@
 package org.springsource.ide.eclipse.cloudsync.internal;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.eclipse.jdt.core.CompletionProposal;
@@ -33,7 +35,7 @@ public class ContentAssistService {
 		this.unit = unit;
 	}
 
-	public String compute(int offset) {
+	public String compute(int offset, String prefix) {
 		final List<CompletionProposal> proposals = new ArrayList<CompletionProposal>();
 		
 		try {
@@ -47,11 +49,23 @@ public class ContentAssistService {
 			e.printStackTrace();
 		}
 		
+		Collections.sort(proposals, new Comparator<CompletionProposal>() {
+			@Override
+			public int compare(CompletionProposal o1, CompletionProposal o2) {
+				return o2.getRelevance() - o1.getRelevance();
+			}
+		});
+		
 		StringBuilder result = new StringBuilder();
 		boolean flag = false;
 		result.append("[");
 		for (CompletionProposal proposal : proposals) {
 			String description = getDescription(proposal);
+			String completion = new String(proposal.getCompletion());
+			if (completion.startsWith(prefix)) {
+				completion = completion.substring(prefix.length());
+			}
+			
 			if (description != null) {
 				if (flag) {
 					result.append(",");
@@ -61,7 +75,7 @@ public class ContentAssistService {
 				result.append("\"proposal\"");
 				result.append(":");
 				result.append("\"");
-				result.append(proposal.getCompletion());
+				result.append(completion);
 				result.append("\",");
 				result.append("\"description\"");
 				result.append(":");

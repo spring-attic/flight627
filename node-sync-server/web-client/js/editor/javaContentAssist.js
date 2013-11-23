@@ -53,7 +53,8 @@ define("editor/javaContentAssist", ['orion/Deferred'], function(Deferred) {
 		computeProposals: function(buffer, offset, context) {
 			var request = {
 				'resource' : this.resourcePath,
-				'offset' : offset
+				'offset' : offset,
+				'prefix' : context.prefix
 			};
 			
 			var deferred = sendContentAssistRequest(request, this.socket);
