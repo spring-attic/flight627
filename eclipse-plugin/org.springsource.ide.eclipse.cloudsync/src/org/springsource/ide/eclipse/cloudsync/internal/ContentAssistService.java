@@ -61,10 +61,8 @@ public class ContentAssistService {
 		result.append("[");
 		for (CompletionProposal proposal : proposals) {
 			String description = getDescription(proposal);
-			String completion = new String(proposal.getCompletion());
-			if (completion.startsWith(prefix)) {
-				completion = completion.substring(prefix.length());
-			}
+			String completion = getCompletion(proposal, prefix);
+			String positions = getPositions(proposal, prefix, offset);
 			
 			if (description != null) {
 				if (flag) {
@@ -79,8 +77,16 @@ public class ContentAssistService {
 				result.append("\",");
 				result.append("\"description\"");
 				result.append(":");
-				result.append(getDescription(proposal));
+				result.append(description);
 				result.append(",");
+				
+				if (positions != null) {
+					result.append("\"positions\"");
+					result.append(":");
+					result.append(positions);
+					result.append(",");
+				}
+				
 				result.append("\"style\":\"attributedString\",");
 				result.append("\"replace\"");
 				result.append(":");
@@ -94,6 +100,73 @@ public class ContentAssistService {
 		return result.toString();
 	}
 	
+	private String getPositions(CompletionProposal proposal, String prefix, int globalOffset) {
+		if (proposal.getKind() == CompletionProposal.METHOD_REF) {
+			String completion = new String(proposal.getCompletion());
+			if (completion.startsWith(prefix)) {
+				completion = completion.substring(prefix.length());
+			}
+			
+			StringBuilder positions = new StringBuilder();
+			positions.append("[");
+			
+			char[][] parameterNames = proposal.findParameterNames(null);
+			if (parameterNames != null && parameterNames.length > 0 && completion.endsWith(")")) {
+				int offset = globalOffset;
+				offset += completion.length() - 1;
+
+				for (int i = 0; i < parameterNames.length; i++) {
+					if (i > 0) {
+						positions.append(",");
+					}
+					positions.append("{");
+					positions.append("\"offset\"");
+					positions.append(":");
+					positions.append(offset);
+					
+					positions.append(",");
+					positions.append("\"length\"");
+					positions.append(":");
+					positions.append(parameterNames[i].length);
+					
+					positions.append("}");
+					
+					offset += parameterNames[i].length;
+					offset += ", ".length();
+				}
+			}
+			
+			positions.append("]");
+			return positions.toString();
+		}
+		else {
+			return null;
+		}
+	}
+
+	private String getCompletion(CompletionProposal proposal, String prefix) {
+		String completion = new String(proposal.getCompletion());
+		if (completion.startsWith(prefix)) {
+			completion = completion.substring(prefix.length());
+		}
+		
+		if (proposal.getKind() == CompletionProposal.METHOD_REF) {
+			char[][] parameterNames = proposal.findParameterNames(null);
+			if (parameterNames != null && parameterNames.length > 0 && completion.endsWith(")")) {
+				completion = completion.substring(0, completion.length() - 1);
+				for (int i = 0; i < parameterNames.length; i++) {
+					if (i > 0) {
+						completion += ", ";
+					}
+					completion += new String(parameterNames[i]);
+				}
+				completion += ")";
+			}
+		}
+		
+		return completion;
+	}
+
 	protected String getDescription(CompletionProposal proposal) {
 		StringBuilder description = new StringBuilder();
 		description.append("{");
@@ -103,10 +176,16 @@ public class ContentAssistService {
 			description.append("\"segments\": ");
 			description.append("[");
 
+			char[][] parameterNames = proposal.findParameterNames(null);
+			String[] parameters = new String[parameterNames.length];
+			for (int i = 0; i < parameterNames.length; i++) {
+				parameters[i] = new String(parameterNames[i]);
+			}
+			
 			String sig = Signature.toString(
 					new String(proposal.getSignature()), 
-					new String(proposal.getName()), 
-					null,
+					new String(proposal.getName()),
+					parameters,
 					false, false);
 			
 			description.append("{");
