@@ -13,9 +13,7 @@ package org.springsource.ide.eclipse.cloudsync.internal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.core.resources.IContainer;
@@ -34,13 +32,11 @@ public class ConnectedProject {
 	private IProject project;
 	private Map<String, String> resourceHash;
 	private Map<String, Long> resourceTimestamp;
-	private Set<String> deletedResources;
 	
 	public ConnectedProject(IProject project) {
 		this.project = project;
 		this.resourceHash = new ConcurrentHashMap<String, String>();
 		this.resourceTimestamp = new ConcurrentHashMap<String, Long>();
-		this.deletedResources = new ConcurrentSkipListSet<String>();
 		
 		try {
 			project.accept(new IResourceVisitor() {
@@ -100,24 +96,6 @@ public class ConnectedProject {
 
 	public boolean containsResource(String resourcePath) {
 		return this.resourceTimestamp.containsKey(resourcePath);
-	}
-	
-	public boolean isDeleted(String resourcePath) {
-		return this.deletedResources.contains(resourcePath);
-	}
-	
-	public void addDeleted(String resourcePath, long timestamp) {
-		this.deletedResources.add(resourcePath);
-		this.resourceTimestamp.put(resourcePath, timestamp);
-		this.resourceHash.remove(resourcePath);
-	}
-	
-	public void removeDeleted(String resourcePath) {
-		this.deletedResources.remove(resourcePath);
-	}
-	
-	public String[] getDeleted() {
-		return (String[]) this.deletedResources.toArray(new String[this.deletedResources.size()]);
 	}
 	
 }

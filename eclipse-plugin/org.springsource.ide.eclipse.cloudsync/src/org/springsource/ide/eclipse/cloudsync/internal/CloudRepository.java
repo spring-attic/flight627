@@ -175,7 +175,6 @@ public class CloudRepository {
 			final int callbackID = request.getInt("callback_id");
 			final String sender = request.getString("requestSenderID");
 			final String projectName = request.getString("project");
-			final boolean includeDeleted = request.optBoolean("includeDeleted");
 
 			final ConnectedProject connectedProject = this.syncedProjects.get(projectName);
 			if (connectedProject != null) {
@@ -218,21 +217,6 @@ public class CloudRepository {
 				message.put("requestSenderID", sender);
 				message.put("project", projectName);
 				message.put("files", files);
-				
-				if (includeDeleted) {
-					JSONArray deleted = new JSONArray();
-
-					String[] deletedResources = connectedProject.getDeleted();
-					for (int i = 0; i < deletedResources.length; i++) {
-						String path = deletedResources[i];
-						JSONObject deletedResource = new JSONObject();
-						deletedResource.put("path", path);
-						deletedResource.put("timestamp", connectedProject.getTimestamp(path));
-						deleted.put(deletedResource);
-					}
-					
-					message.put("deleted", deleted);
-				}
 
 				socket.emit("getProjectResponse", message);
 			}
