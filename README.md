@@ -64,7 +64,7 @@
   node app:
   
   ```
-  node app.js
+  npm start
   ```
   
   The Eclipse plugin can be found in the folder "eclipse-plugin" and is just an Eclipse project at the moment.

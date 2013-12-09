@@ -8,5 +8,8 @@
     "express"          :  "3.0.x",
     "socket.io"        :  "0.9.x",
     "socket.io-client" :  "0.9.x"
+  },
+  "scripts": {
+  		"start": "node server-standalone.js"
   }
 }
