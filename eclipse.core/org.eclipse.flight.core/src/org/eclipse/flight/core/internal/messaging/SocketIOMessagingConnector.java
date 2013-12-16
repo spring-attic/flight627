@@ -1,0 +1,92 @@
+/*******************************************************************************
+ *  Copyright (c) 2013 GoPivotal, Inc.
+ *  All rights reserved. This program and the accompanying materials
+ *  are made available under the terms of the Eclipse Public License v1.0
+ *  which accompanies this distribution, and is available at
+ *  http://www.eclipse.org/legal/epl-v10.html
+ *
+ *  Contributors:
+ *      GoPivotal, Inc. - initial API and implementation
+ *******************************************************************************/
+package org.eclipse.flight.core.internal.messaging;
+
+import io.socket.IOAcknowledge;
+import io.socket.IOCallback;
+import io.socket.SocketIO;
+import io.socket.SocketIOException;
+
+import javax.net.ssl.SSLContext;
+
+import org.eclipse.flight.core.IMessagingConnector;
+import org.json.JSONObject;
+
+/**
+ * @author Martin Lippert
+ */
+public class SocketIOMessagingConnector extends AbstractMessagingConnector implements IMessagingConnector {
+
+	static {
+		javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(new javax.net.ssl.HostnameVerifier() {
+			public boolean verify(String hostname, javax.net.ssl.SSLSession sslSession) {
+				return true;
+			}
+		});
+	}
+
+	private SocketIO socket;
+	
+	public SocketIOMessagingConnector() {
+		String host = System.getProperty("flight627-host", "http://localhost:3000");
+		
+		try {
+			SocketIO.setDefaultSSLSocketFactory(SSLContext.getInstance("Default"));
+			socket = new SocketIO(host);
+			socket.connect(new IOCallback() {
+
+				@Override
+				public void onMessage(JSONObject arg0, IOAcknowledge arg1) {
+				}
+
+				@Override
+				public void onMessage(String arg0, IOAcknowledge arg1) {
+				}
+
+				@Override
+				public void onError(SocketIOException ex) {
+					ex.printStackTrace();
+				}
+
+				@Override
+				public void onConnect() {
+					notifyConnected();
+				}
+
+				@Override
+				public void onDisconnect() {
+					notifyDisconnected();
+				}
+
+				@Override
+				public void on(String event, IOAcknowledge ack, Object... data) {
+					if (data.length == 1 && data[0] instanceof JSONObject) {
+						handleIncomingMessage(event, (JSONObject)data[0]);
+					}
+				}
+
+			});
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void send(String messageType, JSONObject message) {
+		socket.emit(messageType, message);
+	}
+
+	@Override
+	public boolean isConnected() {
+		return socket.isConnected();
+	}
+	
+}

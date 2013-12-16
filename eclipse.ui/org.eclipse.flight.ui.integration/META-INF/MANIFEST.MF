@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Flight UI Integration
+Bundle-SymbolicName: org.eclipse.flight.ui.integration;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Vendor: Eclipse.org - Flight
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.resources,
+ org.eclipse.core.runtime,
+ org.eclipse.core.expressions,
+ org.json,
+ org.eclipse.flight.core
+Bundle-Activator: org.eclipse.flight.ui.integration.Activator
+Bundle-ActivationPolicy: lazy
