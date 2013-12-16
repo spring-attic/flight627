@@ -35,7 +35,7 @@ public class CloudProjectDecorator extends LabelProvider implements ILightweight
 	@Override
 	public void decorate(Object element, IDecoration decoration) {
 		if (element instanceof IProject && Activator.getDefault().getController().isConnected((IProject) element)) {
-			decoration.addSuffix(" [flight627 connected]");
+			decoration.addSuffix(" [flight connected]");
 		}
 	}
 

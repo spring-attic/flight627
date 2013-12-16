@@ -21,7 +21,7 @@
             locationURI="popup:org.eclipse.ui.popup.any?after=additions">
           <menu
                 id="org.springframework.ide.eclipse.ui.cloudsync"
-                label="Flight 627">
+                label="Flight">
 	         <command
 	               commandId="org.springsource.ide.eclipse.ui.cloudsync.connect"
 	               style="push">
