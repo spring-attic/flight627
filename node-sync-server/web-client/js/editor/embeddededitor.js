@@ -2,7 +2,7 @@
  * @license
  * Copyright (c) 2010, 2011 IBM Corporation and others.
  * Copyright (c) 2012 VMware, Inc.
- * Copyright (c) 2013 GoPivotal, Inc.
+ * Copyright (c) 2013 Pivotal Software, Inc.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -11,7 +11,7 @@
  * Contributors: 
  *     IBM Corporation - initial API and implementation
  *     Andrew Eisenberg - rename jsContentAssist to jsTemplateContentAssist
- *     Martin Lippert - flight627 prototype work
+ *     Martin Lippert - flight prototype work
  *******************************************************************************/
 /*global examples orion:true window define*/
 /*jslint browser:true devel:true*/
