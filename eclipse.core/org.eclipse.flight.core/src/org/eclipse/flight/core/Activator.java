@@ -31,6 +31,7 @@ public class Activator implements BundleActivator {
 
 	private IMessagingConnector messagingConnector;
 	private Repository repository;
+	private LiveEditCoordinator liveEditCoordinator;
 	
 	@Override
 	public void start(BundleContext context) throws Exception {
@@ -39,6 +40,7 @@ public class Activator implements BundleActivator {
 		plugin = this;
 		messagingConnector = new SocketIOMessagingConnector();
 		repository = new Repository(messagingConnector);
+		liveEditCoordinator = new LiveEditCoordinator(messagingConnector);
 		
 		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(repository);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(resourceListener, IResourceChangeEvent.POST_CHANGE);
@@ -67,6 +69,10 @@ public class Activator implements BundleActivator {
 	
 	public Repository getRepository() {
 		return repository;
+	}
+	
+	public LiveEditCoordinator getLiveEditCoordinator() {
+		return liveEditCoordinator;
 	}
 
 }

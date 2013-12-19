@@ -12,6 +12,9 @@ package org.eclipse.flight.ui.integration;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.flight.core.IRepositoryListener;
+import org.eclipse.flight.core.LiveEditCoordinator;
+import org.eclipse.flight.core.Repository;
+import org.eclipse.flight.ui.integration.handlers.LiveEditConnector;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.LabelProviderChangedEvent;
 import org.eclipse.swt.widgets.Display;
@@ -28,12 +31,6 @@ public class Activator extends AbstractUIPlugin {
 
 	// The shared instance
 	private static Activator plugin;
-
-	/**
-	 * The constructor
-	 */
-	public Activator() {
-	}
 
 	@Override
 	public void start(BundleContext context) throws Exception {
@@ -52,6 +49,12 @@ public class Activator extends AbstractUIPlugin {
 				updateProjectLabel(project);
 			}
 		});
+		
+		if (Boolean.getBoolean("flight-eclipse-editor-connect")) {
+			Repository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
+			LiveEditCoordinator liveEditCoordinator = org.eclipse.flight.core.Activator.getDefault().getLiveEditCoordinator();
+			new LiveEditConnector(liveEditCoordinator, repository);
+		}
 	}
 
 	@Override

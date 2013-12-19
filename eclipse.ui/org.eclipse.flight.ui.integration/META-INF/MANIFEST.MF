@@ -10,6 +10,9 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.expressions,
  org.json,
- org.eclipse.flight.core
+ org.eclipse.flight.core,
+ org.eclipse.jdt.ui,
+ org.eclipse.ui.workbench.texteditor,
+ org.eclipse.jface.text
 Bundle-Activator: org.eclipse.flight.ui.integration.Activator
 Bundle-ActivationPolicy: lazy

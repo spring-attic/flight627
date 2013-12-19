@@ -1,6 +1,7 @@
 package org.eclipse.flight.jdt.services;
 
 import org.eclipse.flight.core.IMessagingConnector;
+import org.eclipse.flight.core.LiveEditCoordinator;
 import org.eclipse.flight.core.Repository;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -11,8 +12,9 @@ public class Activator implements BundleActivator {
 	public void start(BundleContext context) throws Exception {
 		IMessagingConnector messagingConnector = org.eclipse.flight.core.Activator.getDefault().getMessagingConnector();
 		Repository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
+		LiveEditCoordinator liveEditCoordinator = org.eclipse.flight.core.Activator.getDefault().getLiveEditCoordinator(); 
 		
-		LiveEditUnits liveEditUnits = new LiveEditUnits(messagingConnector, repository);
+		LiveEditUnits liveEditUnits = new LiveEditUnits(messagingConnector, liveEditCoordinator, repository);
 		new ContentAssistService(messagingConnector, liveEditUnits);
 		new NavigationService(messagingConnector, liveEditUnits);
 		new RenameService(messagingConnector, liveEditUnits);

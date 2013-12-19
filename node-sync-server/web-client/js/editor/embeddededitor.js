@@ -381,16 +381,16 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	function sendModelChanged(evt) {
 		var changeData = {
 						'resource' : filePath,
-						'start' : evt.start,
-						'addedCharCount' : evt.addedCharCount,
-						'addedLineCount' : evt.addedLineCount,
-						'removedCharCount' : evt.removedCharCount,
-						'removedLineCount' : evt.removedLineCount
-						};
+						'offset' : evt.start,
+						'removedCharCount' : evt.removedCharCount
+					};
 						
 		if (evt.addedCharCount > 0) {
 			var addedText = editor.getModel().getText(evt.start, evt.start + evt.addedCharCount);
 			changeData.addedCharacters = addedText;
+		}
+		else {
+			changeData.addedCharacters = "";
 		}
 		
 		socket.emit('modelchanged', changeData);
@@ -398,9 +398,9 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	
 	socket.on('modelchanged', function(data) {
 		if (data.resource === filePath) {
-			var text = data.addedCharCount > 0 ? data.addedCharacters : "";
+			var text = data.addedCharacters !== undefined ? data.addedCharacters : "";
 			editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
-			editor.getModel().setText(text, data.start, data.start + data.removedCharCount);
+			editor.getModel().setText(text, data.offset, data.offset + data.removedCharCount);
 			editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 		}
 	});

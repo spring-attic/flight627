@@ -203,22 +203,20 @@ public class CloudSyncController {
 				try {
 					IBuffer buffer = unit.getBuffer();
 
-					int start = jsonObject.getInt("start");
-					int addedCharCount = jsonObject.getInt("addedCharCount");
+					int start = jsonObject.getInt("offset");
 					int removedCharCount = jsonObject.getInt("removedCharCount");
-
 					String addedChars = jsonObject.has("addedCharacters") ? jsonObject.getString("addedCharacters") : "";
 
 					if (removedCharCount > 0) {
 						buffer.replace(start, removedCharCount, "");
 					}
 					
-					if (addedCharCount > 0) {
+					if (addedChars.length() > 0) {
 						buffer.replace(start, 0, addedChars);
 						unit.reconcile(ICompilationUnit.NO_AST, true, null, null);
 					}
 					
-					if (removedCharCount > 0 || addedCharCount > 0) {
+					if (removedCharCount > 0 || addedChars.length() > 0) {
 						unit.reconcile(ICompilationUnit.NO_AST, true, null, null);
 					}
 
