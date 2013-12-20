@@ -50,8 +50,9 @@ public class SyncDownloadSelectionDialog extends ElementListSelectionDialog {
 						List<String> projectsNames = new ArrayList<String>();
 						JSONArray projects = response.getJSONArray("projects");
 						for (int i = 0; i < projects.length(); i++) {
-							JSONObject projectObject = projects.getJSONObject(i);
-							String projectName = projectObject.keys().next().toString();
+							JSONObject project = projects.getJSONObject(i);
+							String projectName = project.getString("name");
+
 							projectsNames.add(projectName);
 						}
 						setElements((String[]) projectsNames.toArray(new String[projectsNames.size()]));

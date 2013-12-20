@@ -27,8 +27,9 @@ InMemoryRepository.prototype.getProjects = function(callback) {
 	var projects = [];
 	for (projectName in this.projectsStorage) {
 		if (typeof this.projectsStorage[projectName] !== 'function') {
-			project = {};
-			project[projectName] = '/api/' + projectName;
+			project = {
+				'name' : projectName
+			};
 			projects.push(project);
 		}
 	}
@@ -51,12 +52,6 @@ InMemoryRepository.prototype.getProject = function(projectName, includeDeleted, 
 				resourceDescription.type = project.resources[resourcePath].type;
 				resourceDescription.timestamp = project.resources[resourcePath].timestamp;
 				resourceDescription.hash = project.resources[resourcePath].hash;
-
-				resourceDescription.uri = '/api/' + projectName + '/' + resourcePath;
-
-				if (resourceDescription.type == 'file') {
-					resourceDescription.edit = '/client/html/editor.html#' + projectName + '/' + resourcePath;
-				}
 
 				resources.push(resourceDescription);
 			}

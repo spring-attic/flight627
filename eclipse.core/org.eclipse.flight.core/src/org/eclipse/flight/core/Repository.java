@@ -235,7 +235,7 @@ public class Repository {
 			JSONArray projects = new JSONArray();
 			for (String projectName : this.syncedProjects.keySet()) {
 				JSONObject proj = new JSONObject();
-				proj.put(projectName, "/api/" + projectName);
+				proj.put("name", projectName);
 				projects.put(proj);
 			}
 
@@ -271,7 +271,6 @@ public class Repository {
 							String path = resource.getProjectRelativePath().toString();
 							try {
 								projectResource.put("path", path);
-								projectResource.put("uri", "/api/" + projectName + "/" + path);
 								projectResource.put("timestamp", connectedProject.getTimestamp(path));
 								projectResource.put("hash", connectedProject.getHash(path));
 
