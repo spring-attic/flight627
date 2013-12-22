@@ -180,7 +180,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	}
 	
   	socket.on('metadataChanged', function (data) {
-		if (data.project !== undefined && data.resource !== undefined && data.metadata !== undefined && data.type === 'marker'
+		if (username === data.username && data.project !== undefined && data.resource !== undefined && data.metadata !== undefined && data.type === 'marker'
 			&& filePath === data.project + "/" + data.resource) {
 			
 			var markers = [];
@@ -203,7 +203,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
   	});
 	
   	socket.on('livemetadata', function (data) {
-		if (data.resource !== undefined && data.problems !== undefined && filePath === data.resource) {
+		if (username === data.username && data.resource !== undefined && data.problems !== undefined && filePath === data.resource) {
 			var markers = [];
 			for(i = 0; i < data.problems.length; i++) {
 				var lineOffset = editor.getModel().getLineStart(data.problems[i].line - 1);
@@ -225,7 +225,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
   	});
 	
   	socket.on('navigationresponse', function (data) {
-		if (project === data.project && resource === data.resource && data.navigation !== undefined) {
+		if (username === data.username && project === data.project && resource === data.resource && data.navigation !== undefined) {
 			var navigationTarget = data.navigation;
 			if (navigationTarget.project === project && navigationTarget.resource === resource) {
 				var offset = navigationTarget.offset;
@@ -252,7 +252,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
   	});
 	
   	socket.on('renameinfileresponse', function (data) {
-		if (project === data.project && resource === data.resource && data.references !== undefined) {
+		if (username === data.username && project === data.project && resource === data.resource && data.references !== undefined) {
 			var references = data.references;
 			
 			var positionGroups = [];
@@ -268,6 +268,8 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
     	console.log(data);
   	});
+	
+	var username = "defaultuser";
 	
 	var filePath = undefined;
 	var project = undefined;
@@ -302,6 +304,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		
 				socket.emit('getResourceRequest', {
 					'callback_id' : 0,
+					'username' : username,
 					'project' : project,
 					'resource' : resource
 				});
@@ -351,6 +354,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		if (lastSavePointTimestamp != 0 && lastSavePointHash !== '') {
 			return;
 		}
+		
+		if (data.username !== username) {
+			return;
+		}
 
 		var text = data.content;
 		
@@ -366,6 +373,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 		
 		javaContentAssistProvider.setResourcePath(filePath);
+		javaContentAssistProvider.setUsername(username);
 		
 		lastSavePointContent = text;
 		lastSavePointHash = data.hash;
@@ -373,13 +381,17 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		
 		jump(jumpTo);
 
-		socket.emit('startedediting', {'resource' : filePath})
+		socket.emit('startedediting', {
+			'username' : username,
+			'resource' : filePath
+		})
 		
 		editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 	});
 	
 	function sendModelChanged(evt) {
 		var changeData = {
+						'username' : username,
 						'resource' : filePath,
 						'offset' : evt.start,
 						'removedCharCount' : evt.removedCharCount
@@ -397,7 +409,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	}
 	
 	socket.on('modelchanged', function(data) {
-		if (data.resource === filePath) {
+		if (data.username === username && data.resource === filePath) {
 			var text = data.addedCharacters !== undefined ? data.addedCharacters : "";
 			editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
 			editor.getModel().setText(text, data.offset, data.offset + data.removedCharCount);
@@ -406,7 +418,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	});
 	
 	socket.on('getResourceRequest', function(data) {
-		if (data.project == project && data.resource == resource && data.callback_id !== undefined) {
+		if (data.username === username && data.project === project && data.resource === resource && data.callback_id !== undefined) {
 			
 			if ((data.hash === undefined || data.hash === lastSavePointHash)
 				&& data.timestamp === undefined || data.timestamp === lastSavePointTimestamp) {
@@ -414,6 +426,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				socket.emit('getResourceResponse', {
 					'callback_id' 		: data.callback_id,
 					'requestSenderID' 	: data.requestSenderID,
+					'username' 			: data.username,
 					'project' 			: project,
 					'resource' 			: resource,
 					'timestamp' 		: lastSavePointTimestamp,
@@ -434,6 +447,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			lastSavePointTimestamp = Date.now();
 			
 			socket.emit('resourceChanged', {
+				'username' : username,
 				'project' : project,
 				'resource' : resource,
 				'timestamp' : lastSavePointTimestamp,
@@ -453,6 +467,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			var length = selection.end - selection.start;
 			
 			socket.emit('navigationrequest', {
+				'username' : username,
 				'project' : project,
 				'resource' : resource,
 				'offset' : offset,
@@ -469,6 +484,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			var length = selection.end - selection.start;
 			
 			socket.emit('renameinfilerequest', {
+				'username' : username,
 				'project' : project,
 				'resource' : resource,
 				'offset' : offset,

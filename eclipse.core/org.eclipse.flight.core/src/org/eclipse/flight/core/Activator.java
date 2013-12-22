@@ -38,8 +38,12 @@ public class Activator implements BundleActivator {
 		System.out.println("core activator");
 		
 		plugin = this;
-		messagingConnector = new SocketIOMessagingConnector();
-		repository = new Repository(messagingConnector);
+		
+		String username = System.getProperty("flight-username", "defaultuser");
+		// TODO: change this username property to a preference and add authentication
+		
+		messagingConnector = new SocketIOMessagingConnector(username);
+		repository = new Repository(messagingConnector, username);
 		liveEditCoordinator = new LiveEditCoordinator(messagingConnector);
 		
 		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(repository);

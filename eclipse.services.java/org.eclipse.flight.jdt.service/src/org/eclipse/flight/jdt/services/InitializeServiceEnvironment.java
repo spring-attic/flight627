@@ -63,6 +63,7 @@ public class InitializeServiceEnvironment {
 		
 		try {
 			JSONObject message = new JSONObject();
+			message.put("username", repository.getUsername());
 			message.put("callback_id", GET_PROJECTS_CALLBACK);
 			this.messagingConnector.send("getProjectsRequest", message);
 		} catch (JSONException e) {
@@ -72,12 +73,14 @@ public class InitializeServiceEnvironment {
 
 	protected void handleGetProjectsResponse(JSONObject message) {
 		try {
-			JSONArray projects = message.getJSONArray("projects");
-			for (int i = 0; i < projects.length(); i++) {
-				JSONObject projectObject = projects.getJSONObject(i);
-				String projectName = projectObject.keys().next().toString();
-				
-				initializeProject(projectName);
+			String username = message.getString("username");
+			if (repository.getUsername().equals(username)) {
+				JSONArray projects = message.getJSONArray("projects");
+				for (int i = 0; i < projects.length(); i++) {
+					JSONObject project = projects.getJSONObject(i);
+					String projectName = project.getString("name");
+					initializeProject(projectName);
+				}
 			}
 		}
 		catch (Exception e) {
@@ -87,8 +90,12 @@ public class InitializeServiceEnvironment {
 	
 	protected void handleProjectConnected(JSONObject message) {
 		try {
+			String username = message.getString("username");
 			String projectName = message.getString("project");
-			initializeProject(projectName);
+			
+			if (repository.getUsername().equals(username)) {
+				initializeProject(projectName);
+			}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -113,7 +120,7 @@ public class InitializeServiceEnvironment {
 			}
 			
 			// project doesn't exist in workspace
-			DownloadProject downloadProject = new DownloadProject(messagingConnector, projectName);
+			DownloadProject downloadProject = new DownloadProject(messagingConnector, projectName, repository.getUsername());
 			downloadProject.run(new CompletionCallback() {
 				@Override
 				public void downloadFailed() {

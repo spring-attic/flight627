@@ -44,16 +44,20 @@ import org.json.JSONObject;
  */
 public class Repository {
 
+	private String username;
 	private IMessagingConnector messagingConnector;
+
 	private ConcurrentMap<String, ConnectedProject> syncedProjects;
 	private Collection<IRepositoryListener> repositoryListeners;
 	
 	private static int GET_PROJECT_CALLBACK = "Repository - getProjectCallback".hashCode();
 	private static int GET_RESOURCE_CALLBACK = "Repository - getResourceCallback".hashCode();
 
-	public Repository(IMessagingConnector messagingConnector) {
-		this.syncedProjects = new ConcurrentHashMap<String, ConnectedProject>();
+	public Repository(IMessagingConnector messagingConnector, String user) {
+		this.username = user;
 		this.messagingConnector = messagingConnector;
+
+		this.syncedProjects = new ConcurrentHashMap<String, ConnectedProject>();
 		this.repositoryListeners = new ConcurrentLinkedDeque<>();
 		
 		this.messagingConnector.addConnectionListener(new IConnectionListener() {
@@ -118,10 +122,9 @@ public class Repository {
 			@Override
 			public void handleMessage(String messageType, JSONObject message) {
 				try {
-					final String projectName = message.getString("project");
 					final String resourcePath = message.getString("resource");
 					
-					if (isConnected(projectName) && resourcePath.startsWith("classpath:")) {
+					if (resourcePath.startsWith("classpath:")) {
 						getClasspathResource(message);
 					}
 					else {
@@ -149,6 +152,10 @@ public class Repository {
 			}
 		};
 		this.messagingConnector.addMessageHandler(getMetadataRequestHandler);
+	}
+	
+	public String getUsername() {
+		return this.username;
 	}
 
 	protected void connect() {
@@ -196,6 +203,7 @@ public class Repository {
 			if (isConnected()) {
 				try {
 					JSONObject message = new JSONObject();
+					message.put("username", this.username);
 					message.put("project", projectName);
 					messagingConnector.send("projectDisconnected", message);
 				} catch (JSONException e) {
@@ -208,6 +216,7 @@ public class Repository {
 	protected void syncConnectedProject(String projectName) {
 		try {
 			JSONObject message = new JSONObject();
+			message.put("username", this.username);
 			message.put("project", projectName);
 			message.put("includeDeleted", true);
 			message.put("callback_id", GET_PROJECT_CALLBACK);
@@ -220,6 +229,7 @@ public class Repository {
 	protected void sendProjectConnectedMessage(String projectName) {
 		try {
 			JSONObject message = new JSONObject();
+			message.put("username", this.username);
 			message.put("project", projectName);
 			messagingConnector.send("projectConnected", message);
 		} catch (JSONException e) {
@@ -231,20 +241,24 @@ public class Repository {
 		try {
 			int callbackID = request.getInt("callback_id");
 			String sender = request.getString("requestSenderID");
+			String username = request.getString("username");
 
-			JSONArray projects = new JSONArray();
-			for (String projectName : this.syncedProjects.keySet()) {
-				JSONObject proj = new JSONObject();
-				proj.put("name", projectName);
-				projects.put(proj);
+			if (this.username.equals(username)) {
+				JSONArray projects = new JSONArray();
+				for (String projectName : this.syncedProjects.keySet()) {
+					JSONObject proj = new JSONObject();
+					proj.put("name", projectName);
+					projects.put(proj);
+				}
+
+				JSONObject message = new JSONObject();
+				message.put("callback_id", callbackID);
+				message.put("requestSenderID", sender);
+				message.put("username", this.username);
+				message.put("projects", projects);
+
+				messagingConnector.send("getProjectsResponse", message);
 			}
-
-			JSONObject message = new JSONObject();
-			message.put("callback_id", callbackID);
-			message.put("requestSenderID", sender);
-			message.put("projects", projects);
-
-			messagingConnector.send("getProjectsResponse", message);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
@@ -255,9 +269,10 @@ public class Repository {
 			final int callbackID = request.getInt("callback_id");
 			final String sender = request.getString("requestSenderID");
 			final String projectName = request.getString("project");
+			final String username = request.getString("username");
 
 			final ConnectedProject connectedProject = this.syncedProjects.get(projectName);
-			if (connectedProject != null) {
+			if (this.username.equals(username) && connectedProject != null) {
 
 				final JSONArray files = new JSONArray();
 
@@ -294,7 +309,9 @@ public class Repository {
 				JSONObject message = new JSONObject();
 				message.put("callback_id", callbackID);
 				message.put("requestSenderID", sender);
+				message.put("username", this.username);
 				message.put("project", projectName);
+				message.put("username", this.username);
 				message.put("files", files);
 
 				messagingConnector.send("getProjectResponse", message);
@@ -306,12 +323,13 @@ public class Repository {
 
 	public void getProjectResponse(JSONObject response) {
 		try {
+			final String username = response.getString("username");
 			final String projectName = response.getString("project");
 			final JSONArray files = response.getJSONArray("files");
 			final JSONArray deleted = response.optJSONArray("deleted");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
-			if (connectedProject != null) {
+			if (this.username.equals(username) && connectedProject != null) {
 
 				for (int i = 0; i < files.length(); i++) {
 					JSONObject resource = files.getJSONObject(i);
@@ -330,6 +348,7 @@ public class Repository {
 						JSONObject message = new JSONObject();
 						message.put("callback_id", GET_RESOURCE_CALLBACK);
 						message.put("project", projectName);
+						message.put("username", this.username);
 						message.put("resource", resourcePath);
 						message.put("timestamp", timestamp);
 						message.put("hash", hash);
@@ -382,13 +401,14 @@ public class Repository {
 
 	public void getResource(JSONObject request) {
 		try {
+			final String username = request.getString("username");
 			final int callbackID = request.getInt("callback_id");
 			final String sender = request.getString("requestSenderID");
 			final String projectName = request.getString("project");
 			final String resourcePath = request.getString("resource");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
-			if (connectedProject != null && connectedProject.containsResource(resourcePath)) {
+			if (this.username.equals(username) && connectedProject != null && connectedProject.containsResource(resourcePath)) {
 				IProject project = connectedProject.getProject();
 
 				if (request.has("timestamp") && request.getLong("timestamp") != connectedProject.getTimestamp(resourcePath)) {
@@ -400,6 +420,7 @@ public class Repository {
 				JSONObject message = new JSONObject();
 				message.put("callback_id", callbackID);
 				message.put("requestSenderID", sender);
+				message.put("username", this.username);
 				message.put("project", projectName);
 				message.put("resource", resourcePath);
 				message.put("timestamp", connectedProject.getTimestamp(resourcePath));
@@ -440,9 +461,10 @@ public class Repository {
 			final String sender = request.getString("requestSenderID");
 			final String projectName = request.getString("project");
 			final String resourcePath = request.getString("resource");
+			final String username = request.getString("username");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
-			if (connectedProject != null) {
+			if (this.username.equals(username) && connectedProject != null) {
 				String typeName = resourcePath.substring("classpath:/".length());
 				if (typeName.endsWith(".class")) {
 					typeName = typeName.substring(0, typeName.length() - ".class".length());
@@ -458,6 +480,7 @@ public class Repository {
 						JSONObject message = new JSONObject();
 						message.put("callback_id", callbackID);
 						message.put("requestSenderID", sender);
+						message.put("username", this.username);
 						message.put("project", projectName);
 						message.put("resource", resourcePath);
 						message.put("readonly", true);
@@ -480,13 +503,14 @@ public class Repository {
 
 	public void updateResource(JSONObject request) {
 		try {
+			final String username = request.getString("username");
 			final String projectName = request.getString("project");
 			final String resourcePath = request.getString("resource");
 			final long updateTimestamp = request.getLong("timestamp");
 			final String updateHash = request.optString("hash");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
-			if (connectedProject != null) {
+			if (this.username.equals(username) && connectedProject != null) {
 				IProject project = connectedProject.getProject();
 				IResource resource = project.findMember(resourcePath);
 
@@ -497,6 +521,7 @@ public class Repository {
 					if (localHash != null && !localHash.equals(updateHash) && localTimestamp < updateTimestamp) {
 						JSONObject message = new JSONObject();
 						message.put("callback_id", GET_RESOURCE_CALLBACK);
+						message.put("username", this.username);
 						message.put("project", projectName);
 						message.put("resource", resourcePath);
 						message.put("timestamp", updateTimestamp);
@@ -514,6 +539,7 @@ public class Repository {
 
 	public void createResource(JSONObject request) {
 		try {
+			final String username = request.getString("username");
 			final String projectName = request.getString("project");
 			final String resourcePath = request.getString("resource");
 			final long updateTimestamp = request.getLong("timestamp");
@@ -521,7 +547,7 @@ public class Repository {
 			final String type = request.optString("type");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
-			if (connectedProject != null) {
+			if (this.username.equals(username) && connectedProject != null) {
 				IProject project = connectedProject.getProject();
 				IResource resource = project.findMember(resourcePath);
 				
@@ -538,6 +564,7 @@ public class Repository {
 					else if ("file".equals(type)) {
 						JSONObject message = new JSONObject();
 						message.put("callback_id", GET_RESOURCE_CALLBACK);
+						message.put("username", this.username);
 						message.put("project", projectName);
 						message.put("resource", resourcePath);
 						message.put("timestamp", updateTimestamp);
@@ -558,12 +585,13 @@ public class Repository {
 
 	public void deleteResource(JSONObject request) {
 		try {
+			final String username = request.getString("username");
 			final String projectName = request.getString("project");
 			final String resourcePath = request.getString("resource");
 			final long deletedTimestamp = request.getLong("timestamp");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
-			if (connectedProject != null) {
+			if (this.username.equals(username) && connectedProject != null) {
 				IProject project = connectedProject.getProject();
 				IResource resource = project.findMember(resourcePath);
 
@@ -583,13 +611,14 @@ public class Repository {
 
 	public void getResourceResponse(JSONObject response) {
 		try {
+			final String username = response.getString("username");
 			final String projectName = response.getString("project");
 			final String resourcePath = response.getString("resource");
 			final long updateTimestamp = response.getLong("timestamp");
 			final String updateHash = response.getString("hash");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
-			if (connectedProject != null) {
+			if (this.username.equals(username) && connectedProject != null) {
 				IProject project = connectedProject.getProject();
 				IResource resource = project.findMember(resourcePath);
 				
@@ -628,19 +657,21 @@ public class Repository {
 
 	public void getMetadata(JSONObject request) {
 		try {
+			final String username = request.getString("username");
 			final int callbackID = request.getInt("callback_id");
 			final String sender = request.getString("requestSenderID");
 			final String projectName = request.getString("project");
 			final String resourcePath = request.getString("resource");
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
-			if (connectedProject != null) {
+			if (this.username.equals(username) && connectedProject != null) {
 				IProject project = connectedProject.getProject();
 				IResource resource = project.findMember(resourcePath);
 
 				JSONObject message = new JSONObject();
 				message.put("callback_id", callbackID);
 				message.put("requestSenderID", sender);
+				message.put("username", this.username);
 				message.put("project", projectName);
 				message.put("resource", resourcePath);
 				message.put("type", "marker");
@@ -720,6 +751,7 @@ public class Repository {
 			connectedProject.setHash(resourcePath, hash);
 
 			JSONObject message = new JSONObject();
+			message.put("username", this.username);
 			message.put("project", connectedProject.getName());
 			message.put("resource", resourcePath);
 			message.put("timestamp", timestamp);
@@ -743,6 +775,7 @@ public class Repository {
 			
 			try {
 				JSONObject message = new JSONObject();
+				message.put("username", this.username);
 				message.put("project", connectedProject.getName());
 				message.put("resource", resourcePath);
 				message.put("timestamp", deletedTimestamp);
@@ -773,6 +806,7 @@ public class Repository {
 						connectedProject.setHash(resourcePath, changeHash);
 
 						JSONObject message = new JSONObject();
+						message.put("username", this.username);
 						message.put("project", connectedProject.getName());
 						message.put("resource", resourcePath);
 						message.put("timestamp", changeTimestamp);
@@ -793,6 +827,7 @@ public class Repository {
 			String resourcePath = resource.getProjectRelativePath().toString();
 
 			JSONObject message = new JSONObject();
+			message.put("username", this.username);
 			message.put("project", project);
 			message.put("resource", resourcePath);
 			message.put("type", "marker");

@@ -46,21 +46,23 @@ public class NavigationService {
 	
 	protected void handleNavigationRequest(JSONObject message) {
 		try {
+			String username = message.getString("username");
 			String projectName = message.getString("project");
 			String resourcePath = message.getString("resource");
 			int callbackID = message.getInt("callback_id");
 			
 			String liveEditID = projectName + "/" + resourcePath;
-			if (liveEditUnits.isLiveEditResource(liveEditID)) {
+			if (liveEditUnits.isLiveEditResource(username, liveEditID)) {
 
 				int offset = message.getInt("offset");
 				int length = message.getInt("length");
 				String sender = message.getString("requestSenderID");
 
-				JSONObject navigationResult = computeNavigation(liveEditID, offset, length);
+				JSONObject navigationResult = computeNavigation(username, liveEditID, offset, length);
 				
 				if (navigationResult != null) {
 					JSONObject responseMessage = new JSONObject();
+					responseMessage.put("username", username);
 					responseMessage.put("project", projectName);
 					responseMessage.put("resource", resourcePath);
 					responseMessage.put("callback_id", callbackID);
@@ -75,9 +77,9 @@ public class NavigationService {
 		}
 	}
 
-	public JSONObject computeNavigation(String requestorResourcePath, int offset, int length) {
+	public JSONObject computeNavigation(String username, String requestorResourcePath, int offset, int length) {
 		try {
-			ICompilationUnit liveEditUnit = liveEditUnits.getLiveEditUnit(requestorResourcePath);
+			ICompilationUnit liveEditUnit = liveEditUnits.getLiveEditUnit(username, requestorResourcePath);
 			if (liveEditUnit != null) {
 				IJavaElement[] elements = liveEditUnit.codeSelect(offset, length);
 	

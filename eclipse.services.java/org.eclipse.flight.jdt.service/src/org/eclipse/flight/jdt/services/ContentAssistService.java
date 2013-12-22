@@ -51,18 +51,20 @@ public class ContentAssistService {
 	
 	protected void handleContentAssistRequest(JSONObject message) {
 		try {
+			String username = message.getString("username");
 			String resourcePath = message.getString("resource");
 			int callbackID = message.getInt("callback_id");
 			
-			if (liveEditUnits.isLiveEditResource(resourcePath)) {
+			if (liveEditUnits.isLiveEditResource(username, resourcePath)) {
 
 				int offset = message.getInt("offset");
 				String prefix = message.optString("prefix");
 				String sender = message.getString("requestSenderID");
 				
-				String proposalsSource = computeContentAssist(resourcePath, offset, prefix);
+				String proposalsSource = computeContentAssist(username, resourcePath, offset, prefix);
 
 				JSONObject responseMessage = new JSONObject();
+				responseMessage.put("username", username);
 				responseMessage.put("resource", resourcePath);
 				responseMessage.put("callback_id", callbackID);
 				responseMessage.put("requestSenderID", sender);
@@ -77,11 +79,11 @@ public class ContentAssistService {
 		}
 	}
 
-	protected String computeContentAssist(String resourcePath, int offset, String prefix) {
+	protected String computeContentAssist(String username, String resourcePath, int offset, String prefix) {
 		final List<CompletionProposal> proposals = new ArrayList<CompletionProposal>();
 		
 		try {
-			ICompilationUnit liveEditUnit = liveEditUnits.getLiveEditUnit(resourcePath);
+			ICompilationUnit liveEditUnit = liveEditUnits.getLiveEditUnit(username, resourcePath);
 			if (liveEditUnit != null) {
 				liveEditUnit.codeComplete(offset, new CompletionRequestor() {
 					@Override

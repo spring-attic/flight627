@@ -40,6 +40,7 @@ public class DownloadProject {
 	private int callbackID;
 	private CompletionCallback completionCallback;
 	
+	private String username;
 	private IProject project;
 	
 	private AtomicInteger requestedFileCount = new AtomicInteger(0);
@@ -48,9 +49,11 @@ public class DownloadProject {
 	private CallbackIDAwareMessageHandler projectResponseHandler;
 	private CallbackIDAwareMessageHandler resourceResponseHandler;
 
-	public DownloadProject(IMessagingConnector messagingConnector, String projectName) {
+
+	public DownloadProject(IMessagingConnector messagingConnector, String projectName, String username) {
 		this.messagingConnector = messagingConnector;
 		this.projectName = projectName;
+		this.username = username;
 
 		this.callbackID = this.hashCode();
 		
@@ -83,6 +86,7 @@ public class DownloadProject {
 		
 			JSONObject message = new JSONObject();
 			message.put("callback_id", this.callbackID);
+			message.put("username", this.username);
 			message.put("project", this.projectName);
 
 			messagingConnector.send("getProjectRequest", message);
@@ -102,41 +106,45 @@ public class DownloadProject {
 	public void getProjectResponse(JSONObject response) {
 		try {
 			final String projectName = response.getString("project");
+			final String username = response.getString("username");
 			final JSONArray files = response.getJSONArray("files");
 
-			for (int i = 0; i < files.length(); i++) {
-				JSONObject resource = files.getJSONObject(i);
-
-				String resourcePath = resource.getString("path");
-				long timestamp = resource.getLong("timestamp");
-
-				String type = resource.optString("type");
-				
-				if (type.equals("folder")) {
-					IFolder folder = project.getFolder(new Path(resourcePath));
-					if (!folder.exists()) {
-						folder.create(true, true, null);
+			if (this.username.equals(username)) {
+				for (int i = 0; i < files.length(); i++) {
+					JSONObject resource = files.getJSONObject(i);
+	
+					String resourcePath = resource.getString("path");
+					long timestamp = resource.getLong("timestamp");
+	
+					String type = resource.optString("type");
+					
+					if (type.equals("folder")) {
+						IFolder folder = project.getFolder(new Path(resourcePath));
+						if (!folder.exists()) {
+							folder.create(true, true, null);
+						}
+						folder.setLocalTimeStamp(timestamp);
 					}
-					folder.setLocalTimeStamp(timestamp);
+					else if (type.equals("file")) {
+						requestedFileCount.incrementAndGet();
+					}
 				}
-				else if (type.equals("file")) {
-					requestedFileCount.incrementAndGet();
-				}
-			}
-			
-			for (int i = 0; i < files.length(); i++) {
-				JSONObject resource = files.getJSONObject(i);
-
-				String resourcePath = resource.getString("path");
-				String type = resource.optString("type");
 				
-				if (type.equals("file")) {
-					JSONObject message = new JSONObject();
-					message.put("callback_id", callbackID);
-					message.put("project", projectName);
-					message.put("resource", resourcePath);
-
-					messagingConnector.send("getResourceRequest", message);
+				for (int i = 0; i < files.length(); i++) {
+					JSONObject resource = files.getJSONObject(i);
+	
+					String resourcePath = resource.getString("path");
+					String type = resource.optString("type");
+					
+					if (type.equals("file")) {
+						JSONObject message = new JSONObject();
+						message.put("callback_id", callbackID);
+						message.put("username", this.username);
+						message.put("project", projectName);
+						message.put("resource", resourcePath);
+	
+						messagingConnector.send("getResourceRequest", message);
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -149,24 +157,27 @@ public class DownloadProject {
 	
 	public void getResourceResponse(JSONObject response) {
 		try {
+			final String username = response.getString("username");
 			final String resourcePath = response.getString("resource");
 			final long timestamp = response.getLong("timestamp");
 			final String content = response.getString("content");
 			
-			IFile file = project.getFile(resourcePath);
-			if (!file.exists()) {
-				file.create(new ByteArrayInputStream(content.getBytes()), true, null);
-			}
-			else {
-				file.setContents(new ByteArrayInputStream(content.getBytes()), true, false, null);
-			}
-			file.setLocalTimeStamp(timestamp);
-			
-			int downloaded = this.downloadedFileCount.incrementAndGet();
-			if (downloaded == this.requestedFileCount.get()) {
-				this.messagingConnector.removeMessageHandler(projectResponseHandler);
-				this.messagingConnector.removeMessageHandler(resourceResponseHandler);
-				this.completionCallback.downloadComplete(project);
+			if (this.username.equals(username)) {
+				IFile file = project.getFile(resourcePath);
+				if (!file.exists()) {
+					file.create(new ByteArrayInputStream(content.getBytes()), true, null);
+				}
+				else {
+					file.setContents(new ByteArrayInputStream(content.getBytes()), true, false, null);
+				}
+				file.setLocalTimeStamp(timestamp);
+				
+				int downloaded = this.downloadedFileCount.incrementAndGet();
+				if (downloaded == this.requestedFileCount.get()) {
+					this.messagingConnector.removeMessageHandler(projectResponseHandler);
+					this.messagingConnector.removeMessageHandler(resourceResponseHandler);
+					this.completionCallback.downloadComplete(project);
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

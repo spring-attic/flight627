@@ -45,7 +45,7 @@ public class SyncDownloadHandler extends AbstractHandler {
 			
 			for (Object selectedProject : selectedProjects) {
 				if (selectedProject instanceof String) {
-					DownloadProject downloadProject = new DownloadProject(messagingConnector, (String) selectedProject);
+					DownloadProject downloadProject = new DownloadProject(messagingConnector, (String) selectedProject, repository.getUsername());
 					downloadProject.run(new CompletionCallback() {
 						@Override
 						public void downloadFailed() {

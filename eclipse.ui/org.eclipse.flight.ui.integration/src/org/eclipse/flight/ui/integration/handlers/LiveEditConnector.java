@@ -67,12 +67,12 @@ public class LiveEditConnector {
 			}
 
 			@Override
-			public void liveEditingStarted(String resourcePath) {
+			public void liveEditingStarted(String uername, String resourcePath) {
 			}
 			
 			@Override
-			public void liveEditingEvent(String resourcePath, int offset, int removeCount, String newText) {
-				handleModelChanged(resourcePath, offset, removeCount, newText);
+			public void liveEditingEvent(String username, String resourcePath, int offset, int removeCount, String newText) {
+				handleModelChanged(username, resourcePath, offset, removeCount, newText);
 			}
 		};
 		this.liveEditCoordinator.addLiveEditConnector(liveEditConnector);
@@ -118,8 +118,8 @@ public class LiveEditConnector {
 		});
 	}
 	
-	protected void handleModelChanged(final String resourcePath, final int offset, final int removedCharCount, final String newText) {
-		if (resourcePath != null && documentMappings.containsKey(resourcePath)) {
+	protected void handleModelChanged(final String username, final String resourcePath, final int offset, final int removedCharCount, final String newText) {
+		if (repository.getUsername().equals(username) && resourcePath != null && documentMappings.containsKey(resourcePath)) {
 			final IDocument document = documentMappings.get(resourcePath);
 			
 			try {
@@ -145,7 +145,7 @@ public class LiveEditConnector {
 	protected void sendModelChangedMessage(DocumentEvent event) {
 		String resourcePath = resourceMappings.get(event.getDocument());
 		if (resourcePath != null) {
-			this.liveEditCoordinator.sendModelChangedMessage(LIVE_EDIT_CONNECTOR_ID, resourcePath, event.getOffset(), event.getLength(), event.getText());
+			this.liveEditCoordinator.sendModelChangedMessage(LIVE_EDIT_CONNECTOR_ID, repository.getUsername(), resourcePath, event.getOffset(), event.getLength(), event.getText());
 		}
 	}
 

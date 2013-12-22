@@ -46,10 +46,11 @@ public class LiveEditCoordinator {
 	
 	protected void startLiveUnit(JSONObject message) {
 		try {
+			String username = message.getString("username");
 			String resourcePath = message.getString("resource");
 			if (resourcePath != null) {
 				for (ILiveEditConnector connector : liveEditConnectors) {
-					connector.liveEditingStarted(resourcePath);
+					connector.liveEditingStarted(username, resourcePath);
 				}
 			}
 		}
@@ -60,6 +61,7 @@ public class LiveEditCoordinator {
 	
 	protected void modelChanged(JSONObject message) {
 		try {
+			String username = message.getString("username");
 			String resourcePath = message.getString("resource");
 			int offset = message.getInt("offset");
 			int removedCharCount = message.getInt("removedCharCount");
@@ -67,7 +69,7 @@ public class LiveEditCoordinator {
 
 			if (resourcePath != null) {
 				for (ILiveEditConnector connector : liveEditConnectors) {
-					connector.liveEditingEvent(resourcePath, offset, removedCharCount, addedChars);
+					connector.liveEditingEvent(username, resourcePath, offset, removedCharCount, addedChars);
 				}
 			}
 		}
@@ -84,7 +86,7 @@ public class LiveEditCoordinator {
 		liveEditConnectors.remove(connector);
 	}
 	
-	public void sendModelChangedMessage(String changeOriginID, String resourcePath, int offset, int removedCharactersCount, String newText) {
+	public void sendModelChangedMessage(String changeOriginID, String username, String resourcePath, int offset, int removedCharactersCount, String newText) {
 		try {
 			JSONObject message = new JSONObject();
 			message.put("resource", resourcePath);
@@ -100,12 +102,12 @@ public class LiveEditCoordinator {
 		
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
 			if (!connector.getConnectorID().equals(changeOriginID)) {
-				connector.liveEditingEvent(resourcePath, offset, removedCharactersCount, newText);
+				connector.liveEditingEvent(username, resourcePath, offset, removedCharactersCount, newText);
 			}
 		}
 	}
 
-	public void sendLiveEditStartedMessage(String changeOriginID, String resourcePath) {
+	public void sendLiveEditStartedMessage(String changeOriginID, String username, String resourcePath) {
 		try {
 			JSONObject message = new JSONObject();
 			this.messagingConnector.send("startedediting", message);
@@ -116,7 +118,7 @@ public class LiveEditCoordinator {
 		
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
 			if (!connector.getConnectorID().equals(changeOriginID)) {
-				connector.liveEditingStarted(resourcePath);
+				connector.liveEditingStarted(username, resourcePath);
 			}
 		}
 	}

@@ -17,7 +17,7 @@ public interface ILiveEditConnector {
 
 	String getConnectorID();
 	
-	void liveEditingStarted(String resourcePath);
-	void liveEditingEvent(String resourcePath, int offset, int removeCount, String newText);
+	void liveEditingStarted(String username, String resourcePath);
+	void liveEditingEvent(String username, String resourcePath, int offset, int removeCount, String newText);
 
 }

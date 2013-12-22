@@ -27,10 +27,13 @@ public class LiveEditProblemRequestor implements IProblemRequestor {
 	private IMessagingConnector messagingConnector;
 	private String resourcePath;
 	private List<IProblem> problems;
+	private String username;
 
-	public LiveEditProblemRequestor(IMessagingConnector messagingConnector, String resourcePath) {
+	public LiveEditProblemRequestor(IMessagingConnector messagingConnector, String username, String resourcePath) {
 		this.messagingConnector = messagingConnector;
+		this.username = username;
 		this.resourcePath = resourcePath;
+
 		this.problems = new ArrayList<IProblem>();
 	}
 
@@ -59,6 +62,7 @@ public class LiveEditProblemRequestor implements IProblemRequestor {
 		try {
 			JSONArray array = new JSONArray(problemsJSON);
 			JSONObject message = new JSONObject();
+			message.put("username", this.username);
 			message.put("resource", this.resourcePath);
 			message.put("problems", array);
 			

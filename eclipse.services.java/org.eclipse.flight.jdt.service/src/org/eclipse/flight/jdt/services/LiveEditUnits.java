@@ -52,28 +52,33 @@ public class LiveEditUnits {
 			}
 
 			@Override
-			public void liveEditingStarted(String resourcePath) {
-				startLiveUnit(resourcePath);
+			public void liveEditingStarted(String username, String resourcePath) {
+				startLiveUnit(username, resourcePath);
 			}
 
 			@Override
-			public void liveEditingEvent(String resourcePath, int offset, int removeCount, String newText) {
-				modelChanged(resourcePath, offset, removeCount, newText);
+			public void liveEditingEvent(String username, String resourcePath, int offset, int removeCount, String newText) {
+				modelChanged(username, resourcePath, offset, removeCount, newText);
 			}
 		};
 		liveEditCoordinator.addLiveEditConnector(liveEditConnector);
 	}
 	
-	public boolean isLiveEditResource(String resourcePath) {
-		return liveEditUnits.containsKey(resourcePath);
+	public boolean isLiveEditResource(String username, String resourcePath) {
+		return repository.getUsername().equals(username) && liveEditUnits.containsKey(resourcePath);
 	}
 
-	public ICompilationUnit getLiveEditUnit(String resourcePath) {
-		return liveEditUnits.get(resourcePath);
+	public ICompilationUnit getLiveEditUnit(String username, String resourcePath) {
+		if (repository.getUsername().equals(username)) {
+			return liveEditUnits.get(resourcePath);
+		}
+		else {
+			return null;
+		}
 	}
 
-	protected void startLiveUnit(String resourcePath) {
-		if (resourcePath.endsWith(".java")) {
+	protected void startLiveUnit(String username, String resourcePath) {
+		if (repository.getUsername().equals(username) && resourcePath.endsWith(".java")) {
 			String projectName = resourcePath.substring(0, resourcePath.indexOf('/'));
 			String relativeResourcePath = resourcePath.substring(projectName.length());
 
@@ -82,7 +87,7 @@ public class LiveEditUnits {
 				IFile file = project.getFile(relativeResourcePath);
 				if (file != null) {
 					try {
-						final LiveEditProblemRequestor liveEditProblemRequestor = new LiveEditProblemRequestor(messagingConnector, resourcePath);
+						final LiveEditProblemRequestor liveEditProblemRequestor = new LiveEditProblemRequestor(messagingConnector, username, resourcePath);
 						ICompilationUnit unit = ((ICompilationUnit) JavaCore.create(file)).getWorkingCopy(new WorkingCopyOwner() {
 							@Override
 							public IProblemRequestor getProblemRequestor(ICompilationUnit workingCopy) {
@@ -98,8 +103,8 @@ public class LiveEditUnits {
 		}
 	}
 
-	protected void modelChanged(String resourcePath, int offset, int removedCharacterCount, String newText) {
-		if (liveEditUnits.containsKey(resourcePath)) {
+	protected void modelChanged(String username, String resourcePath, int offset, int removedCharacterCount, String newText) {
+		if (repository.getUsername().equals(username) && liveEditUnits.containsKey(resourcePath)) {
 			System.out.println("live edit compilation unit found");
 			ICompilationUnit unit = liveEditUnits.get(resourcePath);
 			try {

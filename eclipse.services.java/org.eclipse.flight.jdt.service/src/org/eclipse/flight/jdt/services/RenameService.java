@@ -48,30 +48,32 @@ public class RenameService {
 		messagingConnector.addMessageHandler(contentAssistRequestHandler);
 	}
 	
-	protected void handleRenameInFileRequest(JSONObject jsonObject) {
+	protected void handleRenameInFileRequest(JSONObject message) {
 		try {
-			String projectName = jsonObject.getString("project");
-			String resourcePath = jsonObject.getString("resource");
-			int callbackID = jsonObject.getInt("callback_id");
+			String username = message.getString("username");
+			String projectName = message.getString("project");
+			String resourcePath = message.getString("resource");
+			int callbackID = message.getInt("callback_id");
 			
 			String liveEditID = projectName + "/" + resourcePath;
-			if (liveEditUnits.isLiveEditResource(liveEditID)) {
+			if (liveEditUnits.isLiveEditResource(username, liveEditID)) {
 
-				int offset = jsonObject.getInt("offset");
-				int length = jsonObject.getInt("length");
-				String sender = jsonObject.getString("requestSenderID");
+				int offset = message.getInt("offset");
+				int length = message.getInt("length");
+				String sender = message.getString("requestSenderID");
 
-				JSONArray references = computeReferences(liveEditID, offset, length);
+				JSONArray references = computeReferences(username, liveEditID, offset, length);
 				
 				if (references != null) {
-					JSONObject message = new JSONObject();
-					message.put("project", projectName);
-					message.put("resource", resourcePath);
-					message.put("callback_id", callbackID);
-					message.put("requestSenderID", sender);
-					message.put("references", references);
+					JSONObject responseMessage = new JSONObject();
+					responseMessage.put("username", username);
+					responseMessage.put("project", projectName);
+					responseMessage.put("resource", resourcePath);
+					responseMessage.put("callback_id", callbackID);
+					responseMessage.put("requestSenderID", sender);
+					responseMessage.put("references", references);
 	
-					messagingConnector.send("renameinfileresponse", message);
+					messagingConnector.send("renameinfileresponse", responseMessage);
 				}
 			}
 		} catch (JSONException e) {
@@ -79,9 +81,9 @@ public class RenameService {
 		}
 	}
 	
-	public JSONArray computeReferences(String resourcePath, int offset, int length) {
+	public JSONArray computeReferences(String username, String resourcePath, int offset, int length) {
 		try {
-			ICompilationUnit unit = liveEditUnits.getLiveEditUnit(resourcePath);
+			ICompilationUnit unit = liveEditUnits.getLiveEditUnit(username, resourcePath);
 			if (unit != null) {
 				final ASTParser parser = ASTParser.newParser(AST.JLS4);
 	

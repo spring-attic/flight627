@@ -52,6 +52,7 @@ define("editor/javaContentAssist", ['orion/Deferred'], function(Deferred) {
 	{
 		computeProposals: function(buffer, offset, context) {
 			var request = {
+				'username' : this.username,
 				'resource' : this.resourcePath,
 				'offset' : offset,
 				'prefix' : context.prefix
@@ -63,6 +64,10 @@ define("editor/javaContentAssist", ['orion/Deferred'], function(Deferred) {
 		
 		setResourcePath: function(resourcePath) {
 			this.resourcePath = resourcePath;
+		},
+		
+		setUsername: function(username) {
+			this.username = username;
 		},
 		
 		setSocket: function(socket) {

@@ -35,8 +35,8 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 
 	private SocketIO socket;
 	
-	public SocketIOMessagingConnector() {
-		String host = System.getProperty("flight627-host", "http://localhost:3000");
+	public SocketIOMessagingConnector(String username) {
+		String host = System.getProperty("flight-host", "http://localhost:3000");
 		
 		try {
 			SocketIO.setDefaultSSLSocketFactory(SSLContext.getInstance("Default"));
