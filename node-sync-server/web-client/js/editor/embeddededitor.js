@@ -291,10 +291,12 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		
 		if (filePath !== undefined) {
 			var sections = filePath.split('/');
-			var newProject = sections[0];
-			var newResource = filePath.slice(newProject.length + 1);
+			var newUsername = sections[0];
+			var newProject = sections[1];
+			var newResource = filePath.slice(newUsername.length + newProject.length + 2);
 			
-			if (newProject !== project || newResource !== resource) {
+			if (newUsername != username || newProject !== project || newResource !== resource) {
+				username = newUsername;
 				project = newProject;
 				resource = newResource;
 				fileShortName = sections[sections.length - 1];
