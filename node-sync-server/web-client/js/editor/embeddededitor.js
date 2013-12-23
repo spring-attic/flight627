@@ -400,8 +400,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 					};
 						
 		if (evt.addedCharCount > 0) {
-			var addedText = editor.getModel().getText(evt.start, evt.start + evt.addedCharCount);
-			changeData.addedCharacters = addedText;
+			changeData.addedCharacters = editor.getModel().getText(evt.start, evt.start + evt.addedCharCount);
 		}
 		else {
 			changeData.addedCharacters = "";
@@ -440,12 +439,25 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 	});
 	
+	socket.on('resourceChanged', function(data) {
+		if (data.username === username && data.project === project && data.resource === resource) {
+			
+			var currentEditorContent = editor.getText();
+			var currentEditorContentHash = CryptoJS.SHA1(currentEditorContent).toString(CryptoJS.enc.Hex);
+			
+			if (data.hash === currentEditorContentHash) {
+				lastSavePointContent = currentEditorContent;
+				lastSavePointHash = data.hash;
+				lastSavePointTimestamp = data.timestamp;
+				editor.setDirty(false);
+			}
+		}
+	});
+	
 	function save(editor) {
 		setTimeout(function() {
 			lastSavePointContent = editor.getText();
-			
-			var hash = CryptoJS.SHA1(lastSavePointContent);
-			lastSavePointHash = hash.toString(CryptoJS.enc.Hex);
+			lastSavePointHash = CryptoJS.SHA1(lastSavePointContent).toString(CryptoJS.enc.Hex);
 			lastSavePointTimestamp = Date.now();
 			
 			socket.emit('resourceChanged', {
