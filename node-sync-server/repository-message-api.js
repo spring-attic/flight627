@@ -182,7 +182,7 @@ MessagesRepository.prototype.resourceChanged = function(data) {
 	var hash = data.hash;
 	var type = "file";
 	
-	if (!that.repository.hasResource(username, projectName, resource, type) || that.repository.needsUpdate(projectName, resource, type, timestamp, hash)) {
+	if (!that.repository.hasResource(username, projectName, resource, type) || that.repository.needsUpdate(username, projectName, resource, type, timestamp, hash)) {
 		that.socket.emit('getResourceRequest', {
 			'callback_id' : 0,
 			'username' : username,
