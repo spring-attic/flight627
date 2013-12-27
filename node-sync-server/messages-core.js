@@ -25,8 +25,8 @@ MessageCore.prototype.initialize = function(socket, sockets) {
 	
 	this.configureBroadcast(socket, 'metadataChanged');
 	
-	this.configureRequest(socket, 'getProjectsRequest');
 	this.configureRequest(socket, 'getProjectRequest');
+	this.configureRequest(socket, 'getProjectsRequest');
 	this.configureRequest(socket, 'getResourceRequest');
 	this.configureRequest(socket, 'getMetadataRequest');
 	
@@ -35,9 +35,14 @@ MessageCore.prototype.initialize = function(socket, sockets) {
 	this.configureResponse(socket, sockets, 'getResourceResponse');
 	this.configureResponse(socket, sockets, 'getMetadataResponse');
 
-	this.configureBroadcast(socket, 'startedediting');
-	this.configureBroadcast(socket, 'modelchanged');
-	this.configureBroadcast(socket, 'livemetadata');
+	this.configureRequest(socket, 'getLiveResourcesRequest');
+	this.configureResponse(socket, sockets, 'getLiveResourcesResponse');
+
+	this.configureRequest(socket, 'liveResourceStarted');
+	this.configureResponse(socket, sockets, 'liveResourceStartedResponse');
+	
+	this.configureBroadcast(socket, 'liveResourceChanged');
+	this.configureBroadcast(socket, 'liveMetadataChanged');
 	
 	this.configureRequest(socket, 'contentassistrequest');
 	this.configureResponse(socket, sockets, 'contentassistresponse');

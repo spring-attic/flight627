@@ -27,7 +27,7 @@ public class LiveEditCoordinator {
 		this.messagingConnector = messagingConnector;
 		this.liveEditConnectors = new CopyOnWriteArrayList<>();
 		
-		IMessageHandler startLiveUnit = new AbstractMessageHandler("startedediting") {
+		IMessageHandler startLiveUnit = new AbstractMessageHandler("liveResourceStarted") {
 			@Override
 			public void handleMessage(String messageType, JSONObject message) {
 				startLiveUnit(message);
@@ -35,7 +35,7 @@ public class LiveEditCoordinator {
 		};
 		messagingConnector.addMessageHandler(startLiveUnit);
 		
-		IMessageHandler modelChangedHandler = new AbstractMessageHandler("modelchanged") {
+		IMessageHandler modelChangedHandler = new AbstractMessageHandler("liveResourceChanged") {
 			@Override
 			public void handleMessage(String messageType, JSONObject message) {
 				modelChanged(message);
@@ -46,12 +46,17 @@ public class LiveEditCoordinator {
 	
 	protected void startLiveUnit(JSONObject message) {
 		try {
+			String requestSenderID = message.getString("requestSenderID");
+			int callbackID = message.getInt("callback_id");
 			String username = message.getString("username");
+			String projectName = message.getString("project");
 			String resourcePath = message.getString("resource");
-			if (resourcePath != null) {
-				for (ILiveEditConnector connector : liveEditConnectors) {
-					connector.liveEditingStarted(username, resourcePath);
-				}
+			String hash = message.getString("hash");
+			long timestamp = message.getLong("timestamp");
+
+			String liveEditID = projectName + "/" + resourcePath;
+			for (ILiveEditConnector connector : liveEditConnectors) {
+				connector.liveEditingStarted(requestSenderID, callbackID, username, liveEditID, hash, timestamp);
 			}
 		}
 		catch (Exception e) {
@@ -62,15 +67,17 @@ public class LiveEditCoordinator {
 	protected void modelChanged(JSONObject message) {
 		try {
 			String username = message.getString("username");
+			String projectName = message.getString("project");
 			String resourcePath = message.getString("resource");
+
 			int offset = message.getInt("offset");
 			int removedCharCount = message.getInt("removedCharCount");
 			String addedChars = message.has("addedCharacters") ? message.getString("addedCharacters") : "";
 
-			if (resourcePath != null) {
-				for (ILiveEditConnector connector : liveEditConnectors) {
-					connector.liveEditingEvent(username, resourcePath, offset, removedCharCount, addedChars);
-				}
+			String liveEditID = projectName + "/" + resourcePath;
+
+			for (ILiveEditConnector connector : liveEditConnectors) {
+				connector.liveEditingEvent(username, liveEditID, offset, removedCharCount, addedChars);
 			}
 		}
 		catch (Exception e) {
@@ -86,15 +93,18 @@ public class LiveEditCoordinator {
 		liveEditConnectors.remove(connector);
 	}
 	
-	public void sendModelChangedMessage(String changeOriginID, String username, String resourcePath, int offset, int removedCharactersCount, String newText) {
+	public void sendModelChangedMessage(String changeOriginID, String username, String projectName, String resourcePath, int offset, int removedCharactersCount, String newText) {
 		try {
 			JSONObject message = new JSONObject();
+			message.put("username", username);
+			message.put("project", projectName);
 			message.put("resource", resourcePath);
+			message.put("offset", offset);
 			message.put("offset", offset);
 			message.put("removedCharCount", removedCharactersCount);
 			message.put("addedCharacters", newText != null ? newText : "");
 
-			this.messagingConnector.send("modelchanged", message);
+			this.messagingConnector.send("liveResourceChanged", message);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -107,10 +117,17 @@ public class LiveEditCoordinator {
 		}
 	}
 
-	public void sendLiveEditStartedMessage(String changeOriginID, String username, String resourcePath) {
+	public void sendLiveEditStartedMessage(String changeOriginID, String username, String projectName, String resourcePath, String hash, long timestamp) {
 		try {
 			JSONObject message = new JSONObject();
-			this.messagingConnector.send("startedediting", message);
+			message.put("callback_id", 0);
+			message.put("username", username);
+			message.put("project", projectName);
+			message.put("resource", resourcePath);
+			message.put("hash", hash);
+			message.put("timestamp", timestamp);
+			
+			this.messagingConnector.send("liveResourceStarted", message);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -118,7 +135,32 @@ public class LiveEditCoordinator {
 		
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
 			if (!connector.getConnectorID().equals(changeOriginID)) {
-				connector.liveEditingStarted(username, resourcePath);
+				connector.liveEditingStarted("local", 0, username, resourcePath, hash, timestamp);
+			}
+		}
+	}
+	
+	public void sendLiveEditStartedResponse(String responseOriginID, String requestSenderID, int callbackID, String username, String projectName, String resourcePath, String savePointHash, long savePointTimestamp, String content) {
+		try {
+			JSONObject message = new JSONObject();
+			message.put("requestSenderID", requestSenderID);
+			message.put("callback_id", callbackID);
+			message.put("username", username);
+			message.put("project", projectName);
+			message.put("resource", resourcePath);
+			message.put("savePointTimestamp", savePointTimestamp);
+			message.put("savePointHash", savePointHash);
+			message.put("liveContent", content);
+	
+			this.messagingConnector.send("liveResourceStartedResponse", message);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		for (ILiveEditConnector connector : this.liveEditConnectors) {
+			if (!connector.getConnectorID().equals(responseOriginID)) {
+				connector.liveEditingStartedResponse(requestSenderID, callbackID, username, projectName, resourcePath, content);
 			}
 		}
 	}

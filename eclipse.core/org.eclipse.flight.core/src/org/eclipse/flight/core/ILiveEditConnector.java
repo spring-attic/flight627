@@ -17,7 +17,8 @@ public interface ILiveEditConnector {
 
 	String getConnectorID();
 	
-	void liveEditingStarted(String username, String resourcePath);
+	void liveEditingStarted(String requestSenderID, int callbackID, String username, String resourcePath, String hash, long timestamp);
+	void liveEditingStartedResponse(String requestSenderID, int callbackID, String username, String projectName, String resourcePath, String content);
 	void liveEditingEvent(String username, String resourcePath, int offset, int removeCount, String newText);
 
 }

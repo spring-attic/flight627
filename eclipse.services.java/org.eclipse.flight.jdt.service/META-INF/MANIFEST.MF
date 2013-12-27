@@ -11,4 +11,5 @@ Require-Bundle: org.eclipse.flight.core,
  org.eclipse.core.resources
 Bundle-Activator: org.eclipse.flight.jdt.services.Activator
 Bundle-Vendor: Eclipse.org - Flight
+Import-Package: org.apache.commons.codec.digest
 

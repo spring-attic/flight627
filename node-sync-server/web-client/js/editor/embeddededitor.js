@@ -177,33 +177,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	window.onhashchange = function() {
 		console.log("hash changed: " + window.location.hash);
 		start();
-	}
+	};
 	
-  	socket.on('metadataChanged', function (data) {
-		if (username === data.username && data.project !== undefined && data.resource !== undefined && data.metadata !== undefined && data.type === 'marker'
-			&& filePath === data.project + "/" + data.resource) {
-			
-			var markers = [];
-			for(i = 0; i < data.metadata.length; i++) {
-				var lineOffset = editor.getModel().getLineStart(data.metadata[i].line - 1);
-				
-				console.log(lineOffset);
-				
-				markers[i] = {
-					'description' : data.metadata[i].description,
-					'line' : data.metadata[i].line,
-					'severity' : data.metadata[i].severity,
-					'start' : (data.metadata[i].start - lineOffset) + 1,
-					'end' : data.metadata[i].end - lineOffset
-				};
-			}
-			
-			editor.showProblems(markers);
-		}
-  	});
-	
-  	socket.on('livemetadata', function (data) {
-		if (username === data.username && data.resource !== undefined && data.problems !== undefined && filePath === data.resource) {
+  	socket.on('liveMetadataChanged', function (data) {
+		if (username === data.username && project === data.project && resource === data.resource && data.problems !== undefined) {
 			var markers = [];
 			for(i = 0; i < data.problems.length; i++) {
 				var lineOffset = editor.getModel().getLineStart(data.problems[i].line - 1);
@@ -278,15 +255,11 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	
 	var jumpTo = undefined;
 	
-	var lastSavePointContent;
-	var lastSavePointHash;
-	var lastSavePointTimestamp;
+	var lastSavePointContent = '';
+	var lastSavePointHash = '';
+	var lastSavePointTimestamp = 0;
 	
 	function start() {
-		lastSavePointContent = '';
-		lastSavePointHash = '';
-		lastSavePointTimestamp = 0;
-
 		filePath = window.location.href.split('#')[1];
 		
 		if (filePath !== undefined) {
@@ -304,6 +277,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 
 				editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
 		
+				lastSavePointContent = '';
+				lastSavePointHash = '';
+				lastSavePointTimestamp = 0;
+
 				socket.emit('getResourceRequest', {
 					'callback_id' : 0,
 					'username' : username,
@@ -383,21 +360,61 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		
 		jump(jumpTo);
 
-		socket.emit('startedediting', {
+		socket.emit('liveResourceStarted', {
+			'callback_id' : 0,
 			'username' : username,
-			'resource' : filePath
-		})
+			'project' : project,
+			'resource' : resource,
+			'hash' : lastSavePointHash,
+			'timestamp' : lastSavePointTimestamp
+		});
 		
 		editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 	});
 	
+	socket.on('liveResourceStartedResponse', function(data) {
+		if (data.username === username && data.project === project && data.resource === resource && data.callback_id !== undefined) {
+			if (lastSavePointTimestamp === data.savePointTimestamp && lastSavePointHash === data.savePointHash) {
+				var currentEditorContent = editor.getText();
+				var currentEditorContentHash = CryptoJS.SHA1(currentEditorContent).toString(CryptoJS.enc.Hex);
+				
+				if (currentEditorContentHash === data.savePointHash) {
+					editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
+					editor.getModel().setText(data.liveContent);
+					editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
+				}
+			}
+		}
+	});
+	
+	socket.on('liveResourceStarted', function(data) {
+		if (data.username === username && data.project === project && data.resource === resource && data.callback_id !== undefined) {
+			
+			if ((data.hash === undefined || data.hash === lastSavePointHash)
+				&& data.timestamp === undefined || data.timestamp === lastSavePointTimestamp) {
+
+				socket.emit('liveResourceStartedResponse', {
+					'callback_id' 		: data.callback_id,
+					'requestSenderID' 	: data.requestSenderID,
+					'username' 			: data.username,
+					'project' 			: data.project,
+					'resource' 			: data.resource,
+					'savePointTimestamp' : lastSavePointTimestamp,
+					'savePointHash' 	: lastSavePointHash,
+					'liveContent' 		: editor.getText()
+				});
+			}
+		}
+	});
+	
 	function sendModelChanged(evt) {
 		var changeData = {
-						'username' : username,
-						'resource' : filePath,
-						'offset' : evt.start,
-						'removedCharCount' : evt.removedCharCount
-					};
+			'username' : username,
+			'project' : project,
+			'resource' : resource,
+			'offset' : evt.start,
+			'removedCharCount' : evt.removedCharCount
+		};
 						
 		if (evt.addedCharCount > 0) {
 			changeData.addedCharacters = editor.getModel().getText(evt.start, evt.start + evt.addedCharCount);
@@ -406,11 +423,11 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			changeData.addedCharacters = "";
 		}
 		
-		socket.emit('modelchanged', changeData);
+		socket.emit('liveResourceChanged', changeData);
 	}
 	
-	socket.on('modelchanged', function(data) {
-		if (data.username === username && data.resource === filePath) {
+	socket.on('liveResourceChanged', function(data) {
+		if (data.username === username && data.project === project && data.resource === resource) {
 			var text = data.addedCharacters !== undefined ? data.addedCharacters : "";
 			editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
 			editor.getModel().setText(text, data.offset, data.offset + data.removedCharCount);
