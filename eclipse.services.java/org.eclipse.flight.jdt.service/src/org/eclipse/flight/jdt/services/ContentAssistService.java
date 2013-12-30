@@ -52,19 +52,22 @@ public class ContentAssistService {
 	protected void handleContentAssistRequest(JSONObject message) {
 		try {
 			String username = message.getString("username");
+			String projectName = message.getString("project");
 			String resourcePath = message.getString("resource");
 			int callbackID = message.getInt("callback_id");
 			
-			if (liveEditUnits.isLiveEditResource(username, resourcePath)) {
+			String liveEditID = projectName + "/" + resourcePath;
+			if (liveEditUnits.isLiveEditResource(username, liveEditID)) {
 
 				int offset = message.getInt("offset");
 				String prefix = message.optString("prefix");
 				String sender = message.getString("requestSenderID");
 				
-				String proposalsSource = computeContentAssist(username, resourcePath, offset, prefix);
+				String proposalsSource = computeContentAssist(username, liveEditID, offset, prefix);
 
 				JSONObject responseMessage = new JSONObject();
 				responseMessage.put("username", username);
+				responseMessage.put("project", projectName);
 				responseMessage.put("resource", resourcePath);
 				responseMessage.put("callback_id", callbackID);
 				responseMessage.put("requestSenderID", sender);

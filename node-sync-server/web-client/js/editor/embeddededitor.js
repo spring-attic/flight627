@@ -212,7 +212,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			}
 			else {
 				var baseURL = window.location.origin + window.location.pathname;
-				var resourceID = navigationTarget.project + "/" + navigationTarget.resource;
+				var resourceID = data.username + "/" + navigationTarget.project + "/" + navigationTarget.resource;
 				
 				if (navigationTarget.offset !== undefined) {
 					resourceID += '#offset=' + navigationTarget.offset;
@@ -351,7 +351,8 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			editor.getTextView().setOptions({'readonly' : false});
 		}
 		
-		javaContentAssistProvider.setResourcePath(filePath);
+		javaContentAssistProvider.setProject(project);
+		javaContentAssistProvider.setResourcePath(resource);
 		javaContentAssistProvider.setUsername(username);
 		
 		lastSavePointContent = text;
