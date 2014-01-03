@@ -10,7 +10,7 @@
 *******************************************************************************/
 package org.eclipse.flight.core;
 
-import org.json.JSONObject;
+import org.json.JsonObject;
 
 /**
  * @author Martin Lippert
@@ -18,7 +18,7 @@ import org.json.JSONObject;
 public interface IMessagingConnector {
 	
 	boolean isConnected();
-	void send(String messageType, JSONObject message);
+	void send(String messageType, JsonObject message);
 
 	void addConnectionListener(IConnectionListener connectionListener);
 	void removeConnectionListener(IConnectionListener connectionListener);

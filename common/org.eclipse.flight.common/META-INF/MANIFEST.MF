@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Common
+Bundle-SymbolicName: org.eclipse.flight.common
+Bundle-Version: 0.1.0.qualifier
+Export-Package: org.eclipse.flight.messages,
+ org.eclipse.flight.resources
+Require-Bundle: org.vertx;bundle-version="2.1.0"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7

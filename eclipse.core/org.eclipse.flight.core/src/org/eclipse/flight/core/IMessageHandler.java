@@ -10,7 +10,7 @@
 *******************************************************************************/
 package org.eclipse.flight.core;
 
-import org.json.JSONObject;
+import org.json.JsonObject;
 
 /**
  * @author Martin Lippert
@@ -19,7 +19,7 @@ public interface IMessageHandler {
 	
 	String getMessageType();
 	
-	boolean canHandle(String messageType, JSONObject message);
-	void handleMessage(String messageType, JSONObject message);
+	boolean canHandle(String messageType, JsonObject message);
+	void handleMessage(String messageType, JsonObject message);
 
 }

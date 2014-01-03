@@ -18,7 +18,7 @@ import io.socket.SocketIOException;
 import javax.net.ssl.SSLContext;
 
 import org.eclipse.flight.core.IMessagingConnector;
-import org.json.JSONObject;
+import org.json.JsonObject;
 
 /**
  * @author Martin Lippert
@@ -44,7 +44,7 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 			socket.connect(new IOCallback() {
 
 				@Override
-				public void onMessage(JSONObject arg0, IOAcknowledge arg1) {
+				public void onMessage(JsonObject arg0, IOAcknowledge arg1) {
 				}
 
 				@Override
@@ -68,8 +68,8 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 
 				@Override
 				public void on(String event, IOAcknowledge ack, Object... data) {
-					if (data.length == 1 && data[0] instanceof JSONObject) {
-						handleIncomingMessage(event, (JSONObject)data[0]);
+					if (data.length == 1 && data[0] instanceof JsonObject) {
+						handleIncomingMessage(event, (JsonObject)data[0]);
 					}
 				}
 
@@ -80,7 +80,7 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 	}
 
 	@Override
-	public void send(String messageType, JSONObject message) {
+	public void send(String messageType, JsonObject message) {
 		socket.emit(messageType, message);
 	}
 

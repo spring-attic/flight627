@@ -20,9 +20,6 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  * @author Martin Lippert
@@ -46,8 +43,8 @@ public class DownloadProject {
 	private AtomicInteger requestedFileCount = new AtomicInteger(0);
 	private AtomicInteger downloadedFileCount = new AtomicInteger(0);
 
-	private CallbackIDAwareMessageHandler projectResponseHandler;
-	private CallbackIDAwareMessageHandler resourceResponseHandler;
+//	private CallbackIDAwareMessageHandler projectResponseHandler;
+//	private CallbackIDAwareMessageHandler resourceResponseHandler;
 
 
 	public DownloadProject(IMessagingConnector messagingConnector, String projectName, String username) {
@@ -57,23 +54,23 @@ public class DownloadProject {
 
 		this.callbackID = this.hashCode();
 		
-		projectResponseHandler = new CallbackIDAwareMessageHandler("getProjectResponse", this.callbackID) {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				getProjectResponse(message);
-			}
-		};
-		resourceResponseHandler = new CallbackIDAwareMessageHandler("getResourceResponse", this.callbackID) {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				getResourceResponse(message);
-			}
-		};
+//		projectResponseHandler = new CallbackIDAwareMessageHandler("getProjectResponse", this.callbackID) {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				getProjectResponse(message);
+//			}
+//		};
+//		resourceResponseHandler = new CallbackIDAwareMessageHandler("getResourceResponse", this.callbackID) {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				getResourceResponse(message);
+//			}
+//		};
 	}
 	
 	public void run(CompletionCallback completionCallback) {
-		this.messagingConnector.addMessageHandler(projectResponseHandler);
-		this.messagingConnector.addMessageHandler(resourceResponseHandler);
+//		this.messagingConnector.addMessageHandler(projectResponseHandler);
+//		this.messagingConnector.addMessageHandler(resourceResponseHandler);
 
 		this.completionCallback = completionCallback;
 		
@@ -84,7 +81,7 @@ public class DownloadProject {
 			project.create(null);
 			project.open(null);
 		
-			JSONObject message = new JSONObject();
+			JsonObject message = new JsonObject();
 			message.put("callback_id", this.callbackID);
 			message.put("username", this.username);
 			message.put("project", this.projectName);
@@ -92,18 +89,18 @@ public class DownloadProject {
 			messagingConnector.send("getProjectRequest", message);
 		} catch (CoreException e1) {
 			e1.printStackTrace();
-			this.messagingConnector.removeMessageHandler(projectResponseHandler);
-			this.messagingConnector.removeMessageHandler(resourceResponseHandler);
+//			this.messagingConnector.removeMessageHandler(projectResponseHandler);
+//			this.messagingConnector.removeMessageHandler(resourceResponseHandler);
 			this.completionCallback.downloadFailed();
 		} catch (JSONException e) {
 			e.printStackTrace();
-			this.messagingConnector.removeMessageHandler(projectResponseHandler);
-			this.messagingConnector.removeMessageHandler(resourceResponseHandler);
+//			this.messagingConnector.removeMessageHandler(projectResponseHandler);
+//			this.messagingConnector.removeMessageHandler(resourceResponseHandler);
 			this.completionCallback.downloadFailed();
 		}
 	}
 	
-	public void getProjectResponse(JSONObject response) {
+	public void getProjectResponse(JsonObject response) {
 		try {
 			final String projectName = response.getString("project");
 			final String username = response.getString("username");
@@ -111,7 +108,7 @@ public class DownloadProject {
 
 			if (this.username.equals(username)) {
 				for (int i = 0; i < files.length(); i++) {
-					JSONObject resource = files.getJSONObject(i);
+					JsonObject resource = files.getJsonObject(i);
 	
 					String resourcePath = resource.getString("path");
 					long timestamp = resource.getLong("timestamp");
@@ -131,13 +128,13 @@ public class DownloadProject {
 				}
 				
 				for (int i = 0; i < files.length(); i++) {
-					JSONObject resource = files.getJSONObject(i);
+					JsonObject resource = files.getJsonObject(i);
 	
 					String resourcePath = resource.getString("path");
 					String type = resource.optString("type");
 					
 					if (type.equals("file")) {
-						JSONObject message = new JSONObject();
+						JsonObject message = new JsonObject();
 						message.put("callback_id", callbackID);
 						message.put("username", this.username);
 						message.put("project", projectName);
@@ -149,13 +146,13 @@ public class DownloadProject {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			this.messagingConnector.removeMessageHandler(projectResponseHandler);
-			this.messagingConnector.removeMessageHandler(resourceResponseHandler);
+//			this.messagingConnector.removeMessageHandler(projectResponseHandler);
+//			this.messagingConnector.removeMessageHandler(resourceResponseHandler);
 			this.completionCallback.downloadFailed();
 		}
 	}
 	
-	public void getResourceResponse(JSONObject response) {
+	public void getResourceResponse(JsonObject response) {
 		try {
 			final String username = response.getString("username");
 			final String resourcePath = response.getString("resource");
@@ -174,15 +171,15 @@ public class DownloadProject {
 				
 				int downloaded = this.downloadedFileCount.incrementAndGet();
 				if (downloaded == this.requestedFileCount.get()) {
-					this.messagingConnector.removeMessageHandler(projectResponseHandler);
-					this.messagingConnector.removeMessageHandler(resourceResponseHandler);
+//					this.messagingConnector.removeMessageHandler(projectResponseHandler);
+//					this.messagingConnector.removeMessageHandler(resourceResponseHandler);
 					this.completionCallback.downloadComplete(project);
 				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			this.messagingConnector.removeMessageHandler(projectResponseHandler);
-			this.messagingConnector.removeMessageHandler(resourceResponseHandler);
+//			this.messagingConnector.removeMessageHandler(projectResponseHandler);
+//			this.messagingConnector.removeMessageHandler(resourceResponseHandler);
 			this.completionCallback.downloadFailed();
 		}
 	}

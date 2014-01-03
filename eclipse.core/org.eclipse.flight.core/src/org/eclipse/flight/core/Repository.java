@@ -30,6 +30,10 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.flight.core.internal.vertx.EclipseVertx;
+import org.eclipse.flight.messages.Messages;
+import org.eclipse.flight.resources.Project;
+import org.eclipse.flight.resources.ResourceIdentifier;
 import org.eclipse.jdt.core.IClassFile;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IType;
@@ -37,7 +41,11 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.JsonObject;
+import org.vertx.java.core.Handler;
+import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.json.JsonArray;
+import org.vertx.java.core.json.JsonObject;
 
 /**
  * @author Martin Lippert
@@ -70,88 +78,93 @@ public class Repository {
 			}
 		});
 		
-		IMessageHandler resourceChangedHandler = new AbstractMessageHandler("resourceChanged") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				updateResource(message);
-			}
-		};
-		this.messagingConnector.addMessageHandler(resourceChangedHandler);
-		
-		IMessageHandler resourceCreatedHandler = new AbstractMessageHandler("resourceCreated") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				createResource(message);
-			}
-		};
-		this.messagingConnector.addMessageHandler(resourceCreatedHandler);
-		
-		IMessageHandler resourceDeletedHandler = new AbstractMessageHandler("resourceDeleted") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				deleteResource(message);
-			}
-		};
-		this.messagingConnector.addMessageHandler(resourceDeletedHandler);
+//		IMessageHandler resourceChangedHandler = new AbstractMessageHandler("resourceChanged") {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				updateResource(message);
+//			}
+//		};
+//		this.messagingConnector.addMessageHandler(resourceChangedHandler);
+//		
+//		IMessageHandler resourceCreatedHandler = new AbstractMessageHandler("resourceCreated") {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				createResource(message);
+//			}
+//		};
+//		this.messagingConnector.addMessageHandler(resourceCreatedHandler);
+//		
+//		IMessageHandler resourceDeletedHandler = new AbstractMessageHandler("resourceDeleted") {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				deleteResource(message);
+//			}
+//		};
+//		this.messagingConnector.addMessageHandler(resourceDeletedHandler);
 
-		IMessageHandler getProjectsRequestHandler = new AbstractMessageHandler("getProjectsRequest") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				getProjects(message);
-			}
-		};
-		this.messagingConnector.addMessageHandler(getProjectsRequestHandler);
-		
-		IMessageHandler getProjectRequestHandler = new AbstractMessageHandler("getProjectRequest") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				getProject(message);
-			}
-		};
-		this.messagingConnector.addMessageHandler(getProjectRequestHandler);
-		
-		IMessageHandler getProjectResponseHandler = new CallbackIDAwareMessageHandler("getProjectResponse", Repository.GET_PROJECT_CALLBACK) {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				getProjectResponse(message);
-			}
-		};
-		this.messagingConnector.addMessageHandler(getProjectResponseHandler);
-		
-		IMessageHandler getResourceRequestHandler = new AbstractMessageHandler("getResourceRequest") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				try {
-					final String resourcePath = message.getString("resource");
-					
-					if (resourcePath.startsWith("classpath:")) {
-						getClasspathResource(message);
+		EclipseVertx.get().eventBus().registerHandler(Messages.GET_ALL_PROJECTS,
+				new Handler<Message<JsonObject>>() {
+					@Override
+					public void handle(Message<JsonObject> message) {
+						JsonArray jsonArray = new JsonArray();
+						for (String projectName : syncedProjects.keySet()) {
+							Project project = new Project(projectName);
+							jsonArray.addObject(project.toJson());
+						}
+						message.reply(jsonArray);
 					}
-					else {
-						getResource(message);
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		};
-		this.messagingConnector.addMessageHandler(getResourceRequestHandler);
+				});
 		
-		IMessageHandler getResourceResponseHandler = new CallbackIDAwareMessageHandler("getResourceResponse", Repository.GET_RESOURCE_CALLBACK) {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				getResourceResponse(message);
-			}
-		};
-		this.messagingConnector.addMessageHandler(getResourceResponseHandler);
-		
-		IMessageHandler getMetadataRequestHandler = new AbstractMessageHandler("getMetadataRequest") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				getMetadata(message);
-			}
-		};
-		this.messagingConnector.addMessageHandler(getMetadataRequestHandler);
+//		IMessageHandler getProjectRequestHandler = new AbstractMessageHandler("getProjectRequest") {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				getProject(message);
+//			}
+//		};
+//		this.messagingConnector.addMessageHandler(getProjectRequestHandler);
+//		
+//		IMessageHandler getProjectResponseHandler = new CallbackIDAwareMessageHandler("getProjectResponse", Repository.GET_PROJECT_CALLBACK) {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				getProjectResponse(message);
+//			}
+//		};
+//		this.messagingConnector.addMessageHandler(getProjectResponseHandler);
+//		
+//		IMessageHandler getResourceRequestHandler = new AbstractMessageHandler("getResourceRequest") {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				try {
+//					final String resourcePath = message.getString("resource");
+//					
+//					if (resourcePath.startsWith("classpath:")) {
+//						getClasspathResource(message);
+//					}
+//					else {
+//						getResource(message);
+//					}
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		};
+//		this.messagingConnector.addMessageHandler(getResourceRequestHandler);
+//		
+//		IMessageHandler getResourceResponseHandler = new CallbackIDAwareMessageHandler("getResourceResponse", Repository.GET_RESOURCE_CALLBACK) {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				getResourceResponse(message);
+//			}
+//		};
+//		this.messagingConnector.addMessageHandler(getResourceResponseHandler);
+//		
+//		IMessageHandler getMetadataRequestHandler = new AbstractMessageHandler("getMetadataRequest") {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				getMetadata(message);
+//			}
+//		};
+//		this.messagingConnector.addMessageHandler(getMetadataRequestHandler);
 	}
 	
 	public String getUsername() {
@@ -201,21 +214,21 @@ public class Repository {
 			notifyProjectDisonnected(project);
 
 			if (isConnected()) {
-				try {
-					JSONObject message = new JSONObject();
-					message.put("username", this.username);
-					message.put("project", projectName);
-					messagingConnector.send("projectDisconnected", message);
-				} catch (JSONException e) {
-					e.printStackTrace();
-				}
+//				try {
+//					JsonObject message = new JsonObject();
+//					message.put("username", this.username);
+//					message.put("project", projectName);
+//					messagingConnector.send("projectDisconnected", message);
+//				} catch (JSONException e) {
+//					e.printStackTrace();
+//				}
 			}
 		}
 	}
 
 	protected void syncConnectedProject(String projectName) {
 		try {
-			JSONObject message = new JSONObject();
+			JsonObject message = new JsonObject();
 			message.put("username", this.username);
 			message.put("project", projectName);
 			message.put("includeDeleted", true);
@@ -228,7 +241,7 @@ public class Repository {
 
 	protected void sendProjectConnectedMessage(String projectName) {
 		try {
-			JSONObject message = new JSONObject();
+			JsonObject message = new JsonObject();
 			message.put("username", this.username);
 			message.put("project", projectName);
 			messagingConnector.send("projectConnected", message);
@@ -237,7 +250,7 @@ public class Repository {
 		}
 	}
 
-	public void getProjects(JSONObject request) {
+	public void getProjects(JsonObject request) {
 		try {
 			int callbackID = request.getInt("callback_id");
 			String sender = request.getString("requestSenderID");
@@ -246,12 +259,12 @@ public class Repository {
 			if (this.username.equals(username)) {
 				JSONArray projects = new JSONArray();
 				for (String projectName : this.syncedProjects.keySet()) {
-					JSONObject proj = new JSONObject();
+					JsonObject proj = new JsonObject();
 					proj.put("name", projectName);
 					projects.put(proj);
 				}
 
-				JSONObject message = new JSONObject();
+				JsonObject message = new JsonObject();
 				message.put("callback_id", callbackID);
 				message.put("requestSenderID", sender);
 				message.put("username", this.username);
@@ -264,7 +277,7 @@ public class Repository {
 		}
 	}
 
-	public void getProject(JSONObject request) {
+	public void getProject(JsonObject request) {
 		try {
 			final int callbackID = request.getInt("callback_id");
 			final String sender = request.getString("requestSenderID");
@@ -282,7 +295,7 @@ public class Repository {
 					project.accept(new IResourceVisitor() {
 						@Override
 						public boolean visit(IResource resource) throws CoreException {
-							JSONObject projectResource = new JSONObject();
+							JsonObject projectResource = new JsonObject();
 							String path = resource.getProjectRelativePath().toString();
 							try {
 								projectResource.put("path", path);
@@ -306,7 +319,7 @@ public class Repository {
 					e.printStackTrace();
 				}
 				
-				JSONObject message = new JSONObject();
+				JsonObject message = new JsonObject();
 				message.put("callback_id", callbackID);
 				message.put("requestSenderID", sender);
 				message.put("username", this.username);
@@ -321,7 +334,7 @@ public class Repository {
 		}
 	}
 
-	public void getProjectResponse(JSONObject response) {
+	public void getProjectResponse(JsonObject response) {
 		try {
 			final String username = response.getString("username");
 			final String projectName = response.getString("project");
@@ -332,7 +345,7 @@ public class Repository {
 			if (this.username.equals(username) && connectedProject != null) {
 
 				for (int i = 0; i < files.length(); i++) {
-					JSONObject resource = files.getJSONObject(i);
+					JsonObject resource = files.getJsonObject(i);
 
 					String resourcePath = resource.getString("path");
 					long timestamp = resource.getLong("timestamp");
@@ -345,7 +358,7 @@ public class Repository {
 							&& !connectedProject.getHash(resourcePath).equals(hash) && connectedProject.getTimestamp(resourcePath) < timestamp;
 
 					if (newFile || updatedFile) {
-						JSONObject message = new JSONObject();
+						JsonObject message = new JsonObject();
 						message.put("callback_id", GET_RESOURCE_CALLBACK);
 						message.put("project", projectName);
 						message.put("username", this.username);
@@ -376,7 +389,7 @@ public class Repository {
 				
 				if (deleted != null) {
 					for (int i = 0; i < deleted.length(); i++) {
-						JSONObject deletedResource = deleted.getJSONObject(i);
+						JsonObject deletedResource = deleted.getJsonObject(i);
 
 						String resourcePath = deletedResource.getString("path");
 						long deletedTimestamp = deletedResource.getLong("timestamp");
@@ -399,10 +412,11 @@ public class Repository {
 		}
 	}
 
-	public void getResource(JSONObject request) {
+	public void getResource(JsonObject request) {
 		try {
+			Request
 			final String username = request.getString("username");
-			final int callbackID = request.getInt("callback_id");
+			final int callbackID = request.getInteger("callback_id");
 			final String sender = request.getString("requestSenderID");
 			final String projectName = request.getString("project");
 			final String resourcePath = request.getString("resource");
@@ -417,7 +431,7 @@ public class Repository {
 
 				IResource resource = project.findMember(resourcePath);
 
-				JSONObject message = new JSONObject();
+				JsonObject message = new JsonObject();
 				message.put("callback_id", callbackID);
 				message.put("requestSenderID", sender);
 				message.put("username", this.username);
@@ -455,7 +469,7 @@ public class Repository {
 		}
 	}
 
-	public void getClasspathResource(JSONObject request) {
+	public void getClasspathResource(JsonObject request) {
 		try {
 			final int callbackID = request.getInt("callback_id");
 			final String sender = request.getString("requestSenderID");
@@ -477,7 +491,7 @@ public class Repository {
 					IClassFile classFile = type.getClassFile();
 					if (classFile != null && classFile.getSourceRange() != null) {
 
-						JSONObject message = new JSONObject();
+						JsonObject message = new JsonObject();
 						message.put("callback_id", callbackID);
 						message.put("requestSenderID", sender);
 						message.put("username", this.username);
@@ -501,7 +515,7 @@ public class Repository {
 		}
 	}
 
-	public void updateResource(JSONObject request) {
+	public void updateResource(JsonObject request) {
 		try {
 			final String username = request.getString("username");
 			final String projectName = request.getString("project");
@@ -519,7 +533,7 @@ public class Repository {
 					long localTimestamp = connectedProject.getTimestamp(resourcePath);
 
 					if (localHash != null && !localHash.equals(updateHash) && localTimestamp < updateTimestamp) {
-						JSONObject message = new JSONObject();
+						JsonObject message = new JsonObject();
 						message.put("callback_id", GET_RESOURCE_CALLBACK);
 						message.put("username", this.username);
 						message.put("project", projectName);
@@ -537,7 +551,7 @@ public class Repository {
 		}
 	}
 
-	public void createResource(JSONObject request) {
+	public void createResource(JsonObject request) {
 		try {
 			final String username = request.getString("username");
 			final String projectName = request.getString("project");
@@ -562,7 +576,7 @@ public class Repository {
 						newFolder.setLocalTimeStamp(updateTimestamp);
 					}
 					else if ("file".equals(type)) {
-						JSONObject message = new JSONObject();
+						JsonObject message = new JsonObject();
 						message.put("callback_id", GET_RESOURCE_CALLBACK);
 						message.put("username", this.username);
 						message.put("project", projectName);
@@ -583,7 +597,7 @@ public class Repository {
 		}
 	}
 
-	public void deleteResource(JSONObject request) {
+	public void deleteResource(JsonObject request) {
 		try {
 			final String username = request.getString("username");
 			final String projectName = request.getString("project");
@@ -609,7 +623,7 @@ public class Repository {
 		}
 	}
 
-	public void getResourceResponse(JSONObject response) {
+	public void getResourceResponse(JsonObject response) {
 		try {
 			final String username = response.getString("username");
 			final String projectName = response.getString("project");
@@ -655,7 +669,7 @@ public class Repository {
 		}
 	}
 
-	public void getMetadata(JSONObject request) {
+	public void getMetadata(JsonObject request) {
 		try {
 			final String username = request.getString("username");
 			final int callbackID = request.getInt("callback_id");
@@ -668,7 +682,7 @@ public class Repository {
 				IProject project = connectedProject.getProject();
 				IResource resource = project.findMember(resourcePath);
 
-				JSONObject message = new JSONObject();
+				JsonObject message = new JsonObject();
 				message.put("callback_id", callbackID);
 				message.put("requestSenderID", sender);
 				message.put("username", this.username);
@@ -750,7 +764,7 @@ public class Repository {
 
 			connectedProject.setHash(resourcePath, hash);
 
-			JSONObject message = new JSONObject();
+			JsonObject message = new JsonObject();
 			message.put("username", this.username);
 			message.put("project", connectedProject.getName());
 			message.put("resource", resourcePath);
@@ -774,7 +788,7 @@ public class Repository {
 			long deletedTimestamp = System.currentTimeMillis();
 			
 			try {
-				JSONObject message = new JSONObject();
+				JsonObject message = new JsonObject();
 				message.put("username", this.username);
 				message.put("project", connectedProject.getName());
 				message.put("resource", resourcePath);
@@ -805,7 +819,7 @@ public class Repository {
 						connectedProject.setTimestamp(resourcePath, changeTimestamp);
 						connectedProject.setHash(resourcePath, changeHash);
 
-						JSONObject message = new JSONObject();
+						JsonObject message = new JsonObject();
 						message.put("username", this.username);
 						message.put("project", connectedProject.getName());
 						message.put("resource", resourcePath);
@@ -826,7 +840,7 @@ public class Repository {
 			String project = resource.getProject().getName();
 			String resourcePath = resource.getProjectRelativePath().toString();
 
-			JSONObject message = new JSONObject();
+			JsonObject message = new JsonObject();
 			message.put("username", this.username);
 			message.put("project", project);
 			message.put("resource", resourcePath);
@@ -853,7 +867,7 @@ public class Repository {
 			}
 
 			result.append("{");
-			result.append("\"description\":" + JSONObject.quote(m.getAttribute("message", "")));
+			result.append("\"description\":" + JsonObject.quote(m.getAttribute("message", "")));
 			result.append(",\"line\":" + m.getAttribute("lineNumber", 0));
 			result.append(",\"severity\":\"" + (m.getAttribute("severity", IMarker.SEVERITY_WARNING) == IMarker.SEVERITY_ERROR ? "error" : "warning")
 					+ "\"");

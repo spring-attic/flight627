@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.eclipse.flight.core.IConnectionListener;
 import org.eclipse.flight.core.IMessageHandler;
 import org.eclipse.flight.core.IMessagingConnector;
-import org.json.JSONObject;
+import org.json.JsonObject;
 
 /**
  * @author Martin Lippert
@@ -66,7 +66,7 @@ public abstract class AbstractMessagingConnector implements IMessagingConnector 
 		}
 	}
 	
-	protected void handleIncomingMessage(String messageType, JSONObject message) {
+	protected void handleIncomingMessage(String messageType, JsonObject message) {
 		Collection<IMessageHandler> handlers = this.messageHandlers.get(messageType);
 		if (handlers != null) {
 			for (IMessageHandler handler : handlers) {

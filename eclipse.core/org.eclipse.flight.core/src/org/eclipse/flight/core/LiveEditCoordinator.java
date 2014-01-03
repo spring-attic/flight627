@@ -13,7 +13,7 @@ package org.eclipse.flight.core;
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.json.JSONObject;
+import org.json.JsonObject;
 
 /**
  * @author Martin Lippert
@@ -27,24 +27,24 @@ public class LiveEditCoordinator {
 		this.messagingConnector = messagingConnector;
 		this.liveEditConnectors = new CopyOnWriteArrayList<>();
 		
-		IMessageHandler startLiveUnit = new AbstractMessageHandler("liveResourceStarted") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				startLiveUnit(message);
-			}
-		};
-		messagingConnector.addMessageHandler(startLiveUnit);
-		
-		IMessageHandler modelChangedHandler = new AbstractMessageHandler("liveResourceChanged") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				modelChanged(message);
-			}
-		};
-		messagingConnector.addMessageHandler(modelChangedHandler);
+//		IMessageHandler startLiveUnit = new AbstractMessageHandler("liveResourceStarted") {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				startLiveUnit(message);
+//			}
+//		};
+//		messagingConnector.addMessageHandler(startLiveUnit);
+//		
+//		IMessageHandler modelChangedHandler = new AbstractMessageHandler("liveResourceChanged") {
+//			@Override
+//			public void handleMessage(String messageType, JsonObject message) {
+//				modelChanged(message);
+//			}
+//		};
+//		messagingConnector.addMessageHandler(modelChangedHandler);
 	}
 	
-	protected void startLiveUnit(JSONObject message) {
+	protected void startLiveUnit(JsonObject message) {
 		try {
 			String requestSenderID = message.getString("requestSenderID");
 			int callbackID = message.getInt("callback_id");
@@ -64,7 +64,7 @@ public class LiveEditCoordinator {
 		}
 	}
 	
-	protected void modelChanged(JSONObject message) {
+	protected void modelChanged(JsonObject message) {
 		try {
 			String username = message.getString("username");
 			String projectName = message.getString("project");
@@ -95,7 +95,7 @@ public class LiveEditCoordinator {
 	
 	public void sendModelChangedMessage(String changeOriginID, String username, String projectName, String resourcePath, int offset, int removedCharactersCount, String newText) {
 		try {
-			JSONObject message = new JSONObject();
+			JsonObject message = new JsonObject();
 			message.put("username", username);
 			message.put("project", projectName);
 			message.put("resource", resourcePath);
@@ -119,7 +119,7 @@ public class LiveEditCoordinator {
 
 	public void sendLiveEditStartedMessage(String changeOriginID, String username, String projectName, String resourcePath, String hash, long timestamp) {
 		try {
-			JSONObject message = new JSONObject();
+			JsonObject message = new JsonObject();
 			message.put("callback_id", 0);
 			message.put("username", username);
 			message.put("project", projectName);
@@ -142,7 +142,7 @@ public class LiveEditCoordinator {
 	
 	public void sendLiveEditStartedResponse(String responseOriginID, String requestSenderID, int callbackID, String username, String projectName, String resourcePath, String savePointHash, long savePointTimestamp, String content) {
 		try {
-			JSONObject message = new JSONObject();
+			JsonObject message = new JsonObject();
 			message.put("requestSenderID", requestSenderID);
 			message.put("callback_id", callbackID);
 			message.put("username", username);
