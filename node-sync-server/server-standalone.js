@@ -9,6 +9,7 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
 *******************************************************************************/
+/*global require console exports process __dirname*/
 
 // create and configure express
 var express = require('express');
@@ -50,6 +51,7 @@ var messagesrepository = new MessagesRepository(repository);
 
 client_socket.on('connect', function() {
 	console.log('client socket connected');
-	repository.setNotificationSender(client_socket);
-	messagesrepository.setSocket(client_socket);
+	
+	repository.setNotificationSender.call(repository, client_socket);
+	messagesrepository.setSocket.call(messagesrepository, client_socket);
 });

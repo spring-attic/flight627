@@ -9,50 +9,50 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
 *******************************************************************************/
+/*global require console exports*/
 
 var MessagesRepository = function(repository) {
-	that = this;
 	this.repository = repository;
+	this.socket = null;
 };
 
 exports.MessagesRepository = MessagesRepository;
 
-MessagesRepository.prototype.setSocket = function(socket) {
-	that.socket = socket;
+MessagesRepository.prototype.setSocket = function(clientsocket) {
+	this.socket = clientsocket;
 	
-	socket.on('getProjectsRequest', that.getProjects);
-	socket.on('getProjectRequest', that.getProject);
-	socket.on('getResourceRequest', that.getResource);
+	clientsocket.on('getProjectsRequest', this.getProjects.bind(this));
+	clientsocket.on('getProjectRequest', this.getProject.bind(this));
+	clientsocket.on('getResourceRequest', this.getResource.bind(this));
 	
-	socket.on('getProjectResponse', that.getProjectResponse);
-	socket.on('getResourceResponse', that.getResourceResponse);
+	clientsocket.on('getProjectResponse', this.getProjectResponse.bind(this));
+	clientsocket.on('getResourceResponse', this.getResourceResponse.bind(this));
 	
-	socket.on('projectConnected', that.projectConnected);
-	socket.on('projectDisconnected', that.projectDisconnected);
+	clientsocket.on('projectConnected', this.projectConnected.bind(this));
+	clientsocket.on('projectDisconnected', this.projectDisconnected.bind(this));
 	
-	socket.on('resourceChanged', that.resourceChanged);
-	socket.on('resourceCreated', that.resourceCreated);
-	socket.on('resourceDeleted', that.resourceDeleted);
-	
-}
+	clientsocket.on('resourceChanged', this.resourceChanged.bind(this));
+	clientsocket.on('resourceCreated', this.resourceCreated.bind(this));
+	clientsocket.on('resourceDeleted', this.resourceDeleted.bind(this));
+};
 
 MessagesRepository.prototype.getProjects = function(data) {
-    that.repository.getProjects(data.username, function(error, result) {
-		if (error == null) {
-			that.socket.emit('getProjectsResponse', {
+    this.repository.getProjects(data.username, function(error, result) {
+		if (error === null) {
+			this.socket.emit('getProjectsResponse', {
 				'callback_id' : data.callback_id,
 				'requestSenderID' : data.requestSenderID,
 				'username' : data.username,
 				'projects' : result});
 		}
-    });
-}
+    }.bind(this));
+};
 
 MessagesRepository.prototype.getProject = function(data) {
-    that.repository.getProject(data.username, data.project, data.includeDeleted, function(error, resources, deleted) {
-		if (error == null) {
+    this.repository.getProject(data.username, data.project, data.includeDeleted, function(error, resources, deleted) {
+		if (error === null) {
 			if (data.includeDeleted) {
-				that.socket.emit('getProjectResponse', {
+				this.socket.emit('getProjectResponse', {
 					'callback_id' : data.callback_id,
 					'requestSenderID' : data.requestSenderID,
 					'username' : data.username,
@@ -61,7 +61,7 @@ MessagesRepository.prototype.getProject = function(data) {
 					'deleted' : deleted});
 			}
 			else {
-				that.socket.emit('getProjectResponse', {
+				this.socket.emit('getProjectResponse', {
 					'callback_id' : data.callback_id,
 					'requestSenderID' : data.requestSenderID,
 					'username' : data.username,
@@ -69,13 +69,13 @@ MessagesRepository.prototype.getProject = function(data) {
 					'files' : resources});
 			}
 		}
-    });
-}
+    }.bind(this));
+};
 
 MessagesRepository.prototype.getResource = function(data) {
-	that.repository.getResource(data.username, data.project, data.resource, data.timestamp, data.hash, function(error, content, timestamp, hash) {
-		if (error == null) {
-			that.socket.emit('getResourceResponse', {
+	this.repository.getResource(data.username, data.project, data.resource, data.timestamp, data.hash, function(error, content, timestamp, hash) {
+		if (error === null) {
+			this.socket.emit('getResourceResponse', {
 				'callback_id' : data.callback_id,
 				'requestSenderID' : data.requestSenderID,
 				'username' : data.username,
@@ -85,26 +85,39 @@ MessagesRepository.prototype.getResource = function(data) {
 				'hash' : hash,
 				'content' : content});
 		}
-	});
-}
+	}.bind(this));
+};
 
 MessagesRepository.prototype.projectConnected = function(data) {
 	var projectName = data.project;
 	var username = data.username;
-	if (!that.repository.hasProject(username, projectName)) {
-		that.repository.createProject(username, projectName, function(error, result) {});
-	}
 	
-	that.socket.emit('getProjectRequest', {
-		'callback_id' : 0,
-		'username' : username,
-		'project' : projectName,
-		'includeDeleted' : true
-	});
-}
+	this.repository.hasProject(username, projectName, function(error, projectExists) {
+		if (error === null && !projectExists) {
+			this.repository.createProject(username, projectName, function(error, result) {
+				if (error === null) {
+					this.socket.emit('getProjectRequest', {
+						'callback_id' : 0,
+						'username' : username,
+						'project' : projectName,
+						'includeDeleted' : true
+					});
+				}
+			}.bind(this));
+		}
+		else {
+			this.socket.emit('getProjectRequest', {
+				'callback_id' : 0,
+				'username' : username,
+				'project' : projectName,
+				'includeDeleted' : true
+			});
+		}
+	}.bind(this));
+};
 
 MessagesRepository.prototype.projectDisconnected = function(data) {	
-}
+};
 
 MessagesRepository.prototype.getProjectResponse = function(data) {
 	var projectName = data.project;
@@ -112,42 +125,50 @@ MessagesRepository.prototype.getProjectResponse = function(data) {
 	var files = data.files;
 	var deleted = data.deleted;
 	
-	if (that.repository.hasProject(username, projectName)) {
-		for (i = 0; i < files.length; i += 1) {
-			var resource = files[i].path;
-			var type = files[i].type;
-			var timestamp = files[i].timestamp;
-			var hash = files[i].hash;
+	this.repository.hasProject(username, projectName, function(err, projectExists) {
+		if (projectExists) {
 			
-			var newResource = !that.repository.hasResource(username, projectName, resource, type) && !that.repository.gotDeleted(username, projectName, resource, timestamp);
-			var updatedResource = that.repository.needsUpdate(username, projectName, resource, type, timestamp, hash);
-
-			if (newResource || updatedResource) {
-				that.socket.emit('getResourceRequest', {
-					'callback_id' : 0,
-					'username' : username,
-					'project' : projectName,
-					'resource' : resource,
-					'timestamp' : timestamp,
-					'hash' : hash
-				});
+			var i;
+			for (i = 0; i < files.length; i += 1) {
+				this.repository.getResourceInfo(username, projectName, files[i].path, files[i].type, files[i].timestamp,
+					files[i].hash, this._getProjectResponseCheckResource.bind(this));
 			}
-		}
 		
-		if (deleted !== undefined) {
-			for (i = 0; i < deleted.length; i += 1) {
-				var resource = deleted[i].path;
-				var deletedTimestamp = deleted[i].timestamp;
-			
-				that.repository.deleteResource(username, projectName, resource, deletedTimestamp, function(error, result) {
-					if (error !== null) {
-						console.log('did not delete resource: ' + projectName + "/" + resource + " - deleted at: " + deletedTimestamp);
-					}	
-				});
+			if (deleted !== undefined) {
+				for (i = 0; i < deleted.length; i += 1) {
+					this.repository.deleteResource(username, projectName, deleted[i].path, deleted[i].timestamp,
+						this._getProjectResponseDeletedResult.bind(this));
+				}
 			}
+			
+		}
+	}.bind(this));
+};
+
+MessagesRepository.prototype._getProjectResponseCheckResource = function(err, resourceInfo) {
+	if (err === null) {
+
+		var newResource = !resourceInfo.exists && !resourceInfo.deleted;
+		var updatedResource = resourceInfo.needsUpdate;
+
+		if (newResource || updatedResource) {
+			this.socket.emit('getResourceRequest', {
+				'callback_id' : 0,
+				'username' : resourceInfo.username,
+				'project' : resourceInfo.project,
+				'resource' : resourceInfo.resource,
+				'timestamp' : resourceInfo.timestamp,
+				'hash' : resourceInfo.hash
+			});
 		}
 	}
-}
+};
+
+MessagesRepository.prototype._getProjectResponseDeletedResult = function(err, result) {
+	if (err !== null) {
+		console.log('did not delete resource: ' + result.projectName + "/" + result.deletedResource + " - deleted at: " + result.deletedTimestamp);
+	}	
+};
 
 MessagesRepository.prototype.getResourceResponse = function(data) {
 	var username = data.username;
@@ -158,21 +179,25 @@ MessagesRepository.prototype.getResourceResponse = function(data) {
 	var hash = data.hash;
 	var content = data.content;
 	
-	if (!that.repository.hasResource(username, projectName, resource, type)) {
-		that.repository.createResource(username, projectName, resource, content, hash, timestamp, type, function(error, result) {
-			if (error !== null) {
-				console.log('Error creating repository resource: ' + projectName + "/" + resource + " - " + data.timestamp);
+	this.repository.hasResource(username, projectName, resource, function(err, resourceExists) {
+		if (err === null) {
+			if (!resourceExists) {
+				this.repository.createResource(username, projectName, resource, content, hash, timestamp, type, function(error, result) {
+					if (error !== null) {
+						console.log('Error creating repository resource: ' + projectName + "/" + resource + " - " + data.timestamp);
+					}
+				});
 			}
-		});
-	}
-	else {
-		that.repository.updateResource(username, projectName, resource, content, hash, timestamp, function(error, result) {
-			if (error !== null) {
-				console.log('Error updating repository resource: ' + projectName + "/" + resource + " - " + timestamp);
+			else {
+				this.repository.updateResource(username, projectName, resource, content, hash, timestamp, function(error, result) {
+					if (error !== null) {
+						console.log('Error updating repository resource: ' + projectName + "/" + resource + " - " + timestamp);
+					}
+				});
 			}
-		});
-	}
-}
+		}
+	}.bind(this));
+};
 
 MessagesRepository.prototype.resourceChanged = function(data) {
 	var username = data.username;
@@ -182,18 +207,21 @@ MessagesRepository.prototype.resourceChanged = function(data) {
 	var hash = data.hash;
 	var type = "file";
 	
-	if (!that.repository.hasResource(username, projectName, resource, type) || that.repository.needsUpdate(username, projectName, resource, type, timestamp, hash)) {
-		that.socket.emit('getResourceRequest', {
-			'callback_id' : 0,
-			'username' : username,
-			'project' : projectName,
-			'resource' : resource,
-			'timestamp' : timestamp,
-			'hash' : hash
-		});
-	}
-	
-}
+	this.repository.getResourceInfo(username, projectName, resource, type, timestamp, hash, function(err, resourceInfo) {
+		if (err === null) {
+			if (!resourceInfo.exists || resourceInfo.needsUpdate) {
+				this.socket.emit('getResourceRequest', {
+					'callback_id' : 0,
+					'username' : username,
+					'project' : projectName,
+					'resource' : resource,
+					'timestamp' : timestamp,
+					'hash' : hash
+				});
+			}
+		}
+	}.bind(this));
+};
 
 MessagesRepository.prototype.resourceCreated = function(data) {
 	var username = data.username;
@@ -203,18 +231,19 @@ MessagesRepository.prototype.resourceCreated = function(data) {
 	var hash = data.hash;
 	var type = data.type;
 	
-	if (!that.repository.hasResource(username, projectName, resource, type)) {
-		that.socket.emit('getResourceRequest', {
-			'callback_id' : 0,
-			'username' : username,
-			'project' : projectName,
-			'resource' : resource,
-			'timestamp' : timestamp,
-			'hash' : hash
-		});
-	}
-	
-}
+	this.repository.hasResource(username, projectName, resource, function(err, resourceExists) {
+		if (err === null && !resourceExists) {
+			this.socket.emit('getResourceRequest', {
+				'callback_id' : 0,
+				'username' : username,
+				'project' : projectName,
+				'resource' : resource,
+				'timestamp' : timestamp,
+				'hash' : hash
+			});
+		}
+	}.bind(this));
+};
 
 MessagesRepository.prototype.resourceDeleted = function(data) {
 	var username = data.username;
@@ -222,11 +251,13 @@ MessagesRepository.prototype.resourceDeleted = function(data) {
 	var resource = data.resource;
 	var timestamp = data.timestamp;
 	
-	if (that.repository.hasResource(username, projectName, resource)) {
-		that.repository.deleteResource(username, projectName, resource, timestamp, function(error, result) {
-			if (error !== null) {
-				console.log('Error deleting repository resource: ' + projectName + "/" + resource + " - " + timestamp);
-			}
-		})
-	}
-}
+	this.repository.hasResource(username, projectName, resource, function(err, resourceExists) {
+		if (err === null && resourceExists) {
+			this.repository.deleteResource(username, projectName, resource, timestamp, function(error, result) {
+				if (error !== null) {
+					console.log('Error deleting repository resource: ' + projectName + "/" + resource + " - " + timestamp);
+				}
+			});
+		}
+	}.bind(this));
+};
