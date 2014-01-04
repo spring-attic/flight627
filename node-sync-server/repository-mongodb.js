@@ -168,6 +168,25 @@ MongoDBRepository.prototype.createResource = function(username, projectName, res
 		callback(404);
 	}
 	
+	if (type === 'file') {
+		var fileName = username + '#' + projectName + '#' + resourcePath;
+		new GridStore(this.mongodb, fileName, "w").open(function(err, gridStore) {
+			if (!err) {
+				gridStore.write(data, function(err, gridStore) {
+					if (!err) {
+						this._createResourceCollectionEntry(username, projectName, resourcePath, hash, timestamp, type, gridStore.fileId, callback);
+					}
+					gridStore.close(function(err, result) {});
+				}.bind(this));
+			}
+		}.bind(this));
+	}
+	else {
+		this._createResourceCollectionEntry(username, projectName, resourcePath, hash, timestamp, type, null, callback);
+	}
+};
+
+MongoDBRepository.prototype._createResourceCollectionEntry = function(username, projectName, resourcePath, hash, timestamp, type, contentID, callback) {
 	var resourcesCollection = this.mongodb.collection('resources');
 	resourcesCollection.insert({
 		'username' : username,
@@ -176,7 +195,8 @@ MongoDBRepository.prototype.createResource = function(username, projectName, res
 		'type' : type,
 		'hash' : hash,
 		'timestamp' : timestamp,
-		'deleted' : false
+		'deleted' : false,
+		'contentID' : contentID
 	}, function(err, insertedDocs) {
 		if (err) {
 			callback(err);
@@ -215,38 +235,59 @@ MongoDBRepository.prototype.updateResource = function(username, projectName, res
 		}
 		else {
 			if (items !== undefined && items.length === 1 && timestamp > items[0].timestamp) {
-				resourcesCollection.update({
-					'username' : username,
-					'projectName' : projectName,
-					'path' : resourcePath,
-					'deleted' : false
-				}, {
-					$set: {
-						'hash' : hash,
-						'timestamp' : timestamp
-				}}, {w:1}, function(err) {
-					if (err) {
-						callback(404);
-					}
-					else {
-					    callback(null, {
-							'username' : username,
-							'project' : projectName,
-							'hash' : hash
-						});
-							
-						this.notificationSender.emit('resourceChanged', {
-							'username' : username,
-							'project' : projectName,
-							'resource' : resourcePath,
-							'timestamp' : timestamp,
-							'hash' : hash});
-					}
-				}.bind(this));
+				if (items[0].type === 'file') {
+					var fileName = username + '#' + projectName + '#' + resourcePath;
+					new GridStore(this.mongodb, fileName, "w").open(function(err, gridStore) {
+						if (!err) {
+							gridStore.write(data, function(err, gridStore) {
+								if (!err) {
+									this._updateResourceCollectionEntry(username, projectName, resourcePath, hash, timestamp, callback);
+								}
+								gridStore.close(function(err, result) {});
+							}.bind(this));
+						}
+					}.bind(this));
+				}
+				else {
+					this._updateResourceCollectionEntry(username, projectName, resourcePath, hash, timestamp, callback);
+				}
 			}
 			else {
 				callback(404);
 			}				
+		}
+	}.bind(this));
+};
+
+MongoDBRepository.prototype._updateResourceCollectionEntry = function(username, projectName, resourcePath, hash, timestamp, callback) {
+	var resourcesCollection = this.mongodb.collection('resources');
+
+	resourcesCollection.update({
+		'username' : username,
+		'projectName' : projectName,
+		'path' : resourcePath,
+		'deleted' : false
+	}, {
+		$set: {
+			'hash' : hash,
+			'timestamp' : timestamp
+	}}, {w:1}, function(err) {
+		if (err) {
+			callback(404);
+		}
+		else {
+			callback(null, {
+				'username' : username,
+				'project' : projectName,
+				'hash' : hash
+			});
+
+			this.notificationSender.emit('resourceChanged', {
+				'username' : username,
+				'project' : projectName,
+				'resource' : resourcePath,
+				'timestamp' : timestamp,
+				'hash' : hash});
 		}
 	}.bind(this));
 };
@@ -415,8 +456,21 @@ MongoDBRepository.prototype.getResource = function(username, projectName, resour
 				else if (hash !== undefined && hash !== resource.hash) {
 					callback(404);
 				}
-				else {
-					callback(null, "this is the data of the resource", resource.timestamp, resource.hash);
+				else if (items[0].type === 'file') {
+					var fileName = username + '#' + projectName + '#' + resourcePath;
+					new GridStore(this.mongodb, fileName, "r").open(function(err, gridStore) {
+						if (!err) {
+							gridStore.read(function(err, data) {
+								if (!err) {
+									callback(null, data.toString(), resource.timestamp, resource.hash);
+								}
+								else {
+									callback(404);
+								}
+								gridStore.close(function(err, result) {});
+							}.bind(this));
+						}
+					}.bind(this));
 				}
 				
 			}
@@ -424,7 +478,7 @@ MongoDBRepository.prototype.getResource = function(username, projectName, resour
 				callback(404);
 			}
 		}
-	});
+	}.bind(this));
 };
 
 MongoDBRepository.prototype.deleteResource = function(username, projectName, resourcePath, timestamp, callback) {
