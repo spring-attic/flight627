@@ -75,7 +75,7 @@ public class ResourceAddress extends MessageObject {
 		this.userName = userName;
 	}
 
-	public void setProjectId(String projectId) {
+	public void setProjectName(String projectId) {
 		this.projectName = projectId;
 	}
 

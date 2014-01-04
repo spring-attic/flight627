@@ -45,7 +45,7 @@ public class RepositoryInMemory {
 	public Project createProject(String id) {
 		Project project = projects.get(id);
 		if (project == null) {
-			project = new Project(id);
+			project = new Project();
 			projects.put(id, project);
 		}
 		return project;
@@ -70,7 +70,7 @@ public class RepositoryInMemory {
 	public Resource getResource(ResourceAddress id) {
 		Project project = getProject(id.getProjectName());
 		if (project != null) {
-			return project.getResource(id);
+			return (Resource) project.getResource(id);
 		}
 		return null;
 	}

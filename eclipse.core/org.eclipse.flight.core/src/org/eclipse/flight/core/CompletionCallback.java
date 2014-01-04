@@ -7,19 +7,18 @@
  *
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
-*******************************************************************************/
+ *******************************************************************************/
+
 package org.eclipse.flight.core;
 
-import org.json.JsonObject;
+import org.eclipse.core.resources.IProject;
 
 /**
  * @author Martin Lippert
+ * 
  */
-public interface IMessageHandler {
-	
-	String getMessageType();
-	
-	boolean canHandle(String messageType, JsonObject message);
-	void handleMessage(String messageType, JsonObject message);
+public interface CompletionCallback {
+	public void downloadComplete(IProject project);
 
+	public void downloadFailed();
 }

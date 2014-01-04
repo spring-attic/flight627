@@ -142,10 +142,10 @@ public class RepositoryVerticleTest extends TestVerticle {
 		resource.setType("java");
 		resource.setUserName("defaultUser");
 		resource.setData("package foo.bar;...");
-		resource.setProjectId("foo");
+		resource.setProjectName("foo");
 
 		final ResourceAddress resourceIdent = new ResourceAddress();
-		resourceIdent.setProjectId("foo");
+		resourceIdent.setProjectName("foo");
 		resourceIdent.setPath("src/foo/bar/MyClass.java");
 
 		execute(createFooProject,
@@ -179,7 +179,7 @@ public class RepositoryVerticleTest extends TestVerticle {
 	@Test
 	public void testHasResourceFalse() {
 		final ResourceAddress resourceIdent = new ResourceAddress();
-		resourceIdent.setProjectId("foo");
+		resourceIdent.setProjectName("foo");
 		resourceIdent.setPath("src/foo/bar/Missing.java");
 		execute(createFooProject,
 				new TestHandler(Messages.GET_RESOURCE, resourceIdent.toJson()) {
@@ -198,7 +198,7 @@ public class RepositoryVerticleTest extends TestVerticle {
 	@Test
 	public void testHasResourceNoProjectFail() {
 		final ResourceAddress resourceIdent = new ResourceAddress();
-		resourceIdent.setProjectId("my.project");
+		resourceIdent.setProjectName("my.project");
 		resourceIdent.setPath("src/foo/bar/Missing.java");
 		execute(createFooProject,
 				new TestHandler(Messages.GET_RESOURCE, resourceIdent.toJson()) {

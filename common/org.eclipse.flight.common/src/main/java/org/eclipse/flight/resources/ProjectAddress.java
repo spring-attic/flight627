@@ -10,27 +10,57 @@
  *******************************************************************************/
 package org.eclipse.flight.resources;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 
 public class ProjectAddress extends MessageObject {
 
 	String name;
 
-	public ProjectAddress(String name) {
-		this.name = name;
-	}
-
+	String userName;
+	
 	@Override
 	public void fromJson(JsonObject json) {
 		name = json.getString("name");
+		userName = json.getString("userName");
 	}
 
 	@Override
 	protected void toJson(JsonObject json) {
 		json.putString("name", name);
+		json.putString("userName", userName);
+	}
+
+	public ProjectAddress getAddress() {
+		ProjectAddress identifier = new ProjectAddress();
+		identifier.fromJson(super.toJson());
+		return identifier;
+	}
+	
+	/**
+	 * @return the name
+	 */
+	public String getName() {
+		return name;
+	}
+	
+	/**
+	 * @param name the name to set
+	 */
+	public void setName(String name) {
+		this.name = name;
+	}
+	
+	/**
+	 * @return the userName
+	 */
+	public String getUserName() {
+		return userName;
+	}
+	
+	/**
+	 * @param userName the userName to set
+	 */
+	public void setUserName(String userName) {
+		this.userName = userName;
 	}
 }

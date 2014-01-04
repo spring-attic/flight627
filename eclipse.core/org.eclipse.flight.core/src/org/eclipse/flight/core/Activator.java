@@ -14,7 +14,6 @@ import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.flight.core.internal.CloudSyncMetadataListener;
 import org.eclipse.flight.core.internal.CloudSyncResourceListener;
-import org.eclipse.flight.core.internal.messaging.SocketIOMessagingConnector;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 
@@ -29,7 +28,6 @@ public class Activator implements BundleActivator {
 	// The shared instance
 	private static Activator plugin;
 
-	private IMessagingConnector messagingConnector;
 	private Repository repository;
 	private LiveEditCoordinator liveEditCoordinator;
 	
@@ -42,15 +40,16 @@ public class Activator implements BundleActivator {
 		String username = System.getProperty("flight-username", "defaultuser");
 		// TODO: change this username property to a preference and add authentication
 		
-		messagingConnector = new SocketIOMessagingConnector(username);
-		repository = new Repository(messagingConnector, username);
-		liveEditCoordinator = new LiveEditCoordinator(messagingConnector);
+		repository = new Repository(username);
+		liveEditCoordinator = new LiveEditCoordinator();
 		
 		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(repository);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(resourceListener, IResourceChangeEvent.POST_CHANGE);
 
 		CloudSyncMetadataListener metadataListener = new CloudSyncMetadataListener(repository);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(metadataListener, IResourceChangeEvent.POST_BUILD);
+		
+		
 	}
 
 	@Override
@@ -65,10 +64,6 @@ public class Activator implements BundleActivator {
 	 */
 	public static Activator getDefault() {
 		return plugin;
-	}
-	
-	public IMessagingConnector getMessagingConnector() {
-		return messagingConnector;
 	}
 	
 	public Repository getRepository() {

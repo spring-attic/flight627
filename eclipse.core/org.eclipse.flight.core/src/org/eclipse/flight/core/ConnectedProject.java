@@ -7,69 +7,616 @@
  *
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
-*******************************************************************************/
+ *******************************************************************************/
 package org.eclipse.flight.core;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceVisitor;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.flight.core.internal.vertx.EclipseVertx;
+import org.eclipse.flight.messages.Messages;
+import org.eclipse.flight.resources.Project;
+import org.eclipse.flight.resources.Request;
+import org.eclipse.flight.resources.Resource;
+import org.eclipse.flight.resources.ResourceAddress;
+import org.eclipse.flight.resources.Response;
+import org.vertx.java.core.Handler;
+import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.json.JsonObject;
 
 /**
  * @author Martin Lippert
  */
-public class ConnectedProject {
-	
+public class ConnectedProject extends Project {
+
 	private IProject project;
-	private Map<String, String> resourceHash;
-	private Map<String, Long> resourceTimestamp;
-	
+
 	public ConnectedProject(IProject project) {
+		setName(project.getName());
+		setUserName("defaultuser");
 		this.project = project;
-		this.resourceHash = new ConcurrentHashMap<String, String>();
-		this.resourceTimestamp = new ConcurrentHashMap<String, Long>();
-		
 		try {
-			project.accept(new IResourceVisitor() {
-				@Override
-				public boolean visit(IResource resource) throws CoreException {
-					String path = resource.getProjectRelativePath().toString();
-					ConnectedProject.this.setTimestamp(path, resource.getLocalTimeStamp());
-					
-					if (resource instanceof IFile) {
-						try {
-							IFile file = (IFile) resource;
-							ConnectedProject.this.setHash(path, DigestUtils.shaHex(file.getContents()));
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
-					else if (resource instanceof IFolder) {
-						ConnectedProject.this.setHash(path, "0");
-					}
-					
-					return true;
-				}
-			}, IResource.DEPTH_INFINITE, IContainer.EXCLUDE_DERIVED);
-		} catch (Exception e) {
+			updateResources(project);
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+		registerEvents();
+	}
+
+	/**
+	 * 
+	 */
+	public ConnectedProject(String projectName, CompletionCallback completionCallback) {
+		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+		project = root.getProject(projectName);
+		try {
+			project.create(null);
+			project.open(null);
+			registerEvents();
+		} catch (CoreException e1) {
+			completionCallback.downloadFailed();
+		}
+	}
+
+	private void registerEvents() {
+		EclipseVertx
+				.get()
+				.eventBus()
+				.registerHandler(Messages.GET_PROJECT,
+						new Handler<Message<JsonObject>>() {
+							@Override
+							public void handle(Message<JsonObject> message) {
+								message.reply(new Response(Messages.GET_PROJECT, toJson())
+										.toJson());
+							}
+						});
+		EclipseVertx
+				.get()
+				.eventBus()
+				.registerHandler(Messages.GET_RESOURCE,
+						new Handler<Message<JsonObject>>() {
+							@Override
+							public void handle(Message<JsonObject> message) {
+								message.reply(new Response(Messages.GET_RESOURCE,
+										getResourceAsJson(message.body().getObject(
+												"contents"))).toJson());
+							}
+						});
+		EclipseVertx
+				.get()
+				.eventBus()
+				.send(Messages.RESOURCE_PROVIDER,
+						new Request(Messages.GET_PROJECT, this.getAddress().toJson())
+								.toJson(), new Handler<Message<JsonObject>>() {
+							@Override
+							public void handle(Message<JsonObject> reply) {
+								synchronizeProject(reply.body().getObject("contents"),
+										null);
+							}
+						});
+	}
+
+	private void updateResources(IProject project) throws CoreException {
+		project.accept(new IResourceVisitor() {
+			@Override
+			public boolean visit(IResource resource) throws CoreException {
+				String path = resource.getProjectRelativePath().toString();
+				ResourceAddress flightResource = getResource(path);
+				if (flightResource == null) {
+					flightResource = new Resource();
+					putResource(flightResource);
+				}
+				flightResource.setPath(path);
+				flightResource.setTimestamp(resource.getLocalTimeStamp());
+				if (resource instanceof IFile) {
+					try {
+						IFile file = (IFile) resource;
+						flightResource.setHash(DigestUtils.shaHex(file.getContents()));
+						flightResource.setType("file");
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				} else if (resource instanceof IFolder) {
+					flightResource.setHash("0");
+					flightResource.setType("folder");
+				}
+				return true;
+			}
+		}, IResource.DEPTH_INFINITE, IContainer.EXCLUDE_DERIVED);
+	}
+
+	public void synchronizeProject(JsonObject remoteObject,
+			final CompletionCallback completionCallback) {
+		Project remoteProject = new Project();
+		remoteProject.fromJson(remoteObject);
+
+		if (remoteProject.getName().equals(getName())
+				&& remoteProject.getUserName().equals(getUserName())) {
+
+			final AtomicInteger requestedFileCount = new AtomicInteger(0);
+			final AtomicInteger downloadedFileCount = new AtomicInteger(0);
+
+			for (ResourceAddress remoteResource : remoteProject.getResources()) {
+
+				final ResourceAddress localResource = getResource(remoteResource
+						.getPath());
+				boolean newResource = localResource == null;
+				boolean updatedResource = localResource != null
+						&& !remoteResource.getHash().equals(localResource.getHash())
+						&& localResource.getTimestamp() < remoteResource.getTimestamp();
+				if (newResource) {
+					putResource(remoteResource);
+				}
+				if (remoteResource.getType().equals("file")) {
+					if (newResource || updatedResource) {
+						EclipseVertx
+								.get()
+								.eventBus()
+								.send(Messages.RESOURCE_PROVIDER,
+										new Request(Messages.GET_RESOURCE, localResource
+												.toJson()).toJson(),
+										new Handler<Message<JsonObject>>() {
+											@Override
+											public void handle(Message<JsonObject> reply) {
+												synchronizeResource(reply.body()
+														.getObject("contents"));
+												if (completionCallback != null) {
+													int downloaded = downloadedFileCount
+															.incrementAndGet();
+													if (downloaded == requestedFileCount
+															.get()) {
+														completionCallback
+																.downloadComplete(project);
+													}
+												}
+											}
+										});
+					}
+				} else if (remoteResource.getType().equals("folder") && newResource) {
+					IFolder folder = project.getFolder(remoteResource.getPath());
+					try {
+						folder.create(true, true, null);
+						folder.setLocalTimeStamp(remoteResource.getTimestamp());
+					} catch (CoreException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			}
+
+			// if (deleted != null) {
+			// for (int i = 0; i < deleted.length(); i++) {
+			// JsonObject deletedResource = deleted.getJsonObject(i);
+			//
+			// String resourcePath = deletedResource.getString("path");
+			// long deletedTimestamp = deletedResource.getLong("timestamp");
+			//
+			// IProject project = connectedProject.getProject();
+			// IResource resource = project.findMember(resourcePath);
+			//
+			// if (resource != null && resource.exists() && (resource
+			// instanceof IFile || resource instanceof IFolder)) {
+			// long localTimestamp =
+			// connectedProject.getTimestamp(resourcePath);
+			//
+			// if (localTimestamp < deletedTimestamp) {
+			// resource.delete(true, null);
+			// }
+			// }
+			// }
+			// }
 		}
 
 	}
-	
+
+	public JsonObject getResourceAsJson(JsonObject remoteObject) {
+		ResourceAddress sentResource = new ResourceAddress();
+		sentResource.fromJson(remoteObject);
+		return getResourceAsJson(remoteObject);
+	}
+
+	public JsonObject getResourceAsJson(ResourceAddress remoteAddress) {
+		// if (resourcePath.startsWith("classpath:")) {
+		// getClasspathResource(message);
+		// }
+		// else {
+		// getResource(message);
+		// }
+		Resource sentResource = new Resource();
+		ResourceAddress localResource = getResource(sentResource.getPath());
+		IResource eclipseResource = project.findMember(localResource.getPath());
+
+		if (remoteAddress.getHash().equals(localResource.getHash())) {
+			return remoteAddress.toJson().putString("failed", "Hash Mismatch");
+		}
+
+		if (eclipseResource instanceof IFile) {
+			IFile file = (IFile) eclipseResource;
+			try {
+				ByteArrayOutputStream array = new ByteArrayOutputStream();
+				if (!file.isSynchronized(IResource.DEPTH_ZERO)) {
+					file.refreshLocal(IResource.DEPTH_ZERO, null);
+				}
+
+				IOUtils.copy(file.getContents(), array);
+
+				String content = new String(array.toByteArray(), file.getCharset());
+
+				sentResource.setData(content);
+			} catch (CoreException e) {
+				return remoteAddress.toJson().putString("failed",
+						"Exception: " + e.getMessage());
+			} catch (IOException e) {
+				return remoteAddress.toJson().putString("failed",
+						"Exception: " + e.getMessage());
+			}
+		}
+		return sentResource.toJson();
+	}
+
+	// public void getClasspathResource(JsonObject request) {
+	// try {
+	// final int callbackID = request.getInt("callback_id");
+	// final String sender = request.getString("requestSenderID");
+	// final String projectName = request.getString("project");
+	// final String resourcePath = request.getString("resource");
+	// final String username = request.getString("username");
+	//
+	// ConnectedProject connectedProject = this.syncedProjects.get(projectName);
+	// if (this.username.equals(username) && connectedProject != null) {
+	// String typeName = resourcePath.substring("classpath:/".length());
+	// if (typeName.endsWith(".class")) {
+	// typeName = typeName.substring(0, typeName.length() - ".class".length());
+	// }
+	// typeName = typeName.replace('/', '.');
+	//
+	// IJavaProject javaProject =
+	// JavaCore.create(connectedProject.getProject());
+	// if (javaProject != null) {
+	// IType type = javaProject.findType(typeName);
+	// IClassFile classFile = type.getClassFile();
+	// if (classFile != null && classFile.getSourceRange() != null) {
+	//
+	// JsonObject message = new JsonObject();
+	// message.put("callback_id", callbackID);
+	// message.put("requestSenderID", sender);
+	// message.put("username", this.username);
+	// message.put("project", projectName);
+	// message.put("resource", resourcePath);
+	// message.put("readonly", true);
+	//
+	// String content = classFile.getSource();
+	//
+	// message.put("content", content);
+	// message.put("type", "file");
+	//
+	// messagingConnector.send("getResourceResponse", message);
+	// }
+	// }
+	// }
+	// } catch (JSONException e) {
+	// e.printStackTrace();
+	// } catch (JavaModelException e) {
+	// e.printStackTrace();
+	// }
+	// }
+
+	// public void updateResource(JsonObject request) {
+	// try {
+	// final String username = request.getString("username");
+	// final String projectName = request.getString("project");
+	// final String resourcePath = request.getString("resource");
+	// final long updateTimestamp = request.getLong("timestamp");
+	// final String updateHash = request.optString("hash");
+	//
+	// ConnectedProject connectedProject = this.syncedProjects.get(projectName);
+	// if (this.username.equals(username) && connectedProject != null) {
+	// IProject project = connectedProject.getProject();
+	// IResource resource = project.findMember(resourcePath);
+	//
+	// if (resource != null && resource instanceof IFile) {
+	// String localHash = connectedProject.getHash(resourcePath);
+	// long localTimestamp = connectedProject.getTimestamp(resourcePath);
+	//
+	// if (localHash != null && !localHash.equals(updateHash) && localTimestamp
+	// < updateTimestamp) {
+	// JsonObject message = new JsonObject();
+	// message.put("callback_id", GET_RESOURCE_CALLBACK);
+	// message.put("username", this.username);
+	// message.put("project", projectName);
+	// message.put("resource", resourcePath);
+	// message.put("timestamp", updateTimestamp);
+	// message.put("hash", updateHash);
+	//
+	// messagingConnector.send("getResourceRequest", message);
+	// }
+	// }
+	// }
+	//
+	// } catch (Exception e) {
+	// e.printStackTrace();
+	// }
+	// }
+
+	// public void deleteResource(JsonObject request) {
+	// try {
+	// final String username = request.getString("username");
+	// final String projectName = request.getString("project");
+	// final String resourcePath = request.getString("resource");
+	// final long deletedTimestamp = request.getLong("timestamp");
+	//
+	// ConnectedProject connectedProject = this.syncedProjects.get(projectName);
+	// if (this.username.equals(username) && connectedProject != null) {
+	// IProject project = connectedProject.getProject();
+	// IResource resource = project.findMember(resourcePath);
+	//
+	// if (resource != null && resource.exists() && (resource instanceof IFile
+	// || resource instanceof IFolder)) {
+	// long localTimestamp = connectedProject.getTimestamp(resourcePath);
+	//
+	// if (localTimestamp < deletedTimestamp) {
+	// resource.delete(true, null);
+	// }
+	// }
+	// }
+	//
+	// } catch (Exception e) {
+	// e.printStackTrace();
+	// }
+	// }
+
+	public void synchronizeResource(JsonObject response) {
+		Resource remoteResource = new Resource();
+		remoteResource.fromJson(response);
+		if (remoteResource.getType().equals("file")) {
+
+			ResourceAddress localResource = getResource(remoteResource.getPath());
+			ByteArrayInputStream remoteData = new ByteArrayInputStream(remoteResource
+					.getData().getBytes());
+			try {
+				if (localResource == null) {
+					IFile file = project.getFile(remoteResource.getPath());
+					localResource = remoteResource.getAddress();
+					putResource(localResource);
+					file.create(remoteData, true, null);
+				} else {
+					// TODO..deal w/ degenerate case where old file is actually
+					// folder
+					IResource member = project.findMember(remoteResource.getPath());
+					if (member instanceof IFile) {
+						IFile file = (IFile) member;
+						file.setContents(remoteData, true, true, null);
+						file.setLocalTimeStamp(remoteResource.getTimestamp());
+					}
+				}
+			} catch (CoreException e) {
+				throw new RuntimeException(e);
+			}
+			localResource.setTimestamp(remoteResource.getTimestamp());
+			localResource.setHash(remoteResource.getHash());
+		}
+	}
+
+	public void reactToResourceChange(IResourceDelta delta) {
+		IResource resource = delta.getResource();
+
+		if (resource != null && resource.isDerived(IResource.CHECK_ANCESTORS)) {
+			return;
+		}
+
+		switch (delta.getKind()) {
+		case IResourceDelta.ADDED:
+			reactOnResourceAdded(resource);
+			break;
+		case IResourceDelta.REMOVED:
+			reactOnResourceRemoved(resource);
+			break;
+		case IResourceDelta.CHANGED:
+			reactOnResourceChange(resource);
+			break;
+		}
+	}
+
+	protected void reactOnResourceAdded(IResource resource) {
+		try {
+			String resourcePath = resource.getProjectRelativePath().toString();
+			long timestamp = resource.getLocalTimeStamp();
+			String hash = "0";
+			String type = null;
+			getResource(resourcePath);
+
+			// connectedProject.setTimestamp(resourcePath, timestamp);
+			//
+			// if (resource instanceof IFile) {
+			// try {
+			// IFile file = (IFile) resource;
+			// hash = DigestUtils.shaHex(file.getContents());
+			// type = "file";
+			// } catch (IOException e) {
+			// e.printStackTrace();
+			// }
+			// } else if (resource instanceof IFolder) {
+			// type = "folder";
+			// }
+			//
+			// connectedProject.setHash(resourcePath, hash);
+			//
+			// JsonObject message = new JsonObject();
+			// message.put("username", this.username);
+			// message.put("project", connectedProject.getName());
+			// message.put("resource", resourcePath);
+			// message.put("timestamp", timestamp);
+			// message.put("hash", hash);
+			// message.put("type", type);
+			//
+			// messagingConnector.send("resourceCreated", message);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	protected void reactOnResourceRemoved(IResource resource) {
+		// if (resource instanceof IProject) {
+		// this.removeProject((IProject) resource);
+		// } else if (!resource.isDerived()
+		// && (resource instanceof IFile || resource instanceof IFolder)) {
+		// ConnectedProject connectedProject = this.syncedProjects.get(resource
+		// .getProject().getName());
+		// String resourcePath = resource.getProjectRelativePath().toString();
+		// long deletedTimestamp = System.currentTimeMillis();
+		//
+		// try {
+		// JsonObject message = new JsonObject();
+		// message.put("username", this.username);
+		// message.put("project", connectedProject.getName());
+		// message.put("resource", resourcePath);
+		// message.put("timestamp", deletedTimestamp);
+		//
+		// messagingConnector.send("resourceDeleted", message);
+		// } catch (Exception e) {
+		// e.printStackTrace();
+		// }
+		// }
+	}
+
+	protected void reactOnResourceChange(IResource resource) {
+		// if (resource != null && resource instanceof IFile) {
+		// IFile file = (IFile) resource;
+		//
+		// ConnectedProject connectedProject =
+		// this.syncedProjects.get(file.getProject()
+		// .getName());
+		// String resourcePath = resource.getProjectRelativePath().toString();
+		//
+		// try {
+		//
+		// long changeTimestamp = file.getLocalTimeStamp();
+		// if (changeTimestamp > connectedProject.getTimestamp(resourcePath)) {
+		// String changeHash = DigestUtils.shaHex(file.getContents());
+		// if (!changeHash.equals(connectedProject.getHash(resourcePath))) {
+		//
+		// connectedProject.setTimestamp(resourcePath, changeTimestamp);
+		// connectedProject.setHash(resourcePath, changeHash);
+		//
+		// JsonObject message = new JsonObject();
+		// message.put("username", this.username);
+		// message.put("project", connectedProject.getName());
+		// message.put("resource", resourcePath);
+		// message.put("timestamp", changeTimestamp);
+		// message.put("hash", changeHash);
+		//
+		// messagingConnector.send("resourceChanged", message);
+		// }
+		// }
+		// } catch (Exception e) {
+		// e.printStackTrace();
+		// }
+		// }
+	}
+
+	// public void getMetadata(JsonObject request) {
+	// try {
+	// final String username = request.getString("username");
+	// final int callbackID = request.getInt("callback_id");
+	// final String sender = request.getString("requestSenderID");
+	// final String projectName = request.getString("project");
+	// final String resourcePath = request.getString("resource");
+	//
+	// ConnectedProject connectedProject = this.syncedProjects.get(projectName);
+	// if (this.username.equals(username) && connectedProject != null) {
+	// IProject project = connectedProject.getProject();
+	// IResource resource = project.findMember(resourcePath);
+	//
+	// JsonObject message = new JsonObject();
+	// message.put("callback_id", callbackID);
+	// message.put("requestSenderID", sender);
+	// message.put("username", this.username);
+	// message.put("project", projectName);
+	// message.put("resource", resourcePath);
+	// message.put("type", "marker");
+	//
+	// IMarker[] markers = resource.findMarkers(null, true,
+	// IResource.DEPTH_INFINITE);
+	// String markerJSON = toJSON(markers);
+	// JSONArray content = new JSONArray(markerJSON);
+	// message.put("metadata", content);
+	//
+	// messagingConnector.send("getMetadataResponse", message);
+	// }
+	// } catch (Exception e) {
+	// e.printStackTrace();
+	// }
+	// }
+
+	public void sendMetadataUpdate(IResource resource) {
+		// try {
+		// String project = resource.getProject().getName();
+		// String resourcePath = resource.getProjectRelativePath().toString();
+		//
+		// JsonObject message = new JsonObject();
+		// message.put("username", this.username);
+		// message.put("project", project);
+		// message.put("resource", resourcePath);
+		// message.put("type", "marker");
+		//
+		// IMarker[] markers = resource
+		// .findMarkers(null, true, IResource.DEPTH_INFINITE);
+		// String markerJSON = toJSON(markers);
+		// JSONArray content = new JSONArray(markerJSON);
+		// message.put("metadata", content);
+		//
+		// messagingConnector.send("metadataChanged", message);
+		// } catch (Exception e) {
+		//
+		// }
+	}
+
+	// public String toJSON(IMarker[] markers) {
+	// StringBuilder result = new StringBuilder();
+	// boolean flag = false;
+	// result.append("[");
+	// for (IMarker m : markers) {
+	// if (flag) {
+	// result.append(",");
+	// }
+	//
+	// result.append("{");
+	// result.append("\"description\":"
+	// + JsonObject.quote(m.getAttribute("message", "")));
+	// result.append(",\"line\":" + m.getAttribute("lineNumber", 0));
+	// result.append(",\"severity\":\""
+	// + (m.getAttribute("severity", IMarker.SEVERITY_WARNING) ==
+	// IMarker.SEVERITY_ERROR ? "error"
+	// : "warning") + "\"");
+	// result.append(",\"start\":" + m.getAttribute("charStart", 0));
+	// result.append(",\"end\":" + m.getAttribute("charEnd", 0));
+	// result.append("}");
+	//
+	// flag = true;
+	// }
+	// result.append("]");
+	// return result.toString();
+	// }
+
 	public IProject getProject() {
 		return project;
 	}
-	
+
 	public String getName() {
 		return this.project.getName();
 	}
@@ -77,25 +624,9 @@ public class ConnectedProject {
 	public static ConnectedProject readFromJSON(InputStream inputStream, IProject project) {
 		return new ConnectedProject(project);
 	}
-	
-	public void setTimestamp(String resourcePath, long newTimestamp) {
-		this.resourceTimestamp.put(resourcePath, newTimestamp);
-	}
-	
-	public long getTimestamp(String resourcePath) {
-		return this.resourceTimestamp.get(resourcePath);
-	}
 
-	public void setHash(String resourcePath, String hash) {
-		this.resourceHash.put(resourcePath, hash);
-	}
-	
-	public String getHash(String resourcePath) {
-		return this.resourceHash.get(resourcePath);
-	}
+	public void disconnect() {
+		// TODO Auto-generated method stub
 
-	public boolean containsResource(String resourcePath) {
-		return this.resourceTimestamp.containsKey(resourcePath);
 	}
-	
 }

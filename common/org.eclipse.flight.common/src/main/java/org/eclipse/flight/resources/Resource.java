@@ -38,7 +38,7 @@ public class Resource extends ResourceAddress {
 		return id;
 	}
 
-	public ResourceAddress toIdentifier() {
+	public ResourceAddress getAddress() {
 		ResourceAddress identifier = new ResourceAddress();
 		identifier.fromJson(super.toJson());
 		return identifier;
