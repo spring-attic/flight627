@@ -17,75 +17,108 @@ import java.util.Map;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 
-/**
- * 
- * @author Miles Parker
- */
-public class Project extends ProjectAddress {
-	
-	Map<String, ResourceAddress> resources = new HashMap<String, ResourceAddress>();
+public class Project extends MessageObject {
 
-	public boolean hasResource(ResourceAddress id) {
-		return resources.containsKey(id.getPath());
-	}
+	String name;
 
-	public boolean needsUpdate(ResourceAddress id) {
-		ResourceAddress resource = resources.get(id.getPath());
-		if (resource != null) {
-			return !resource.getType().equals(id.getType()) || resource.getTimestamp() < id.getTimestamp();
-		}
-		return false;
-	}
+	String userName;
 
-	public ResourceAddress getResource(String path) {
-		return resources.get(path);
-	}
-
-	public ResourceAddress getResource(ResourceAddress id) {
-		return getResource(id.getPath());
-	}
-
-	public ResourceAddress putResource(ResourceAddress resource) {
-		resources.put(resource.getPath(), resource);
-		resource.setProjectName(name);
-		return resource;
-	}
-
-	@Override
-	protected void toJson(JsonObject json) {
-		super.toJson(json);
-		JsonArray jsonResources = new JsonArray();
-		for (ResourceAddress resource : resources.values()) {
-			jsonResources.addObject(resource.toJson());
-		}
-		json.putArray("resources", jsonResources);
-	}
+	Map<String, Resource> resources = new HashMap<String, Resource>();
 
 	@Override
 	public void fromJson(JsonObject json) {
-		super.fromJson(json);
+		name = json.getString("name");
+		userName = json.getString("userName");
 		JsonArray jsonResources = json.getArray("resources");
 		for (Object object : jsonResources) {
-			JsonObject jsonResource =(JsonObject) object; 
+			JsonObject jsonResource = (JsonObject) object;
 			String path = jsonResource.getString("path");
-			ResourceAddress resource = getResource(path);
+			Resource resource = getResource(path);
 			if (resource == null) {
-				resource = new ResourceAddress();
+				resource = new Resource();
 				putResource(resource);
 			}
 			resource.fromJson(jsonResource);
 		}
 	}
-	
+
+	@Override
+	protected void toJson(JsonObject json, boolean thin) {
+		json.putString("name", name);
+		json.putString("userName", userName);
+		if (!thin) {
+			JsonArray jsonResources = new JsonArray();
+			for (Resource resource : resources.values()) {
+				jsonResources.addObject(resource.toJson());
+			}
+			json.putArray("resources", jsonResources);
+		}
+	}
+
+	public boolean hasResource(Resource id) {
+		return resources.containsKey(id.getPath());
+	}
+
+	public boolean needsUpdate(Resource id) {
+		Resource resource = resources.get(id.getPath());
+		if (resource != null) {
+			return !resource.getType().equals(id.getType())
+					|| resource.getTimestamp() < id.getTimestamp();
+		}
+		return false;
+	}
+
+	public Resource getResource(String path) {
+		return resources.get(path);
+	}
+
+	public Resource getResource(Resource id) {
+		return getResource(id.getPath());
+	}
+
+	public Resource putResource(Resource resource) {
+		resources.put(resource.getPath(), resource);
+		resource.setProjectName(name);
+		resource.setProject(this);
+		return resource;
+	}
+
+	/**
+	 * Not thread safe!
+	 * 
+	 * @return the resources
+	 */
+	public Collection<Resource> getResources() {
+		return resources.values();
+	}
+
+	/**
+	 * @return the name
+	 */
 	public String getName() {
 		return name;
 	}
-	
+
 	/**
-	 * Not thread safe!
-	 * @return the resources
+	 * @param name
+	 *            the name to set
 	 */
-	public Collection<ResourceAddress> getResources() {
-		return resources.values();
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	/**
+	 * @return the userName
+	 */
+	public String getUserName() {
+		return userName;
+	}
+
+	/**
+	 * @param userName
+	 *            the userName to set
+	 */
+	public void setUserName(String userName) {
+		this.userName = userName;
 	}
 }

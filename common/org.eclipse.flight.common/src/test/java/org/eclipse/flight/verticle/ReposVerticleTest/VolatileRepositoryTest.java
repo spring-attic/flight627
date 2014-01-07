@@ -15,13 +15,15 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.vertx.testtools.VertxAssert.assertNotNull;
 import static org.vertx.testtools.VertxAssert.assertThat;
 import static org.vertx.testtools.VertxAssert.assertTrue;
-import static org.vertx.testtools.VertxAssert.testComplete;
+import static org.vertx.testtools.VertxAssert.*;
 
 import org.eclipse.flight.messages.Messages;
+import org.eclipse.flight.resources.MessageObject;
+import org.eclipse.flight.resources.Project;
 import org.eclipse.flight.resources.Request;
 import org.eclipse.flight.resources.Resource;
-import org.eclipse.flight.resources.ResourceAddress;
 import org.junit.Test;
+import org.junit.internal.runners.statements.Fail;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.AsyncResultHandler;
 import org.vertx.java.core.Handler;
@@ -32,7 +34,7 @@ import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.testtools.TestVerticle;
 
-public class RepositoryVerticleTest extends TestVerticle {
+public class VolatileRepositoryTest extends TestVerticle {
 
 	static long TIME_OUT = 1000;
 
@@ -42,11 +44,11 @@ public class RepositoryVerticleTest extends TestVerticle {
 
 	abstract class TestHandler {
 		private String address;
-		private JsonObject message;
+		private MessageObject message;
 
 		TestHandler next;
 
-		TestHandler(String address, JsonObject message) {
+		TestHandler(String address, MessageObject message) {
 			this.address = address;
 			this.message = message;
 		}
@@ -57,17 +59,24 @@ public class RepositoryVerticleTest extends TestVerticle {
 		abstract void expect(Message<JsonObject> reply);
 
 		void execute() {
-			vertx.eventBus().send(Messages.RESOURCE_PROVIDER, new Request(address, message).toJson(), new Handler<Message<JsonObject>>() {
-				@Override
-				public void handle(Message<JsonObject> reply) {
-					expect(reply);
-					if (next == null) {
-						testComplete();
-					} else {
-						next.execute();
-					}
-				}
-			});
+			vertx.eventBus().send(Messages.RESOURCE_PROVIDER,
+					new Request(address, message).toJson(),
+					new Handler<Message<JsonObject>>() {
+						@Override
+						public void handle(Message<JsonObject> reply) {
+							try {
+								expect(reply);
+								if (next == null) {
+									testComplete();
+								} else {
+									next.execute();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+								fail(e.getMessage());
+							}
+						}
+					});
 		}
 
 		/**
@@ -90,8 +99,13 @@ public class RepositoryVerticleTest extends TestVerticle {
 		}
 	}
 
-	TestHandler createFooProject = new TestHandler(Messages.CREATE_PROJECT,
-			(new JsonObject()).putString("name", "foo")) {
+	Project fooProject = new Project();
+
+	{
+		fooProject.setName("foo");
+	}
+
+	TestHandler createFooProject = new TestHandler(Messages.CREATE_PROJECT, fooProject) {
 		@Override
 		void expect(Message<JsonObject> reply) {
 			assertThat(reply.body().getObject("contents").getString("name"), is("foo"));
@@ -100,10 +114,11 @@ public class RepositoryVerticleTest extends TestVerticle {
 
 	@Test
 	public void testGetProjectsEmpty() {
-		new TestHandler(Messages.GET_ALL_PROJECTS, new JsonObject()) {
+		new TestHandler(Messages.GET_ALL_PROJECTS, null) {
 			@Override
 			void expect(Message<JsonObject> reply) {
-				JsonArray projects = reply.body().getObject("contents").getArray("projects");
+				JsonArray projects = reply.body().getObject("contents")
+						.getArray("projects");
 				assertThat(projects.size(), is(0));
 			}
 		}.execute();
@@ -111,11 +126,11 @@ public class RepositoryVerticleTest extends TestVerticle {
 
 	@Test
 	public void testCreateProjects() {
-		execute(createFooProject, new TestHandler(Messages.GET_ALL_PROJECTS,
-				new JsonObject()) {
+		execute(createFooProject, new TestHandler(Messages.GET_ALL_PROJECTS, null) {
 			@Override
 			void expect(Message<JsonObject> reply) {
-				JsonArray projects = reply.body().getObject("contents").getArray("projects");
+				JsonArray projects = reply.body().getObject("contents")
+						.getArray("projects");
 				assertThat(projects.size(), is(1));
 				assertThat(((JsonObject) projects.get(0)).getString("name"), is("foo"));
 			}
@@ -124,11 +139,11 @@ public class RepositoryVerticleTest extends TestVerticle {
 
 	@Test
 	public void testGetProject() {
-		execute(createFooProject, new TestHandler(Messages.GET_PROJECT,
-				(new JsonObject()).putString("name", "foo")) {
+		execute(createFooProject, new TestHandler(Messages.GET_PROJECT, fooProject) {
 			@Override
 			void expect(Message<JsonObject> reply) {
-				assertThat(reply.body().getObject("contents").getString("name"), is("foo"));
+				assertThat(reply.body().getObject("contents").getString("name"),
+						is("foo"));
 			}
 		});
 	}
@@ -139,80 +154,83 @@ public class RepositoryVerticleTest extends TestVerticle {
 		resource.setHash("12345678");
 		resource.setPath("src/foo/bar/MyClass.java");
 		resource.setTimestamp(System.currentTimeMillis());
-		resource.setType("java");
+		resource.setType("file");
 		resource.setUserName("defaultUser");
 		resource.setData("package foo.bar;...");
 		resource.setProjectName("foo");
 
-		final ResourceAddress resourceIdent = new ResourceAddress();
+		final Resource resourceIdent = new Resource();
 		resourceIdent.setProjectName("foo");
 		resourceIdent.setPath("src/foo/bar/MyClass.java");
 
-		execute(createFooProject,
-				new TestHandler(Messages.CREATE_RESOURCE, resource.toJson()) {
-					@Override
-					void expect(Message<JsonObject> reply) {
-						JsonObject contents = reply.body().getObject("contents");
-						assertThat(contents.getString("path"),
-								is("src/foo/bar/MyClass.java"));
-						assertThat(contents.getString("hash"), is("12345678"));
-						assertThat(contents.getString("data"), is((String) null));
-					}
-				}, new TestHandler(Messages.GET_RESOURCE, resourceIdent.toJson()) {
-					@Override
-					void expect(Message<JsonObject> reply) {
-						JsonObject contents = reply.body().getObject("contents");
-						assertThat(contents.getString("hash"), is("12345678"));
-						assertThat(contents.getString("data"),
-								is("package foo.bar;..."));
-					}
-				}, new TestHandler(Messages.HAS_RESOURCE, resourceIdent.toJson()) {
-					@Override
-					void expect(Message<JsonObject> reply) {
-						JsonObject contents = reply.body().getObject("contents");
-						assertThat(contents.getBoolean("exists"), is(true));
-						assertThat(reply.body().getObject("request").getString("path"), is("src/foo/bar/MyClass.java"));
-					}
-				});
+		execute(createFooProject, new TestHandler(Messages.CREATE_RESOURCE, resource) {
+			@Override
+			void expect(Message<JsonObject> reply) {
+				JsonObject contents = reply.body().getObject("contents");
+				assertThat(contents.getString("path"), is("src/foo/bar/MyClass.java"));
+				assertThat(contents.getString("hash"), is("12345678"));
+				assertThat(contents.getString("data"), is((String) null));
+			}
+		}, new TestHandler(Messages.GET_PROJECT, fooProject) {
+			@Override
+			void expect(Message<JsonObject> reply) {
+				JsonObject contents = reply.body().getObject("contents");
+				assertThat(contents.getString("name"), is("foo"));
+				JsonArray array = contents.getArray("resources");
+				assertThat(array.size(), is(1));
+			}
+		}, new TestHandler(Messages.GET_RESOURCE, resourceIdent) {
+			@Override
+			void expect(Message<JsonObject> reply) {
+				JsonObject contents = reply.body().getObject("contents");
+				assertThat(contents.getString("hash"), is("12345678"));
+				assertThat(contents.getString("data"), is("package foo.bar;..."));
+			}
+		}, new TestHandler(Messages.HAS_RESOURCE, resourceIdent) {
+			@Override
+			void expect(Message<JsonObject> reply) {
+				assertThat(reply.body().getBoolean("exists"), is(true));
+				assertThat(reply.body().getObject("contents").getString("path"),
+						is("src/foo/bar/MyClass.java"));
+			}
+		});
 	}
 
 	@Test
 	public void testHasResourceFalse() {
-		final ResourceAddress resourceIdent = new ResourceAddress();
+		final Resource resourceIdent = new Resource();
 		resourceIdent.setProjectName("foo");
 		resourceIdent.setPath("src/foo/bar/Missing.java");
-		execute(createFooProject,
-				new TestHandler(Messages.GET_RESOURCE, resourceIdent.toJson()) {
-					@Override
-					void expect(Message<JsonObject> reply) {
-						assertThat(reply, instanceOf(ReplyFailureMessage.class));
-					}
-				}, new TestHandler(Messages.HAS_RESOURCE, resourceIdent.toJson()) {
-					@Override
-					void expect(Message<JsonObject> reply) {
-						assertThat(reply.body().getObject("contents").getBoolean("exists"), is(false));
-					}
-				});
+		execute(createFooProject, new TestHandler(Messages.GET_RESOURCE, resourceIdent) {
+			@Override
+			void expect(Message<JsonObject> reply) {
+				assertThat(reply, instanceOf(ReplyFailureMessage.class));
+			}
+		}, new TestHandler(Messages.HAS_RESOURCE, resourceIdent) {
+			@Override
+			void expect(Message<JsonObject> reply) {
+				assertThat(reply.body().getBoolean("exists"), is(false));
+			}
+		});
 	}
 
 	@Test
 	public void testHasResourceNoProjectFail() {
-		final ResourceAddress resourceIdent = new ResourceAddress();
+		final Resource resourceIdent = new Resource();
 		resourceIdent.setProjectName("my.project");
 		resourceIdent.setPath("src/foo/bar/Missing.java");
-		execute(createFooProject,
-				new TestHandler(Messages.GET_RESOURCE, resourceIdent.toJson()) {
-					@Override
-					void expect(Message<JsonObject> reply) {
-						assertThat(reply, instanceOf(ReplyFailureMessage.class));
-						assertThat(reply.body(), instanceOf(ReplyException.class));
-					}
-				}, new TestHandler(Messages.HAS_RESOURCE, resourceIdent.toJson()) {
-					@Override
-					void expect(Message<JsonObject> reply) {
-						assertThat(reply.body().getObject("contents").getBoolean("exists"), is(false));
-					}
-				});
+		execute(createFooProject, new TestHandler(Messages.GET_RESOURCE, resourceIdent) {
+			@Override
+			void expect(Message<JsonObject> reply) {
+				assertThat(reply, instanceOf(ReplyFailureMessage.class));
+				assertThat(reply.body(), instanceOf(ReplyException.class));
+			}
+		}, new TestHandler(Messages.HAS_RESOURCE, resourceIdent) {
+			@Override
+			void expect(Message<JsonObject> reply) {
+				assertThat(reply.body(), instanceOf(ReplyException.class));
+			}
+		});
 	}
 
 	@Test

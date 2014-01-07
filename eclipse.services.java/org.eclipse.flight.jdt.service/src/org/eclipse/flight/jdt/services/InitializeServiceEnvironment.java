@@ -21,7 +21,7 @@ import org.eclipse.flight.core.DownloadProject;
 import org.eclipse.flight.core.DownloadProject.CompletionCallback;
 import org.eclipse.flight.core.IMessageHandler;
 import org.eclipse.flight.core.IMessagingConnector;
-import org.eclipse.flight.core.Repository;
+import org.eclipse.flight.core.EclipseRepository;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -34,12 +34,12 @@ public class InitializeServiceEnvironment {
 	private static int GET_PROJECTS_CALLBACK = "InitializeServiceEnvironment - getProjectsCallback".hashCode();
 	
 	private IMessagingConnector messagingConnector;
-	private Repository repository;
+	private EclipseRepository repository;
 
 	private IMessageHandler getProjectsResponseHandler;
 	private IMessageHandler projectConnectedHandler;
 
-	public InitializeServiceEnvironment(IMessagingConnector messagingConnector, Repository repository) {
+	public InitializeServiceEnvironment(IMessagingConnector messagingConnector, EclipseRepository repository) {
 		this.messagingConnector = messagingConnector;
 		this.repository = repository;
 	}

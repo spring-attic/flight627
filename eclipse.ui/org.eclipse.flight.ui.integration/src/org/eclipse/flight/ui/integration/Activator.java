@@ -13,7 +13,7 @@ package org.eclipse.flight.ui.integration;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.flight.core.IRepositoryListener;
 import org.eclipse.flight.core.LiveEditCoordinator;
-import org.eclipse.flight.core.Repository;
+import org.eclipse.flight.core.EclipseRepository;
 import org.eclipse.flight.ui.integration.handlers.LiveEditConnector;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.LabelProviderChangedEvent;
@@ -51,7 +51,7 @@ public class Activator extends AbstractUIPlugin {
 		});
 		
 		if (Boolean.getBoolean("flight-eclipse-editor-connect")) {
-			Repository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
+			EclipseRepository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
 			LiveEditCoordinator liveEditCoordinator = org.eclipse.flight.core.Activator.getDefault().getLiveEditCoordinator();
 			new LiveEditConnector(liveEditCoordinator, repository);
 		}

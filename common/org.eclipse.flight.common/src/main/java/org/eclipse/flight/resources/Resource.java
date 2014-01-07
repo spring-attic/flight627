@@ -10,41 +10,113 @@
  *******************************************************************************/
 package org.eclipse.flight.resources;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.vertx.java.core.json.JsonObject;
 
-public class Resource extends ResourceAddress {
+public class Resource extends MessageObject {
+
+	Map<String, String> metadata = new HashMap<String, String>();
+
+	Project project;
+
+	String projectName;
+
+	String userName;
+
+	String hash;
+
+	long timestamp;
+
+	String type;
+
+	String path;
 
 	String data;
+
+	public String getProjectName() {
+		return projectName;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public String getHash() {
+		return hash;
+	}
+
+	public void setHash(String hash) {
+		this.hash = hash;
+	}
+
+	public long getTimestamp() {
+		return timestamp;
+	}
+
+	public void setTimestamp(long timestamp) {
+		this.timestamp = timestamp;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getPath() {
+		return path;
+	}
+
+	public void setPath(String path) {
+		this.path = path;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public void setProjectName(String projectId) {
+		this.projectName = projectId;
+	}
+
+	public Project getProject() {
+		return project;
+	}
+
+	public void setProject(Project project) {
+		this.project = project;
+		this.projectName = project.getName();
+	}
 
 	public String getData() {
 		return data;
 	}
-	
-	@Override
-	public void toJson(JsonObject json) {
-		super.toJson(json);
-		json.putString("data", data);
+
+	public void setData(String data) {
+		this.data = data;
 	}
 
-	@Override
 	public void fromJson(JsonObject json) {
-		super.fromJson(json);
+		hash = json.getString("hash");
+		timestamp = json.getLong("timestamp");
+		type = json.getString("type");
+		path = json.getString("path");
+		userName = json.getString("userName");
+		projectName = json.getString("projectName");
 		data = json.getString("data");
 	}
 
-	public static Resource createFromJsonResource(JsonObject json) {
-		Resource id = new Resource();
-		id.fromJson(json);
-		return id;
-	}
-
-	public ResourceAddress getAddress() {
-		ResourceAddress identifier = new ResourceAddress();
-		identifier.fromJson(super.toJson());
-		return identifier;
-	}
-	
-	public void setData(String data) {
-		this.data = data;
+	@Override
+	protected void toJson(JsonObject json, boolean thin) {
+		json.putString("hash", hash).putNumber("timestamp", timestamp)
+				.putString("type", type).putString("path", path)
+				.putString("userName", userName).putString("projectName", projectName);
+		if (!thin) {
+			json.putString("data", data);
+		}
 	}
 }

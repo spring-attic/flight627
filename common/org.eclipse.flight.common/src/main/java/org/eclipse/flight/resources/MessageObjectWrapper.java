@@ -18,41 +18,56 @@ import org.vertx.java.core.json.JsonObject;
  * 
  */
 public class MessageObjectWrapper extends MessageObject {
-	
-	String description;
-	
-	JsonObject object;
 
-	public MessageObjectWrapper(String description, JsonObject object) {
+	String description;
+
+	MessageObject object;
+
+	public MessageObjectWrapper(String description, MessageObject object) {
 		this.description = description;
 		this.object = object;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.flight.resources.MessageObject#fromJson(org.vertx.java.core.json.JsonObject)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.flight.resources.MessageObject#fromJson(org.vertx.java.core
+	 * .json.JsonObject)
 	 */
 	@Override
 	protected void fromJson(JsonObject json) {
 		this.description = json.getString("description");
-		this.object = json.getObject("contents");
+		JsonObject contents = json.getObject("contents");
+		if (contents != null) {
+			this.object = MessageObject.createFromJson(contents);
+		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.flight.resources.MessageObject#toJson(org.vertx.java.core.json.JsonObject)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.flight.resources.MessageObject#toJson(org.vertx.java.core
+	 * .json.JsonObject)
 	 */
 	@Override
-	protected void toJson(JsonObject json) {
+	protected void toJson(JsonObject json, boolean thin) {
 		json.putString("description", description);
-		json.putObject("contents", object);
+		if (object != null) {
+			json.putObject("contents", object.toJson(thin));
+		} else {
+			json.putObject("contents", null);
+		}
 	}
-	
+
 	/**
 	 * @return the object
 	 */
-	public JsonObject getObject() {
+	public MessageObject getObject() {
 		return object;
 	}
-	
+
 	/**
 	 * @return the description
 	 */

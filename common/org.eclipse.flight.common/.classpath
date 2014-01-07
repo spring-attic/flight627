@@ -3,8 +3,8 @@
 	<classpathentry kind="output" path="bin"/>
 	<classpathentry kind="src" path="src/main/java"/>
 	<classpathentry kind="src" path="src/main/resources"/>
+	<classpathentry kind="src" path="src/test/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER" exported="true"/>
-	<classpathentry sourcepath="/Users/milesparker/.m2/repository/org/eclipse/vertx-dependencies/0.1.0/vertx-dependencies-0.1.0-sources.jar" kind="lib" path="/Users/milesparker/.m2/repository/org/eclipse/vertx-dependencies/0.1.0/vertx-dependencies-0.1.0.jar" exported="true"/>
 	<classpathentry sourcepath="/Users/milesparker/.gradle/caches/artifacts-23/filestore/io.vertx/vertx-core/2.1M1/source/8a9be42b658b1872663973c3a0c42959e5d179e8/vertx-core-2.1M1-sources.jar" kind="lib" path="/Users/milesparker/.gradle/caches/artifacts-23/filestore/io.vertx/vertx-core/2.1M1/jar/532b83ea3687ceb36be8310969ebccbed83ec1f3/vertx-core-2.1M1.jar" exported="true"/>
 	<classpathentry sourcepath="/Users/milesparker/.gradle/caches/artifacts-23/filestore/io.vertx/vertx-platform/2.1M1/source/7da1de018fcdfe6fbc21dcb2ec4aaf423d8a5113/vertx-platform-2.1M1-sources.jar" kind="lib" path="/Users/milesparker/.gradle/caches/artifacts-23/filestore/io.vertx/vertx-platform/2.1M1/jar/f169fcd6968df9058300914d6992cb118a3fe06c/vertx-platform-2.1M1.jar" exported="true"/>
 	<classpathentry sourcepath="/Users/milesparker/.gradle/caches/artifacts-23/filestore/org.codehaus.groovy/groovy-all/2.1.5/source/ded788d792e08a4c22a38ac76d4b8bcfbca533ea/groovy-all-2.1.5-sources.jar" kind="lib" path="/Users/milesparker/.gradle/caches/artifacts-23/filestore/org.codehaus.groovy/groovy-all/2.1.5/jar/eda9522cc90f16c06dd51739e2d02daafad0b36f/groovy-all-2.1.5.jar" exported="true"/>

@@ -33,7 +33,7 @@ import org.eclipse.flight.messages.Messages;
 import org.eclipse.flight.resources.Project;
 import org.eclipse.flight.resources.Request;
 import org.eclipse.flight.resources.Resource;
-import org.eclipse.flight.resources.ResourceAddress;
+import org.eclipse.flight.resources.Resource;
 import org.eclipse.flight.resources.Response;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
@@ -41,69 +41,47 @@ import org.vertx.java.core.json.JsonObject;
 
 /**
  * @author Martin Lippert
+ * @author Miles Parker
  */
-public class ConnectedProject extends Project {
+public class FlightProject extends Project {
 
 	private IProject project;
 
-	public ConnectedProject(IProject project) {
+	public FlightProject(IProject project) {
 		setName(project.getName());
 		setUserName("defaultuser");
 		this.project = project;
 		try {
-			updateResources(project);
+			updateResources();
 		} catch (CoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new RuntimeException(e);
 		}
-		registerEvents();
+		//requestResources();
 	}
 
 	/**
 	 * 
 	 */
-	public ConnectedProject(String projectName, CompletionCallback completionCallback) {
+	public FlightProject(String projectName, CompletionCallback completionCallback) {
 		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 		project = root.getProject(projectName);
 		try {
 			project.create(null);
 			project.open(null);
-			registerEvents();
+			//requestResources();
 		} catch (CoreException e1) {
 			completionCallback.downloadFailed();
 		}
 	}
 
-	private void registerEvents() {
-		EclipseVertx
-				.get()
-				.eventBus()
-				.registerHandler(Messages.GET_PROJECT,
-						new Handler<Message<JsonObject>>() {
-							@Override
-							public void handle(Message<JsonObject> message) {
-								message.reply(new Response(Messages.GET_PROJECT, toJson())
-										.toJson());
-							}
-						});
-		EclipseVertx
-				.get()
-				.eventBus()
-				.registerHandler(Messages.GET_RESOURCE,
-						new Handler<Message<JsonObject>>() {
-							@Override
-							public void handle(Message<JsonObject> message) {
-								message.reply(new Response(Messages.GET_RESOURCE,
-										getResourceAsJson(message.body().getObject(
-												"contents"))).toJson());
-							}
-						});
+	private void requestResources() {
+		System.err.println("blah");
 		EclipseVertx
 				.get()
 				.eventBus()
 				.send(Messages.RESOURCE_PROVIDER,
-						new Request(Messages.GET_PROJECT, this.getAddress().toJson())
-								.toJson(), new Handler<Message<JsonObject>>() {
+						new Request(Messages.GET_PROJECT, FlightProject.this)
+								.toJson(true), new Handler<Message<JsonObject>>() {
 							@Override
 							public void handle(Message<JsonObject> reply) {
 								synchronizeProject(reply.body().getObject("contents"),
@@ -112,17 +90,17 @@ public class ConnectedProject extends Project {
 						});
 	}
 
-	private void updateResources(IProject project) throws CoreException {
+	public void updateResources() throws CoreException {
 		project.accept(new IResourceVisitor() {
 			@Override
 			public boolean visit(IResource resource) throws CoreException {
 				String path = resource.getProjectRelativePath().toString();
-				ResourceAddress flightResource = getResource(path);
+				Resource flightResource = getResource(path);
 				if (flightResource == null) {
-					flightResource = new Resource();
+					flightResource = new FlightResource();
+					flightResource.setPath(path);
 					putResource(flightResource);
 				}
-				flightResource.setPath(path);
 				flightResource.setTimestamp(resource.getLocalTimeStamp());
 				if (resource instanceof IFile) {
 					try {
@@ -130,7 +108,7 @@ public class ConnectedProject extends Project {
 						flightResource.setHash(DigestUtils.shaHex(file.getContents()));
 						flightResource.setType("file");
 					} catch (IOException e) {
-						e.printStackTrace();
+						throw new RuntimeException(e);
 					}
 				} else if (resource instanceof IFolder) {
 					flightResource.setHash("0");
@@ -152,9 +130,9 @@ public class ConnectedProject extends Project {
 			final AtomicInteger requestedFileCount = new AtomicInteger(0);
 			final AtomicInteger downloadedFileCount = new AtomicInteger(0);
 
-			for (ResourceAddress remoteResource : remoteProject.getResources()) {
+			for (Resource remoteResource : remoteProject.getResources()) {
 
-				final ResourceAddress localResource = getResource(remoteResource
+				final Resource localResource = getResource(remoteResource
 						.getPath());
 				boolean newResource = localResource == null;
 				boolean updatedResource = localResource != null
@@ -169,8 +147,7 @@ public class ConnectedProject extends Project {
 								.get()
 								.eventBus()
 								.send(Messages.RESOURCE_PROVIDER,
-										new Request(Messages.GET_RESOURCE, localResource
-												.toJson()).toJson(),
+										new Request(Messages.GET_RESOURCE, FlightProject.this).toJson(true),
 										new Handler<Message<JsonObject>>() {
 											@Override
 											public void handle(Message<JsonObject> reply) {
@@ -222,51 +199,6 @@ public class ConnectedProject extends Project {
 			// }
 		}
 
-	}
-
-	public JsonObject getResourceAsJson(JsonObject remoteObject) {
-		ResourceAddress sentResource = new ResourceAddress();
-		sentResource.fromJson(remoteObject);
-		return getResourceAsJson(remoteObject);
-	}
-
-	public JsonObject getResourceAsJson(ResourceAddress remoteAddress) {
-		// if (resourcePath.startsWith("classpath:")) {
-		// getClasspathResource(message);
-		// }
-		// else {
-		// getResource(message);
-		// }
-		Resource sentResource = new Resource();
-		ResourceAddress localResource = getResource(sentResource.getPath());
-		IResource eclipseResource = project.findMember(localResource.getPath());
-
-		if (remoteAddress.getHash().equals(localResource.getHash())) {
-			return remoteAddress.toJson().putString("failed", "Hash Mismatch");
-		}
-
-		if (eclipseResource instanceof IFile) {
-			IFile file = (IFile) eclipseResource;
-			try {
-				ByteArrayOutputStream array = new ByteArrayOutputStream();
-				if (!file.isSynchronized(IResource.DEPTH_ZERO)) {
-					file.refreshLocal(IResource.DEPTH_ZERO, null);
-				}
-
-				IOUtils.copy(file.getContents(), array);
-
-				String content = new String(array.toByteArray(), file.getCharset());
-
-				sentResource.setData(content);
-			} catch (CoreException e) {
-				return remoteAddress.toJson().putString("failed",
-						"Exception: " + e.getMessage());
-			} catch (IOException e) {
-				return remoteAddress.toJson().putString("failed",
-						"Exception: " + e.getMessage());
-			}
-		}
-		return sentResource.toJson();
 	}
 
 	// public void getClasspathResource(JsonObject request) {
@@ -385,14 +317,13 @@ public class ConnectedProject extends Project {
 		remoteResource.fromJson(response);
 		if (remoteResource.getType().equals("file")) {
 
-			ResourceAddress localResource = getResource(remoteResource.getPath());
+			Resource localResource = getResource(remoteResource.getPath());
 			ByteArrayInputStream remoteData = new ByteArrayInputStream(remoteResource
 					.getData().getBytes());
 			try {
 				if (localResource == null) {
 					IFile file = project.getFile(remoteResource.getPath());
-					localResource = remoteResource.getAddress();
-					putResource(localResource);
+					putResource(remoteResource);
 					file.create(remoteData, true, null);
 				} else {
 					// TODO..deal w/ degenerate case where old file is actually
@@ -621,8 +552,8 @@ public class ConnectedProject extends Project {
 		return this.project.getName();
 	}
 
-	public static ConnectedProject readFromJSON(InputStream inputStream, IProject project) {
-		return new ConnectedProject(project);
+	public static FlightProject readFromJSON(InputStream inputStream, IProject project) {
+		return new FlightProject(project);
 	}
 
 	public void disconnect() {

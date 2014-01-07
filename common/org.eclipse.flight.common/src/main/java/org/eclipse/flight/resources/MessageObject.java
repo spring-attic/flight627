@@ -16,13 +16,17 @@ public abstract class MessageObject {
 
 	protected abstract void fromJson(JsonObject json);
 	
-	protected abstract void toJson(JsonObject json);
+	protected abstract void toJson(JsonObject json, boolean thin);
 	
-	public final JsonObject toJson() {
+	public final JsonObject toJson(boolean thin) {
 		JsonObject json = new JsonObject();
 		json.putString("class", getClass().getName());
-		toJson(json);
+		toJson(json, thin);
 		return json;
+	}
+	
+	public final JsonObject toJson() {
+		return toJson(false);
 	}
 	
 	protected static MessageObject createFromJson(JsonObject json) {

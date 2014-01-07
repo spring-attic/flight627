@@ -17,7 +17,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.flight.core.DownloadProject;
 import org.eclipse.flight.core.DownloadProject.CompletionCallback;
 import org.eclipse.flight.core.IMessagingConnector;
-import org.eclipse.flight.core.Repository;
+import org.eclipse.flight.core.EclipseRepository;
 import org.eclipse.flight.ui.integration.Activator;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.viewers.LabelProvider;
@@ -32,7 +32,7 @@ public class SyncDownloadHandler extends AbstractHandler {
 	
 	@Override
 	public Object execute(final ExecutionEvent event) throws ExecutionException {
-		final Repository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
+		final EclipseRepository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
 		final IMessagingConnector messagingConnector = org.eclipse.flight.core.Activator.getDefault().getMessagingConnector();
 		
 		final Shell shell = Activator.getDefault().getWorkbench().getActiveWorkbenchWindow().getShell();

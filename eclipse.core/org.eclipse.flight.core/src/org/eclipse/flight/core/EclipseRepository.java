@@ -10,56 +10,31 @@
  *******************************************************************************/
 package org.eclipse.flight.core;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentMap;
 
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.IOUtils;
-import org.eclipse.core.resources.IContainer;
-import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IFolder;
-import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IMarkerDelta;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
-import org.eclipse.core.resources.IResourceVisitor;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.flight.core.internal.vertx.EclipseVertx;
-import org.eclipse.flight.messages.Messages;
 import org.eclipse.flight.resources.Project;
-import org.eclipse.flight.resources.ProjectAddress;
-import org.eclipse.flight.resources.Request;
-import org.eclipse.flight.resources.Response;
-import org.eclipse.jdt.core.IClassFile;
-import org.eclipse.jdt.core.IJavaProject;
-import org.eclipse.jdt.core.IType;
-import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jdt.core.JavaModelException;
-import org.vertx.java.core.Handler;
-import org.vertx.java.core.eventbus.Message;
-import org.vertx.java.core.json.JsonArray;
-import org.vertx.java.core.json.JsonObject;
+import org.eclipse.flight.resources.Repository;
+import org.eclipse.flight.resources.vertx.VertxRepository;
 
 /**
  * @author Martin Lippert
+ * @author Miles Parker
  */
-public class Repository {
+public class EclipseRepository extends VertxRepository {
 
 	private String username;
-
-	private ConcurrentMap<String, ConnectedProject> syncedProjects;
 	private Collection<IRepositoryListener> repositoryListeners;
 
-	public Repository(final String user) {
+	public EclipseRepository(final String user) {
+		super(EclipseVertx.get());
 		this.username = user;
-
-		this.syncedProjects = new ConcurrentHashMap<String, ConnectedProject>();
 		this.repositoryListeners = new ConcurrentLinkedDeque<>();
 
 		// IMessageHandler resourceChangedHandler = new
@@ -89,24 +64,24 @@ public class Repository {
 		// };
 		// this.messagingConnector.addMessageHandler(resourceDeletedHandler);
 
-		EclipseVertx
-				.get()
-				.eventBus()
-				.registerHandler(Messages.GET_ALL_PROJECTS,
-						new Handler<Message<JsonObject>>() {
-							@Override
-							public void handle(Message<JsonObject> message) {
-								JsonArray projects = new JsonArray();
-								for (ConnectedProject project : syncedProjects.values()) {
-									projects.addObject(project.toJson());
-								}
-								JsonObject response = new JsonObject();
-								response.putArray("projects", projects);
-								response.putString("user", user);
-								message.reply(new Response(Messages.GET_ALL_PROJECTS,
-										response));
-							}
-						});
+//		EclipseVertx
+//				.get()
+//				.eventBus()
+//				.registerHandler(Messages.GET_ALL_PROJECTS,
+//						new Handler<Message<JsonObject>>() {
+//							@Override
+//							public void handle(Message<JsonObject> message) {
+//								JsonArray projects = new JsonArray();
+//								for (ConnectedProject project : syncedProjects.values()) {
+//									projects.addObject(project.toJson());
+//								}
+//								JsonObject response = new JsonObject();
+//								response.putArray("projects", projects);
+//								response.putString("user", user);
+//								message.reply(new Response(Messages.GET_ALL_PROJECTS,
+//										response));
+//							}
+//						});
 
 		// IMessageHandler getProjectRequestHandler = new
 		// AbstractMessageHandler("getProjectRequest") {
@@ -178,36 +153,39 @@ public class Repository {
 	// }
 	// }
 
-	public ConnectedProject getProject(String name) {
-		return syncedProjects.get(name);
+	/* (non-Javadoc)
+	 * @see org.eclipse.flight.resources.Repository#createMap()
+	 */
+	@Override
+	protected Map<String, Project> createMap() {
+		return new ConcurrentHashMap<String, Project>();
 	}
 
-	public ConnectedProject getProject(IProject project) {
+	public Project getProject(IProject project) {
 		return getProject(project.getName());
 	}
 
 	public boolean isConnected(IProject project) {
-		return syncedProjects.containsKey(project.getName());
+		return getProject(project) != null;
 	}
 
 	public boolean isConnected(String project) {
-		return syncedProjects.containsKey(project);
+		return getProject(project) != null;
 	}
 
 	public void addProject(final IProject project) {
-		final String projectName = project.getName();
-		if (!this.syncedProjects.containsKey(projectName)) {
-			ConnectedProject flightProject = new ConnectedProject(project);
-			syncedProjects.put(projectName, flightProject);
+		if (!isConnected(project)) {
+			FlightProject flightProject = new FlightProject(project);
+			putProject(flightProject);
 			notifyProjectConnected(project);
 		}
 	}
 
 	public void removeProject(IProject project) {
 		String projectName = project.getName();
-		if (this.syncedProjects.containsKey(projectName)) {
-			ConnectedProject removed = this.syncedProjects.remove(projectName);
-			removed.disconnect();
+		if (isConnected(projectName)) {
+			Project removed = removeProject(projectName);
+			((FlightProject) removed).disconnect();
 			notifyProjectDisonnected(project);
 
 			// try {
@@ -223,7 +201,10 @@ public class Repository {
 
 	public void resourceChanged(IResourceDelta delta) {
 		IProject project = delta.getResource().getProject();
-		ConnectedProject connectedProject = getProject(project);
+		if (project == null) {
+			return;
+		}
+		FlightProject connectedProject = (FlightProject) getProject(project);
 		if (connectedProject != null) {
 			connectedProject.reactToResourceChange(delta);
 		}
@@ -231,9 +212,12 @@ public class Repository {
 
 	public void metadataChanged(IResourceDelta delta) {
 		IProject project = delta.getResource().getProject();
+		if (project == null) {
+			return;
+		}
 		IMarkerDelta[] markerDeltas = delta.getMarkerDeltas();
 		if (markerDeltas != null && markerDeltas.length > 0) {
-			ConnectedProject connectedProject = getProject(project);
+			FlightProject connectedProject = (FlightProject) getProject(project);
 			connectedProject.sendMetadataUpdate(delta.getResource());
 		}
 	}

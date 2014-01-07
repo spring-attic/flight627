@@ -23,7 +23,7 @@ public class Response extends MessageObjectWrapper {
 	 * @param type
 	 * @param object
 	 */
-	public Response(String description, JsonObject object) {
+	public Response(String description, MessageObject object) {
 		super(description, object);
 		// TODO Auto-generated constructor stub
 	}
@@ -32,8 +32,8 @@ public class Response extends MessageObjectWrapper {
 	 * @see org.eclipse.flight.resources.JsonProvider#toJson(org.vertx.java.core.json.JsonObject)
 	 */
 	@Override
-	protected void toJson(JsonObject json) {
-		super.toJson(json);
+	protected void toJson(JsonObject json, boolean thin) {
+		super.toJson(json, thin);
 		json.putString("kind", "response");
 	}
 }
