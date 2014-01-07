@@ -1,0 +1,9 @@
+---
+applications:
+- name: Cloud Foundry Flight
+  memory: 256M
+  instances: 1
+  host: cf-flight
+  domain: cfapps.io
+  path: .
+  command: node startup-all-in-one.js

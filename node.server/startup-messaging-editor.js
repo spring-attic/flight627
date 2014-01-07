@@ -15,7 +15,7 @@
 var express = require('express');
 var app = express();
 
-app.use("/client", express.static(__dirname + '/web-client'));
+app.use("/client", express.static(__dirname + '/web-editor'));
 
 var host = process.env.VCAP_APP_HOST || 'localhost';
 var port = process.env.VCAP_APP_PORT || '3000';
@@ -33,25 +33,4 @@ var messageSync = new MessageCore();
 
 io.sockets.on('connection', function (socket) {
 	messageSync.initialize(socket, io.sockets);
-});
-
-var client_io = require('socket.io-client');
-var client_socket = client_io.connect('localhost', {
-	port : 3000
-});
-
-var Repository = require('./repository-inmemory.js').Repository;
-var repository = new Repository();
-
-var RestRepository = require('./repository-rest-api.js').RestRepository;
-var restrepository = new RestRepository(app, repository);
-
-var MessagesRepository = require('./repository-message-api.js').MessagesRepository;
-var messagesrepository = new MessagesRepository(repository);
-
-client_socket.on('connect', function() {
-	console.log('client socket connected');
-	
-	repository.setNotificationSender.call(repository, client_socket);
-	messagesrepository.setSocket.call(messagesrepository, client_socket);
 });
