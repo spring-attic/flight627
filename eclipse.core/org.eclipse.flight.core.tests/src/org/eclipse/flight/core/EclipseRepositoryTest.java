@@ -49,7 +49,7 @@ public class EclipseRepositoryTest {
 
 	IStatus done;
 	private IProject project;
-	private EclipseRepository repository;
+	private Repository repository;
 
 	abstract class TestHandler {
 		private String address;
@@ -177,7 +177,7 @@ public class EclipseRepositoryTest {
 	@Test
 	public void testGetProject() throws InterruptedException, CoreException {
 		repository.addProject(project);
-		FlightProject flightProject = (FlightProject) repository.getProject(project);
+		ConnectedProject flightProject = (ConnectedProject) repository.getProject(project);
 		flightProject.updateResources();
 		Project searchProject = new Project();
 		searchProject.setName("test.project");
@@ -202,7 +202,7 @@ public class EclipseRepositoryTest {
 	@Test
 	public void testGetResource() throws InterruptedException, CoreException {
 		repository.addProject(project);
-		FlightProject flightProject = (FlightProject) repository.getProject(project);
+		ConnectedProject flightProject = (ConnectedProject) repository.getProject(project);
 		flightProject.updateResources();
 		Project searchProject = new Project();
 		searchProject.setName("test.project");

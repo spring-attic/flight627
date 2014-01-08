@@ -20,7 +20,7 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.flight.core.ILiveEditConnector;
 import org.eclipse.flight.core.LiveEditCoordinator;
-import org.eclipse.flight.core.EclipseRepository;
+import org.eclipse.flight.core.Repository;
 import org.eclipse.jdt.core.IBuffer;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IProblemRequestor;
@@ -36,10 +36,10 @@ public class LiveEditUnits {
 	private static final String LIVE_EDIT_CONNECTOR_ID = "JDT-Service-Live-Edit-Connector";
 
 	private ConcurrentMap<String, ICompilationUnit> liveEditUnits;
-	private EclipseRepository repository;
+	private Repository repository;
 	private LiveEditCoordinator liveEditCoordinator;
 	
-	public LiveEditUnits(LiveEditCoordinator liveEditCoordinator, EclipseRepository repository) {
+	public LiveEditUnits(LiveEditCoordinator liveEditCoordinator, Repository repository) {
 		this.liveEditCoordinator = liveEditCoordinator;
 		this.repository = repository;
 

@@ -20,19 +20,18 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.flight.core.internal.vertx.EclipseVertx;
 import org.eclipse.flight.resources.Project;
-import org.eclipse.flight.resources.Repository;
 import org.eclipse.flight.resources.vertx.VertxRepository;
 
 /**
  * @author Martin Lippert
  * @author Miles Parker
  */
-public class EclipseRepository extends VertxRepository {
+public class Repository extends VertxRepository {
 
 	private String username;
 	private Collection<IRepositoryListener> repositoryListeners;
 
-	public EclipseRepository(final String user) {
+	public Repository(final String user) {
 		super(EclipseVertx.get());
 		this.username = user;
 		this.repositoryListeners = new ConcurrentLinkedDeque<>();
@@ -175,7 +174,7 @@ public class EclipseRepository extends VertxRepository {
 
 	public void addProject(final IProject project) {
 		if (!isConnected(project)) {
-			FlightProject flightProject = new FlightProject(project);
+			ConnectedProject flightProject = new ConnectedProject(project);
 			putProject(flightProject);
 			notifyProjectConnected(project);
 		}
@@ -185,7 +184,7 @@ public class EclipseRepository extends VertxRepository {
 		String projectName = project.getName();
 		if (isConnected(projectName)) {
 			Project removed = removeProject(projectName);
-			((FlightProject) removed).disconnect();
+			((ConnectedProject) removed).disconnect();
 			notifyProjectDisonnected(project);
 
 			// try {
@@ -204,7 +203,7 @@ public class EclipseRepository extends VertxRepository {
 		if (project == null) {
 			return;
 		}
-		FlightProject connectedProject = (FlightProject) getProject(project);
+		ConnectedProject connectedProject = (ConnectedProject) getProject(project);
 		if (connectedProject != null) {
 			connectedProject.reactToResourceChange(delta);
 		}
@@ -217,7 +216,7 @@ public class EclipseRepository extends VertxRepository {
 		}
 		IMarkerDelta[] markerDeltas = delta.getMarkerDeltas();
 		if (markerDeltas != null && markerDeltas.length > 0) {
-			FlightProject connectedProject = (FlightProject) getProject(project);
+			ConnectedProject connectedProject = (ConnectedProject) getProject(project);
 			connectedProject.sendMetadataUpdate(delta.getResource());
 		}
 	}

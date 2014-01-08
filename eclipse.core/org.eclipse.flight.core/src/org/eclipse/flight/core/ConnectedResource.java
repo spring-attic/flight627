@@ -25,7 +25,7 @@ import org.vertx.java.core.json.JsonObject;
  * @author Miles Parker
  * 
  */
-public class FlightResource extends Resource {
+public class ConnectedResource extends Resource {
 
 	/*
 	 * For Eclipse resources, we never want to save the data as part of the
@@ -39,7 +39,7 @@ public class FlightResource extends Resource {
 	protected void toJson(JsonObject json, boolean thin) {
 		super.toJson(json, thin);
 		if (!thin) {
-			IResource eclipseResource = ((FlightProject) getProject()).getProject()
+			IResource eclipseResource = ((ConnectedProject) getProject()).getProject()
 					.findMember(getPath());
 
 			if (eclipseResource instanceof IFile) {

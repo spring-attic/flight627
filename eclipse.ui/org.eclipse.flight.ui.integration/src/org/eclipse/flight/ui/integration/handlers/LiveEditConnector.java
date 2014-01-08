@@ -17,7 +17,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.flight.core.ILiveEditConnector;
 import org.eclipse.flight.core.LiveEditCoordinator;
-import org.eclipse.flight.core.EclipseRepository;
+import org.eclipse.flight.core.Repository;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IDocumentListener;
@@ -37,13 +37,13 @@ public class LiveEditConnector {
 	private static final String LIVE_EDIT_CONNECTOR_ID = "UI-Editor-Live-Edit-Connector";
 	
 	private IDocumentListener documentListener;
-	private EclipseRepository repository;
+	private Repository repository;
 	
 	private ConcurrentMap<IDocument, String> resourceMappings;
 	private ConcurrentMap<String, IDocument> documentMappings;
 	private LiveEditCoordinator liveEditCoordinator;
 
-	public LiveEditConnector(LiveEditCoordinator liveEditCoordinator, EclipseRepository repository) {
+	public LiveEditConnector(LiveEditCoordinator liveEditCoordinator, Repository repository) {
 		this.liveEditCoordinator = liveEditCoordinator;
 		this.repository = repository;
 		

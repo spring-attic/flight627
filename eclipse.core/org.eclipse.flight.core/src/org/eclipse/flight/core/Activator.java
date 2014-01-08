@@ -28,7 +28,7 @@ public class Activator implements BundleActivator {
 	// The shared instance
 	private static Activator plugin;
 
-	private EclipseRepository repository;
+	private Repository repository;
 	private LiveEditCoordinator liveEditCoordinator;
 	
 	@Override
@@ -40,7 +40,7 @@ public class Activator implements BundleActivator {
 		String username = System.getProperty("flight-username", "defaultuser");
 		// TODO: change this username property to a preference and add authentication
 		
-		repository = new EclipseRepository(username);
+		repository = new Repository(username);
 		liveEditCoordinator = new LiveEditCoordinator();
 		
 		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(repository);
@@ -66,7 +66,7 @@ public class Activator implements BundleActivator {
 		return plugin;
 	}
 	
-	public EclipseRepository getRepository() {
+	public Repository getRepository() {
 		return repository;
 	}
 	

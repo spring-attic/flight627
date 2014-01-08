@@ -43,11 +43,11 @@ import org.vertx.java.core.json.JsonObject;
  * @author Martin Lippert
  * @author Miles Parker
  */
-public class FlightProject extends Project {
+public class ConnectedProject extends Project {
 
 	private IProject project;
 
-	public FlightProject(IProject project) {
+	public ConnectedProject(IProject project) {
 		setName(project.getName());
 		setUserName("defaultuser");
 		this.project = project;
@@ -62,7 +62,7 @@ public class FlightProject extends Project {
 	/**
 	 * 
 	 */
-	public FlightProject(String projectName, CompletionCallback completionCallback) {
+	public ConnectedProject(String projectName, CompletionCallback completionCallback) {
 		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 		project = root.getProject(projectName);
 		try {
@@ -80,7 +80,7 @@ public class FlightProject extends Project {
 				.get()
 				.eventBus()
 				.send(Constants.RESOURCE_PROVIDER,
-						new Request(Constants.GET_PROJECT, FlightProject.this)
+						new Request(Constants.GET_PROJECT, ConnectedProject.this)
 								.toJson(true), new Handler<Message<JsonObject>>() {
 							@Override
 							public void handle(Message<JsonObject> reply) {
@@ -97,7 +97,7 @@ public class FlightProject extends Project {
 				String path = resource.getProjectRelativePath().toString();
 				Resource flightResource = getResource(path);
 				if (flightResource == null) {
-					flightResource = new FlightResource();
+					flightResource = new ConnectedResource();
 					flightResource.setPath(path);
 					putResource(flightResource);
 				}
@@ -148,7 +148,7 @@ public class FlightProject extends Project {
 								.get()
 								.eventBus()
 								.send(Constants.RESOURCE_PROVIDER,
-										new Request(Constants.GET_RESOURCE, FlightProject.this).toJson(true),
+										new Request(Constants.GET_RESOURCE, ConnectedProject.this).toJson(true),
 										new Handler<Message<JsonObject>>() {
 											@Override
 											public void handle(Message<JsonObject> reply) {
@@ -553,8 +553,8 @@ public class FlightProject extends Project {
 		return this.project.getName();
 	}
 
-	public static FlightProject readFromJSON(InputStream inputStream, IProject project) {
-		return new FlightProject(project);
+	public static ConnectedProject readFromJSON(InputStream inputStream, IProject project) {
+		return new ConnectedProject(project);
 	}
 
 	public void disconnect() {
