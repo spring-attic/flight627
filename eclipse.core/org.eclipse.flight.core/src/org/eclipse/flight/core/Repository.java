@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -649,6 +649,14 @@ public class Repository {
 					newFile.create(new ByteArrayInputStream(newResourceContent.getBytes()), true, null);
 					newFile.setLocalTimeStamp(updateTimestamp);
 				}
+				
+				JSONObject message = new JSONObject();
+				message.put("username", this.username);
+				message.put("project", connectedProject.getName());
+				message.put("resource", resourcePath);
+				message.put("timestamp", updateTimestamp);
+				message.put("hash", updateHash);
+				messagingConnector.send("resourceStored", message);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -750,15 +758,23 @@ public class Repository {
 
 			connectedProject.setHash(resourcePath, hash);
 
-			JSONObject message = new JSONObject();
-			message.put("username", this.username);
-			message.put("project", connectedProject.getName());
-			message.put("resource", resourcePath);
-			message.put("timestamp", timestamp);
-			message.put("hash", hash);
-			message.put("type", type);
+			JSONObject createdMessage = new JSONObject();
+			createdMessage.put("username", this.username);
+			createdMessage.put("project", connectedProject.getName());
+			createdMessage.put("resource", resourcePath);
+			createdMessage.put("timestamp", timestamp);
+			createdMessage.put("hash", hash);
+			createdMessage.put("type", type);
+			messagingConnector.send("resourceCreated", createdMessage);
+			
+			JSONObject storedMessage = new JSONObject();
+			storedMessage.put("username", this.username);
+			storedMessage.put("project", connectedProject.getName());
+			storedMessage.put("resource", resourcePath);
+			storedMessage.put("timestamp", timestamp);
+			storedMessage.put("hash", hash);
+			messagingConnector.send("resourceStored", storedMessage);
 
-			messagingConnector.send("resourceCreated", message);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -805,14 +821,22 @@ public class Repository {
 						connectedProject.setTimestamp(resourcePath, changeTimestamp);
 						connectedProject.setHash(resourcePath, changeHash);
 
-						JSONObject message = new JSONObject();
-						message.put("username", this.username);
-						message.put("project", connectedProject.getName());
-						message.put("resource", resourcePath);
-						message.put("timestamp", changeTimestamp);
-						message.put("hash", changeHash);
+						JSONObject changedMessage = new JSONObject();
+						changedMessage.put("username", this.username);
+						changedMessage.put("project", connectedProject.getName());
+						changedMessage.put("resource", resourcePath);
+						changedMessage.put("timestamp", changeTimestamp);
+						changedMessage.put("hash", changeHash);
+						messagingConnector.send("resourceChanged", changedMessage);
+						
+						JSONObject storedMessage = new JSONObject();
+						storedMessage.put("username", this.username);
+						storedMessage.put("project", connectedProject.getName());
+						storedMessage.put("resource", resourcePath);
+						storedMessage.put("timestamp", changeTimestamp);
+						storedMessage.put("hash", changeHash);
+						messagingConnector.send("resourceStored", storedMessage);
 
-						messagingConnector.send("resourceChanged", message);
 					}
 				}
 			} catch (Exception e) {

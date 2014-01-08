@@ -2,7 +2,7 @@
  * @license
  * Copyright (c) 2010, 2011 IBM Corporation and others.
  * Copyright (c) 2012 VMware, Inc.
- * Copyright (c) 2013 Pivotal Software, Inc.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -179,9 +179,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		start();
 	};
 	
-  	socket.on('liveMetadataChanged', function (data) {
+	socket.on('liveMetadataChanged', function (data) {
 		if (username === data.username && project === data.project && resource === data.resource && data.problems !== undefined) {
 			var markers = [];
+			var i;
 			for(i = 0; i < data.problems.length; i++) {
 				var lineOffset = editor.getModel().getLineStart(data.problems[i].line - 1);
 				
@@ -198,10 +199,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			
 			editor.showProblems(markers);
 		}
-    	console.log(data);
-  	});
+		console.log(data);
+	});
 	
-  	socket.on('navigationresponse', function (data) {
+	socket.on('navigationresponse', function (data) {
 		if (username === data.username && project === data.project && resource === data.resource && data.navigation !== undefined) {
 			var navigationTarget = data.navigation;
 			if (navigationTarget.project === project && navigationTarget.resource === resource) {
@@ -225,10 +226,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				window.location.hash = resourceID;
 			}
 		}
-    	console.log(data);
-  	});
+		console.log(data);
+	});
 	
-  	socket.on('renameinfileresponse', function (data) {
+	socket.on('renameinfileresponse', function (data) {
 		if (username === data.username && project === data.project && resource === data.resource && data.references !== undefined) {
 			var references = data.references;
 			
@@ -243,17 +244,17 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			};
 			linkedMode.enterLinkedMode(linkedModeModel);
 		}
-    	console.log(data);
-  	});
+		console.log(data);
+	});
 	
 	var username = "defaultuser";
 	
-	var filePath = undefined;
-	var project = undefined;
-	var resource = undefined;
-	var fileShortName = undefined;
+	var filePath;
+	var project;
+	var resource;
+	var fileShortName;
 	
-	var jumpTo = undefined;
+	var jumpTo;
 	
 	var lastSavePointContent = '';
 	var lastSavePointHash = '';
@@ -297,9 +298,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	
 	function extractJumpToInformation(hash) {
 		var hashValues = hash.split('#');
-		var offset = undefined;
-		var length = undefined;
+		var offset;
+		var length;
 		
+		var i;
 		for (i = 0; i < hashValues.length; i++) {
 			var param = hashValues[i];
 			var pieces = param.split('=');
@@ -317,7 +319,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			return {
 				'offset' : offset,
 				'length' : (length !== undefined ? length : 0)
-			}
+			};
 		}
 	}
 	
@@ -330,7 +332,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	start();
 	
 	socket.on('getResourceResponse', function(data) {
-		if (lastSavePointTimestamp != 0 && lastSavePointHash !== '') {
+		if (lastSavePointTimestamp !== 0 && lastSavePointHash !== '') {
 			return;
 		}
 		
@@ -391,18 +393,18 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	socket.on('liveResourceStarted', function(data) {
 		if (data.username === username && data.project === project && data.resource === resource && data.callback_id !== undefined) {
 			
-			if ((data.hash === undefined || data.hash === lastSavePointHash)
-				&& data.timestamp === undefined || data.timestamp === lastSavePointTimestamp) {
+			if ((data.hash === undefined || data.hash === lastSavePointHash) &&
+					data.timestamp === undefined || data.timestamp === lastSavePointTimestamp) {
 
 				socket.emit('liveResourceStartedResponse', {
-					'callback_id' 		: data.callback_id,
-					'requestSenderID' 	: data.requestSenderID,
-					'username' 			: data.username,
-					'project' 			: data.project,
-					'resource' 			: data.resource,
+					'callback_id'        : data.callback_id,
+					'requestSenderID'    : data.requestSenderID,
+					'username'           : data.username,
+					'project'            : data.project,
+					'resource'           : data.resource,
 					'savePointTimestamp' : lastSavePointTimestamp,
-					'savePointHash' 	: lastSavePointHash,
-					'liveContent' 		: editor.getText()
+					'savePointHash'      : lastSavePointHash,
+					'liveContent'        : editor.getText()
 				});
 			}
 		}
@@ -439,25 +441,24 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	socket.on('getResourceRequest', function(data) {
 		if (data.username === username && data.project === project && data.resource === resource && data.callback_id !== undefined) {
 			
-			if ((data.hash === undefined || data.hash === lastSavePointHash)
-				&& data.timestamp === undefined || data.timestamp === lastSavePointTimestamp) {
+			if ((data.hash === undefined || data.hash === lastSavePointHash) &&
+					data.timestamp === undefined || data.timestamp === lastSavePointTimestamp) {
 
 				socket.emit('getResourceResponse', {
-					'callback_id' 		: data.callback_id,
-					'requestSenderID' 	: data.requestSenderID,
-					'username' 			: data.username,
-					'project' 			: project,
-					'resource' 			: resource,
-					'timestamp' 		: lastSavePointTimestamp,
-					'hash' 				: lastSavePointHash,
-					'content' 			: lastSavePointContent
+					'callback_id'       : data.callback_id,
+					'requestSenderID'   : data.requestSenderID,
+					'username'          : data.username,
+					'project'           : project,
+					'resource'          : resource,
+					'timestamp'         : lastSavePointTimestamp,
+					'hash'              : lastSavePointHash,
+					'content'           : lastSavePointContent
 				});
 			}
-
 		}
 	});
 	
-	socket.on('resourceChanged', function(data) {
+	socket.on('resourceStored', function(data) {
 		if (data.username === username && data.project === project && data.resource === resource) {
 			
 			var currentEditorContent = editor.getText();
@@ -486,9 +487,9 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				'hash' : lastSavePointHash
 			});
 			
-			// this is potentially dangerous because the editor is set to non-dirty
-			// even though we don't know whether anything has been saved by someone else
-			editor.setDirty(false);
+			// we don't reset the dirty flag here because we don't know whether this resource will
+			// be stored by another participant in the system. Instead we wait for the "resourceStored"
+			// message to arrive
 		}, 0);
 	}
 

@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -23,6 +23,7 @@ MessageCore.prototype.initialize = function(socket, sockets) {
 	this.configureBroadcast(socket, 'resourceCreated');
 	this.configureBroadcast(socket, 'resourceChanged');
 	this.configureBroadcast(socket, 'resourceDeleted');
+	this.configureBroadcast(socket, 'resourceStored');
 	
 	this.configureBroadcast(socket, 'metadataChanged');
 	

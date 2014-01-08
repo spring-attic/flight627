@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -213,6 +213,15 @@ MongoDBRepository.prototype._createResourceCollectionEntry = function(username, 
 				'timestamp' : timestamp,
 				'type' : type
 			});
+			
+			this.notificationSender.emit('resourceStored', {
+				'username' : username,
+				'project' : projectName,
+				'resource' : resourcePath,
+				'hash' : hash,
+				'timestamp' : timestamp,
+				'type' : type
+			});
 		}
 	}.bind(this));
 };
@@ -241,7 +250,7 @@ MongoDBRepository.prototype.updateResource = function(username, projectName, res
 						if (!err) {
 							gridStore.write(data, function(err, gridStore) {
 								if (!err) {
-									this._updateResourceCollectionEntry(username, projectName, resourcePath, hash, timestamp, callback);
+									this._updateResourceCollectionEntry(username, projectName, resourcePath, hash, timestamp, items[0].type, callback);
 								}
 								gridStore.close(function(err, result) {});
 							}.bind(this));
@@ -249,7 +258,7 @@ MongoDBRepository.prototype.updateResource = function(username, projectName, res
 					}.bind(this));
 				}
 				else {
-					this._updateResourceCollectionEntry(username, projectName, resourcePath, hash, timestamp, callback);
+					this._updateResourceCollectionEntry(username, projectName, resourcePath, hash, timestamp, items[0].type, callback);
 				}
 			}
 			else {
@@ -259,7 +268,7 @@ MongoDBRepository.prototype.updateResource = function(username, projectName, res
 	}.bind(this));
 };
 
-MongoDBRepository.prototype._updateResourceCollectionEntry = function(username, projectName, resourcePath, hash, timestamp, callback) {
+MongoDBRepository.prototype._updateResourceCollectionEntry = function(username, projectName, resourcePath, hash, timestamp, type, callback) {
 	var resourcesCollection = this.mongodb.collection('resources');
 
 	resourcesCollection.update({
@@ -287,7 +296,17 @@ MongoDBRepository.prototype._updateResourceCollectionEntry = function(username, 
 				'project' : projectName,
 				'resource' : resourcePath,
 				'timestamp' : timestamp,
-				'hash' : hash});
+				'hash' : hash
+			});
+			
+			this.notificationSender.emit('resourceStored', {
+				'username' : username,
+				'project' : projectName,
+				'resource' : resourcePath,
+				'hash' : hash,
+				'timestamp' : timestamp,
+				'type' : type
+			});
 		}
 	}.bind(this));
 };
