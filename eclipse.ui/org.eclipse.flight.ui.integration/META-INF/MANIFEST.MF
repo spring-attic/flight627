@@ -13,6 +13,7 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.flight.core,
  org.eclipse.jdt.ui,
  org.eclipse.ui.workbench.texteditor,
- org.eclipse.jface.text
+ org.eclipse.jface.text,
+ org.eclipse.flight.common;bundle-version="0.1.0"
 Bundle-Activator: org.eclipse.flight.ui.integration.Activator
 Bundle-ActivationPolicy: lazy

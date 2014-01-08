@@ -14,9 +14,6 @@ import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.flight.core.DownloadProject;
-import org.eclipse.flight.core.DownloadProject.CompletionCallback;
-import org.eclipse.flight.core.IMessagingConnector;
 import org.eclipse.flight.core.EclipseRepository;
 import org.eclipse.flight.ui.integration.Activator;
 import org.eclipse.jface.dialogs.Dialog;
@@ -33,11 +30,10 @@ public class SyncDownloadHandler extends AbstractHandler {
 	@Override
 	public Object execute(final ExecutionEvent event) throws ExecutionException {
 		final EclipseRepository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
-		final IMessagingConnector messagingConnector = org.eclipse.flight.core.Activator.getDefault().getMessagingConnector();
 		
 		final Shell shell = Activator.getDefault().getWorkbench().getActiveWorkbenchWindow().getShell();
 
-		SyncDownloadSelectionDialog selectionDialog = new SyncDownloadSelectionDialog(shell, new LabelProvider(), messagingConnector);
+		SyncDownloadSelectionDialog selectionDialog = new SyncDownloadSelectionDialog(shell, new LabelProvider());
 		int result = selectionDialog.open();
 		
 		if (result == Dialog.OK) {
@@ -45,16 +41,16 @@ public class SyncDownloadHandler extends AbstractHandler {
 			
 			for (Object selectedProject : selectedProjects) {
 				if (selectedProject instanceof String) {
-					DownloadProject downloadProject = new DownloadProject(messagingConnector, (String) selectedProject, repository.getUsername());
-					downloadProject.run(new CompletionCallback() {
-						@Override
-						public void downloadFailed() {
-						}
-						@Override
-						public void downloadComplete(IProject project) {
-							repository.addProject(project);
-						}
-					});
+//					DownloadProject downloadProject = new DownloadProject(messagingConnector, (String) selectedProject, repository.getUsername());
+//					downloadProject.run(new CompletionCallback() {
+//						@Override
+//						public void downloadFailed() {
+//						}
+//						@Override
+//						public void downloadComplete(IProject project) {
+//							repository.addProject(project);
+//						}
+//					});
 				}
 			}
 		}

@@ -8,14 +8,18 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.flight.messages;
+package org.eclipse.flight;
 
 /**
  * Common ids for messaging.
  * 
  * @author Miles Parker
  */
-public interface Messages {
+public interface Constants {
+	
+	public static int PORT = 6270;
+	
+	public static String HOST = "localhost";
 
 	public static final String RESOURCE_PROVIDER = "flight.resourceProvider";
 

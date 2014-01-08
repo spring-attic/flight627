@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: Common
 Bundle-SymbolicName: org.eclipse.flight.common
 Bundle-Version: 0.1.0.qualifier
-Export-Package: org.eclipse.flight.messages,
+Export-Package: org.eclipse.flight,
  org.eclipse.flight.resources,
  org.eclipse.flight.resources.vertx
 Require-Bundle: org.vertx;bundle-version="2.1.0"

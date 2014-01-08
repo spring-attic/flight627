@@ -27,8 +27,8 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.flight.Constants;
 import org.eclipse.flight.core.internal.vertx.EclipseVertx;
-import org.eclipse.flight.messages.Messages;
 import org.eclipse.flight.resources.MessageObject;
 import org.eclipse.flight.resources.Project;
 import org.eclipse.flight.resources.Request;
@@ -72,7 +72,7 @@ public class EclipseRepositoryTest {
 			EclipseVertx
 					.get()
 					.eventBus()
-					.send(Messages.RESOURCE_PROVIDER,
+					.send(Constants.RESOURCE_PROVIDER,
 							new Request(address, message).toJson(),
 							new Handler<Message<JsonObject>>() {
 								@Override
@@ -141,7 +141,7 @@ public class EclipseRepositoryTest {
 
 	@Test
 	public void testGetProjectsNone() throws InterruptedException {
-		execute(new TestHandler(Messages.GET_ALL_PROJECTS, null) {
+		execute(new TestHandler(Constants.GET_ALL_PROJECTS, null) {
 			@Override
 			public void expect(Message<JsonObject> reply) {
 				JsonArray array = reply.body().getObject("contents").getArray("projects");
@@ -154,7 +154,7 @@ public class EclipseRepositoryTest {
 	@Test
 	public void testGetProjectsOne() throws InterruptedException {
 		repository.addProject(project);
-		execute(new TestHandler(Messages.GET_ALL_PROJECTS, null) {
+		execute(new TestHandler(Constants.GET_ALL_PROJECTS, null) {
 			@Override
 			public void expect(Message<JsonObject> reply) {
 				JsonArray array = reply.body().getObject("contents").getArray("projects");
@@ -182,7 +182,7 @@ public class EclipseRepositoryTest {
 		Project searchProject = new Project();
 		searchProject.setName("test.project");
 		searchProject.setUserName("defaultUser");
-		execute(new TestHandler(Messages.GET_PROJECT, searchProject) {
+		execute(new TestHandler(Constants.GET_PROJECT, searchProject) {
 			public void expect(Message<JsonObject> reply) {
 				JsonArray array = reply.body().getObject("contents")
 						.getArray("resources");
@@ -210,7 +210,7 @@ public class EclipseRepositoryTest {
 		Resource searchResource = new Resource();
 		searchResource.setPath("src/org/blah/Foo.java");
 		searchResource.setProject(searchProject);
-		execute(new TestHandler(Messages.GET_RESOURCE, searchResource) {
+		execute(new TestHandler(Constants.GET_RESOURCE, searchResource) {
 			public void expect(Message<JsonObject> reply) {
 				JsonObject contents = reply.body().getObject("contents");
 				assertThat(contents.getString("path"), is("src/org/blah/Foo.java"));

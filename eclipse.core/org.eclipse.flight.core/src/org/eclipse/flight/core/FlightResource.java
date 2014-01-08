@@ -53,7 +53,6 @@ public class FlightResource extends Resource {
 					IOUtils.copy(file.getContents(), array);
 
 					String content = new String(array.toByteArray(), file.getCharset());
-
 					json.putString("data", content);
 				} catch (CoreException e) {
 					json.putString("failed", "Exception: " + e.getMessage());

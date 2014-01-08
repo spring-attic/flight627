@@ -1,6 +1,6 @@
 package org.eclipse.flight.resources.vertx;
 
-import org.eclipse.flight.messages.Messages;
+import org.eclipse.flight.Constants;
 import org.eclipse.flight.resources.Project;
 import org.eclipse.flight.resources.Repository;
 import org.eclipse.flight.resources.Resource;
@@ -8,7 +8,10 @@ import org.eclipse.flight.resources.Response;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.http.HttpServer;
+import org.vertx.java.core.http.ServerWebSocket;
 import org.vertx.java.core.json.JsonObject;
+import org.vertx.java.core.streams.Pump;
 
 /*******************************************************************************
  * Copyright (c) 2013 Pivotal Software, Inc. and others.
@@ -28,7 +31,7 @@ import org.vertx.java.core.json.JsonObject;
 public class VertxRepository extends Repository {
 
 	public VertxRepository(Vertx vertx) {
-		vertx.eventBus().registerHandler(Messages.RESOURCE_PROVIDER,
+		vertx.eventBus().registerHandler(Constants.RESOURCE_PROVIDER,
 				new Handler<Message<JsonObject>>() {
 					@Override
 					public void handle(Message<JsonObject> message) {
@@ -36,30 +39,29 @@ public class VertxRepository extends Repository {
 							String desc = message.body().getString("description");
 							JsonObject contents = message.body().getObject("contents");
 							switch (desc) {
-							case Messages.CREATE_PROJECT: {
+							case Constants.CREATE_PROJECT: {
 								Project project = putProject(contents.getString("name"));
 								message.reply(new Response(desc, project).toJson(true));
 								return;
 							}
-							case Messages.GET_PROJECT: {
+							case Constants.GET_PROJECT: {
 								Project project = getProject(contents.getString("name"));
 								if (project != null) {
-									message.reply(new Response(desc, project)
-											.toJson());
+									message.reply(new Response(desc, project).toJson());
 								} else {
 									message.fail(404, "No project found.");
 								}
 								return;
 							}
-							case Messages.GET_ALL_PROJECTS: {
+							case Constants.GET_ALL_PROJECTS: {
 								message.reply(new Response(desc, VertxRepository.this)
 										.toJson(true));
 								return;
 							}
-							case Messages.GET_RESOURCE:
-							case Messages.HAS_RESOURCE:
-							case Messages.NEEDS_UPDATE_RESOURCE:
-							case Messages.CREATE_RESOURCE:
+							case Constants.GET_RESOURCE:
+							case Constants.HAS_RESOURCE:
+							case Constants.NEEDS_UPDATE_RESOURCE:
+							case Constants.CREATE_RESOURCE:
 								Resource remoteResource = new Resource();
 								remoteResource.fromJson(contents);
 								Project project = getProject(remoteResource
@@ -72,7 +74,7 @@ public class VertxRepository extends Repository {
 								Resource localResource = project
 										.getResource(remoteResource);
 								switch (desc) {
-								case Messages.GET_RESOURCE:
+								case Constants.GET_RESOURCE:
 									if (localResource != null) {
 										message.reply(new Response(desc, localResource)
 												.toJson());
@@ -81,12 +83,12 @@ public class VertxRepository extends Repository {
 												+ remoteResource);
 									}
 									return;
-								case Messages.HAS_RESOURCE:
+								case Constants.HAS_RESOURCE:
 									message.reply(new Response(desc, remoteResource)
 											.toJson(true).putBoolean("exists",
 													localResource != null));
 									return;
-								case Messages.NEEDS_UPDATE_RESOURCE: {
+								case Constants.NEEDS_UPDATE_RESOURCE: {
 									boolean needsUpdate = project
 											.needsUpdate(remoteResource);
 									message.reply(new Response(desc, remoteResource)
@@ -94,7 +96,7 @@ public class VertxRepository extends Repository {
 													needsUpdate));
 									return;
 								}
-								case Messages.CREATE_RESOURCE: {
+								case Constants.CREATE_RESOURCE: {
 									project.putResource(remoteResource);
 									message.reply(new Response(desc, remoteResource)
 											.toJson(true));
@@ -106,10 +108,17 @@ public class VertxRepository extends Repository {
 
 					}
 				});
+		HttpServer server = vertx.createHttpServer();
+
+		server.websocketHandler(new Handler<ServerWebSocket>() {
+			public void handle(final ServerWebSocket sock) {
+				Pump.createPump(sock, sock).start();
+			}
+		}).listen(3001, "localhost");
 	}
-//	
-//	@Override
-//	public Vertx getVertx() {
-//		return vertx;
-//	}
+	//
+	// @Override
+	// public Vertx getVertx() {
+	// return vertx;
+	// }
 }

@@ -28,8 +28,8 @@ import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.flight.Constants;
 import org.eclipse.flight.core.internal.vertx.EclipseVertx;
-import org.eclipse.flight.messages.Messages;
 import org.eclipse.flight.resources.Project;
 import org.eclipse.flight.resources.Request;
 import org.eclipse.flight.resources.Resource;
@@ -79,8 +79,8 @@ public class FlightProject extends Project {
 		EclipseVertx
 				.get()
 				.eventBus()
-				.send(Messages.RESOURCE_PROVIDER,
-						new Request(Messages.GET_PROJECT, FlightProject.this)
+				.send(Constants.RESOURCE_PROVIDER,
+						new Request(Constants.GET_PROJECT, FlightProject.this)
 								.toJson(true), new Handler<Message<JsonObject>>() {
 							@Override
 							public void handle(Message<JsonObject> reply) {
@@ -114,6 +114,7 @@ public class FlightProject extends Project {
 					flightResource.setHash("0");
 					flightResource.setType("folder");
 				}
+				flightResource.setUserName("defaultuser");
 				return true;
 			}
 		}, IResource.DEPTH_INFINITE, IContainer.EXCLUDE_DERIVED);
@@ -146,8 +147,8 @@ public class FlightProject extends Project {
 						EclipseVertx
 								.get()
 								.eventBus()
-								.send(Messages.RESOURCE_PROVIDER,
-										new Request(Messages.GET_RESOURCE, FlightProject.this).toJson(true),
+								.send(Constants.RESOURCE_PROVIDER,
+										new Request(Constants.GET_RESOURCE, FlightProject.this).toJson(true),
 										new Handler<Message<JsonObject>>() {
 											@Override
 											public void handle(Message<JsonObject> reply) {

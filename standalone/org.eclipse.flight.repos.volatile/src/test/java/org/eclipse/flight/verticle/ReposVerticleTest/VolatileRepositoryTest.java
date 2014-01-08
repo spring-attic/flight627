@@ -12,12 +12,9 @@ package org.eclipse.flight.verticle.ReposVerticleTest;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.vertx.testtools.VertxAssert.assertNotNull;
-import static org.vertx.testtools.VertxAssert.assertThat;
-import static org.vertx.testtools.VertxAssert.assertTrue;
 import static org.vertx.testtools.VertxAssert.*;
 
-import org.eclipse.flight.messages.Messages;
+import org.eclipse.flight.Constants;
 import org.eclipse.flight.resources.MessageObject;
 import org.eclipse.flight.resources.Project;
 import org.eclipse.flight.resources.Request;
@@ -59,7 +56,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		abstract void expect(Message<JsonObject> reply);
 
 		void execute() {
-			vertx.eventBus().send(Messages.RESOURCE_PROVIDER,
+			vertx.eventBus().send(Constants.RESOURCE_PROVIDER,
 					new Request(address, message).toJson(),
 					new Handler<Message<JsonObject>>() {
 						@Override
@@ -105,7 +102,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		fooProject.setName("foo");
 	}
 
-	TestHandler createFooProject = new TestHandler(Messages.CREATE_PROJECT, fooProject) {
+	TestHandler createFooProject = new TestHandler(Constants.CREATE_PROJECT, fooProject) {
 		@Override
 		void expect(Message<JsonObject> reply) {
 			assertThat(reply.body().getObject("contents").getString("name"), is("foo"));
@@ -114,7 +111,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 
 	@Test
 	public void testGetProjectsEmpty() {
-		new TestHandler(Messages.GET_ALL_PROJECTS, null) {
+		new TestHandler(Constants.GET_ALL_PROJECTS, null) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				JsonArray projects = reply.body().getObject("contents")
@@ -126,7 +123,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 
 	@Test
 	public void testCreateProjects() {
-		execute(createFooProject, new TestHandler(Messages.GET_ALL_PROJECTS, null) {
+		execute(createFooProject, new TestHandler(Constants.GET_ALL_PROJECTS, null) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				JsonArray projects = reply.body().getObject("contents")
@@ -139,7 +136,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 
 	@Test
 	public void testGetProject() {
-		execute(createFooProject, new TestHandler(Messages.GET_PROJECT, fooProject) {
+		execute(createFooProject, new TestHandler(Constants.GET_PROJECT, fooProject) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply.body().getObject("contents").getString("name"),
@@ -163,7 +160,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		resourceIdent.setProjectName("foo");
 		resourceIdent.setPath("src/foo/bar/MyClass.java");
 
-		execute(createFooProject, new TestHandler(Messages.CREATE_RESOURCE, resource) {
+		execute(createFooProject, new TestHandler(Constants.CREATE_RESOURCE, resource) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				JsonObject contents = reply.body().getObject("contents");
@@ -171,7 +168,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 				assertThat(contents.getString("hash"), is("12345678"));
 				assertThat(contents.getString("data"), is((String) null));
 			}
-		}, new TestHandler(Messages.GET_PROJECT, fooProject) {
+		}, new TestHandler(Constants.GET_PROJECT, fooProject) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				JsonObject contents = reply.body().getObject("contents");
@@ -179,14 +176,14 @@ public class VolatileRepositoryTest extends TestVerticle {
 				JsonArray array = contents.getArray("resources");
 				assertThat(array.size(), is(1));
 			}
-		}, new TestHandler(Messages.GET_RESOURCE, resourceIdent) {
+		}, new TestHandler(Constants.GET_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				JsonObject contents = reply.body().getObject("contents");
 				assertThat(contents.getString("hash"), is("12345678"));
 				assertThat(contents.getString("data"), is("package foo.bar;..."));
 			}
-		}, new TestHandler(Messages.HAS_RESOURCE, resourceIdent) {
+		}, new TestHandler(Constants.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply.body().getBoolean("exists"), is(true));
@@ -201,12 +198,12 @@ public class VolatileRepositoryTest extends TestVerticle {
 		final Resource resourceIdent = new Resource();
 		resourceIdent.setProjectName("foo");
 		resourceIdent.setPath("src/foo/bar/Missing.java");
-		execute(createFooProject, new TestHandler(Messages.GET_RESOURCE, resourceIdent) {
+		execute(createFooProject, new TestHandler(Constants.GET_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply, instanceOf(ReplyFailureMessage.class));
 			}
-		}, new TestHandler(Messages.HAS_RESOURCE, resourceIdent) {
+		}, new TestHandler(Constants.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply.body().getBoolean("exists"), is(false));
@@ -219,13 +216,13 @@ public class VolatileRepositoryTest extends TestVerticle {
 		final Resource resourceIdent = new Resource();
 		resourceIdent.setProjectName("my.project");
 		resourceIdent.setPath("src/foo/bar/Missing.java");
-		execute(createFooProject, new TestHandler(Messages.GET_RESOURCE, resourceIdent) {
+		execute(createFooProject, new TestHandler(Constants.GET_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply, instanceOf(ReplyFailureMessage.class));
 				assertThat(reply.body(), instanceOf(ReplyException.class));
 			}
-		}, new TestHandler(Messages.HAS_RESOURCE, resourceIdent) {
+		}, new TestHandler(Constants.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply.body(), instanceOf(ReplyException.class));
