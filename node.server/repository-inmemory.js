@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,15 +9,26 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
 *******************************************************************************/
+/*global require console exports*/
 
-var sys = require('sys')
+var sys = require('sys');
 var crypto = require('crypto');
 
-InMemoryRepository = function() {
+var InMemoryRepository = function() {
+	this.storage = {};
 };
 
-InMemoryRepository.prototype.projectsStorage = {};
 exports.Repository = InMemoryRepository;
+
+InMemoryRepository.prototype._getProjectStorage = function(username, projectName) {
+	var userStorage = this.storage[username];
+	if (userStorage !== undefined) {
+		return this.storage[username].projects[projectName];
+	}
+	else {
+		return undefined;
+	}
+};
 
 InMemoryRepository.prototype.setNotificationSender = function(notificationSender) {
 	this.notificationSender = notificationSender;
@@ -25,27 +36,30 @@ InMemoryRepository.prototype.setNotificationSender = function(notificationSender
 
 InMemoryRepository.prototype.getProjects = function(username, callback) {
 	var projects = [];
-	for (projectName in this.projectsStorage) {
-		if (typeof this.projectsStorage[projectName] !== 'function') {
-			project = {
-				'name' : projectName
-			};
-			projects.push(project);
+	
+	if (this.storage[username] !== undefined) {
+		for (var projectName in this.storage[username].projects) {
+			if (typeof this.storage[username].projects[projectName] !== 'function') {
+				var project = {
+					'name' : projectName
+				};
+				projects.push(project);
+			}
 		}
 	}
 
     callback(null, projects);
 };
 
-InMemoryRepository.prototype.hasProject = function(username, projectName) {
-	return this.projectsStorage[projectName] !== undefined;
-}
+InMemoryRepository.prototype.hasProject = function(username, projectName, callback) {
+	callback(null, this.storage[username] !== undefined && this.storage[username].projects[projectName] !== undefined);
+};
 
 InMemoryRepository.prototype.getProject = function(username, projectName, includeDeleted, callback) {
-	var project = this.projectsStorage[projectName];
+	var project = this._getProjectStorage(username, projectName);
 	if (project !== undefined) {
 		var resources = [];
-		for (resourcePath in project.resources) {
+		for (var resourcePath in project.resources) {
 			if (typeof project.resources[resourcePath] !== 'function') {
 				var resourceDescription = {};
 				resourceDescription.path = resourcePath;
@@ -61,10 +75,10 @@ InMemoryRepository.prototype.getProject = function(username, projectName, includ
 			var deleted = [];
 			for (resourcePath in project.deleted) {
 				if (typeof project.deleted[resourcePath] !== 'function') {
-					var resourceDescription = {};
-					resourceDescription.path = resourcePath;
-					resourceDescription.timestamp = project.deleted[resourcePath].timestamp;
-					deleted.push(resourceDescription);
+					var deletedResourceDescription = {};
+					deletedResourceDescription.path = resourcePath;
+					deletedResourceDescription.timestamp = project.deleted[resourcePath].timestamp;
+					deleted.push(deletedResourceDescription);
 				}
 			}
 		    callback(null, resources, deleted);
@@ -80,9 +94,20 @@ InMemoryRepository.prototype.getProject = function(username, projectName, includ
 };
 
 InMemoryRepository.prototype.createProject = function(username, projectName, callback) {
-	if (this.projectsStorage[projectName] === undefined) {
-		this.projectsStorage[projectName] = {'name' : projectName, 'resources' : {}, 'deleted' : {}};
-	    callback(null, {'project': projectName});
+	if (this._getProjectStorage(username, projectName) === undefined) {
+		if (this.storage[username] === undefined) {
+			this.storage[username] = {'projects' : {}};
+		}
+		
+		this.storage[username].projects[projectName] = {
+			'name' : projectName,
+			'resources' : {},
+			'deleted' : {}
+		};
+
+	    callback(null, {
+			'project': projectName
+	    });
 	
 		this.notificationSender.emit('projectCreated', {
 			'username' : username,
@@ -95,9 +120,9 @@ InMemoryRepository.prototype.createProject = function(username, projectName, cal
 };
 
 InMemoryRepository.prototype.createResource = function(username, projectName, resourcePath, data, hash, timestamp, type, callback) {
-	if (this.projectsStorage[projectName] !== undefined) {
+	var project = this._getProjectStorage(username, projectName);
+	if (project !== undefined) {
 		console.log('putResource ' + resourcePath);
-		var project = this.projectsStorage[projectName];
 		project.resources[resourcePath] = {
 			'data' : data,
 			'type' : type,
@@ -127,9 +152,9 @@ InMemoryRepository.prototype.createResource = function(username, projectName, re
 };
 
 InMemoryRepository.prototype.updateResource = function(username, projectName, resourcePath, data, hash, timestamp, callback) {
-	if (this.projectsStorage[projectName] !== undefined) {
+	var project = this._getProjectStorage(username, projectName);
+	if (project !== undefined) {
 		console.log('updateResource ' + resourcePath);
-		var project = this.projectsStorage[projectName];
 		var resource = project.resources[resourcePath];
 
 		if (resource !== undefined && timestamp > resource.timestamp) {
@@ -159,47 +184,76 @@ InMemoryRepository.prototype.updateResource = function(username, projectName, re
 	}
 };
 
-InMemoryRepository.prototype.hasResource = function(username, projectName, resourcePath, type) {
-	var project = this.projectsStorage[projectName];
+InMemoryRepository.prototype.hasResource = function(username, projectName, resourcePath, callback) {
+	var project = this._getProjectStorage(username, projectName);
 	if (project !== undefined) {
 		var resource = project.resources[resourcePath];
 		if (resource !== undefined) {
-			return true;
+			callback(null, true);
+			return;
 		}
 	}
-	return false;
-}
+	callback(null, false);
+};
 
-InMemoryRepository.prototype.needsUpdate = function(username, projectName, resourcePath, type, timestamp, hash) {
-	var project = this.projectsStorage[projectName];
+InMemoryRepository.prototype.needsUpdate = function(username, projectName, resourcePath, type, timestamp, hash, callback) {
+	var project = this._getProjectStorage(username, projectName);
 	if (project !== undefined) {
 		var resource = project.resources[resourcePath];
 		if (resource !== undefined) {
 			if (resource.type != type || resource.timestamp < timestamp) {
-				return true;
+				callback(null, true);
+				return;
 			}
 		}
 	}
-	return false;
-}
+	callback(null, false);
+};
 
-InMemoryRepository.prototype.gotDeleted = function(username, projectName, resourcePath, timestamp) {
-	var project = this.projectsStorage[projectName];
-	if (project !== undefined) {
+InMemoryRepository.prototype.gotDeleted = function(username, projectName, resourcePath, timestamp, callback) {
+	var project = this._getProjectStorage(username, projectName);
+	if (project !== undefined) {		
 		var deleted = project.deleted[resourcePath];
 		if (deleted !== undefined) {
 			if (deleted.timestamp > timestamp) {
-				return true;
+				callback(null, true);
+				return;
 			}
 		}
 	}
-	return false;
-}
+	callback(null, false);
+};
+
+InMemoryRepository.prototype.getResourceInfo = function(username, projectName, resourcePath, type, timestamp, hash, callback) {
+	var project = this._getProjectStorage(username, projectName);
+	if (project !== undefined) {
+		var resource = project.resources[resourcePath];
+		var exists = resource !== undefined;
+		var needsUpdate = resource !== undefined && (resource.type != type || resource.timestamp < timestamp);
+		
+		var deletedResource = project.deleted[resourcePath];
+		var deleted = deleted !== undefined && deleted.timestamp > timestamp;
+		
+		callback(null, {
+			'exists' : exists,
+			'deleted' : deleted,
+			'needsUpdate' : needsUpdate,
+			'username' : username,
+			'project' : projectName,
+			'resource' : resourcePath,
+			'timestamp' : timestamp,
+			'hash' : hash
+		});
+	}
+	else {
+		callback(404);
+	}
+};
 
 InMemoryRepository.prototype.updateMetadata = function(username, projectName, resourcePath, metadata, type, callback) {
-	if (this.projectsStorage[projectName] !== undefined) {
+	var project = this._getProjectStorage(username, projectName);
+	if (project !== undefined) {
 		console.log('updateMetadata ' + resourcePath);
-		var project = this.projectsStorage[projectName];
 		var resource = project.resources[resourcePath];
 
 		if (resource !== undefined) {
@@ -227,9 +281,9 @@ InMemoryRepository.prototype.updateMetadata = function(username, projectName, re
 };
 
 InMemoryRepository.prototype.getResource = function(username, projectName, resourcePath, timestamp, hash, callback) {
-	if (this.projectsStorage[projectName] !== undefined) {
+	var project = this._getProjectStorage(username, projectName);
+	if (project !== undefined) {
 		console.log('getResource ' + resourcePath);
-		var project = this.projectsStorage[projectName];
 		var resource = project.resources[resourcePath];
 
 		if (resource !== undefined) {
@@ -253,15 +307,21 @@ InMemoryRepository.prototype.getResource = function(username, projectName, resou
 };
 
 InMemoryRepository.prototype.deleteResource = function(username, projectName, resourcePath, timestamp, callback) {
-	if (this.projectsStorage[projectName] !== undefined) {
-		console.log('deleteResource ' + resourcePath);
-		var project = this.projectsStorage[projectName];
-		var resource = project.resources[resourcePath];
+	var result = {
+		'projectName' : projectName,
+		'deletedResource' : resourcePath,
+		'deletedTimestamp' : timestamp
+	};
 
+	var project = this._getProjectStorage(username, projectName);
+	if (project !== undefined) {
+		console.log('deleteResource ' + resourcePath);
+		var resource = project.resources[resourcePath];
+		
 		if (resource !== undefined && resource.timestamp < timestamp) {
 			delete project.resources[resourcePath];
 			project.deleted[resourcePath] = {'timestamp' : timestamp};
-			callback(null, {});
+			callback(null, result);
 			
 			this.notificationSender.emit('resourceDeleted', {
 				'username' : username,
@@ -271,10 +331,10 @@ InMemoryRepository.prototype.deleteResource = function(username, projectName, re
 			});
 		}
 		else {
-			callback(404);
+			callback(404, result);
 		}
 	}
 	else {
-		callback(404);
+		callback(404, result);
 	}
 };

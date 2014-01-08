@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -9,8 +9,9 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
 *******************************************************************************/
+/*global require console exports process __dirname*/
 
-MessageCore = function() {};
+var MessageCore = function() {};
 exports.MessageCore = MessageCore;
 
 MessageCore.prototype.initialize = function(socket, sockets) {
@@ -22,6 +23,7 @@ MessageCore.prototype.initialize = function(socket, sockets) {
 	this.configureBroadcast(socket, 'resourceCreated');
 	this.configureBroadcast(socket, 'resourceChanged');
 	this.configureBroadcast(socket, 'resourceDeleted');
+	this.configureBroadcast(socket, 'resourceStored');
 	
 	this.configureBroadcast(socket, 'metadataChanged');
 	
@@ -56,14 +58,14 @@ MessageCore.prototype.initialize = function(socket, sockets) {
 	socket.on('disconnect', function () {
 		console.log('client disconnected from update notifications');
 	});
-}
+};
 
 MessageCore.prototype.configureBroadcast = function(socket, messageName) {
 	socket.on(messageName, function(data) {
 		console.log(messageName + data);
 		socket.broadcast.emit(messageName, data);
 	});
-}
+};
 
 MessageCore.prototype.configureRequest = function(socket, messageName) {
 	socket.on(messageName, function(data) {
@@ -71,7 +73,7 @@ MessageCore.prototype.configureRequest = function(socket, messageName) {
 		data.requestSenderID = socket.id;
 		socket.broadcast.emit(messageName, data);
 	});
-}
+};
 
 MessageCore.prototype.configureResponse = function(socket, sockets, messageName) {
 	socket.on(messageName, function(data) {
@@ -89,4 +91,4 @@ MessageCore.prototype.configureResponse = function(socket, sockets, messageName)
 			});
 		}
 	});
-}
+};

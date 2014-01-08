@@ -9,45 +9,43 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
 *******************************************************************************/
+/*global require console exports*/
 
 var RestRepository = function(expressapp, repository) {
-	that = this;
-
 	this.repository = repository;
 	
-	expressapp.get('/api/:username', this.getProjects);
+	expressapp.get('/api/:username', this.getProjects.bind(this));
 
-	expressapp.get('/api/:username/:project', this.getProject);
-	expressapp.post('/api/:username/:project', this.createProject);
+	expressapp.get('/api/:username/:project', this.getProject.bind(this));
+	expressapp.post('/api/:username/:project', this.createProject.bind(this));
 
-	expressapp.get('/api/:username/:project/:resource(*)', this.getResource);
-	expressapp.put('/api/:username/:project/:resource(*)', this.putResource);
-	expressapp.post('/api/:username/:project/:resource(*)', this.postResource);
+	expressapp.get('/api/:username/:project/:resource(*)', this.getResource.bind(this));
+	expressapp.put('/api/:username/:project/:resource(*)', this.putResource.bind(this));
+	expressapp.post('/api/:username/:project/:resource(*)', this.postResource.bind(this));
 };
 
-RestRepository.prototype.projectsStorage = {};
 exports.RestRepository = RestRepository;
 
 RestRepository.prototype.getProjects = function(req, res) {
-    that.repository.getProjects(req.params.username, function(error, result) {
+    this.repository.getProjects(req.params.username, function(error, result) {
         res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
     });
-}
+};
 
 RestRepository.prototype.getProject = function(req, res) {
 	var includeDeleted = req.query.includeDeleted;
 	
-    that.repository.getProject(req.params.username, req.params.project, includeDeleted, function(error, content, deleted) {
-		if (error == null) {
+    this.repository.getProject(req.params.username, req.params.project, includeDeleted, function(error, content, deleted) {
+		if (error === null) {
 			if (includeDeleted) {
-	        	res.send(JSON.stringify({
-	        		'content' : content,
+				res.send(JSON.stringify({
+					'content' : content,
 					'deleted' : deleted
 				}), { 'Content-Type': 'application/json' }, 200);
 			}
 			else {
-	        	res.send(JSON.stringify({
-	        		'content' : content
+				res.send(JSON.stringify({
+					'content' : content
 				}), { 'Content-Type': 'application/json' }, 200);
 			}
 		}
@@ -55,18 +53,18 @@ RestRepository.prototype.getProject = function(req, res) {
 			res.send(error);
 		}
     });
-}
+};
 
 RestRepository.prototype.createProject = function(req, res) {
-    that.repository.createProject(req.params.username, req.params.project, function(error, result) {
-		if (error == null) {
-        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
+    this.repository.createProject(req.params.username, req.params.project, function(error, result) {
+		if (error === null) {
+			res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
 		}
 		else {
 			res.send(error);
 		}
     });
-}
+};
 
 RestRepository.prototype.postResource = function(req, res) {
 	var body = '';
@@ -76,18 +74,18 @@ RestRepository.prototype.postResource = function(req, res) {
 	});
 
 	req.on('end', function() {
-	    that.repository.createResource(req.params.username, req.params.project, req.params.resource, body, req.headers['resource-sha1'],
+	    this.repository.createResource(req.params.username, req.params.project, req.params.resource, body, req.headers['resource-sha1'],
 				req.headers['resource-timestamp'], req.headers['resource-type'], function(error, result) {
 
-			if (error == null) {
-	        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
+			if (error === null) {
+				res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
 			}
 			else {
 				res.send(error);
 			}
 	    });
-	});
-}
+	}.bind(this));
+};
 
 RestRepository.prototype.putResource = function(req, res) {
 	var body = '';
@@ -100,9 +98,9 @@ RestRepository.prototype.putResource = function(req, res) {
 		if (req.param('meta') !== undefined) {
 			var metadata = JSON.parse(body);
 			var type = req.param('meta');
-		    that.repository.updateMetadata(req.params.username, req.params.project, req.params.resource, metadata, type, function(error, result) {
-				if (error == null) {
-		        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
+		    this.repository.updateMetadata(req.params.username, req.params.project, req.params.resource, metadata, type, function(error, result) {
+				if (error === null) {
+					res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
 				}
 				else {
 					res.send(error);
@@ -110,10 +108,10 @@ RestRepository.prototype.putResource = function(req, res) {
 		    });
 		}
 		else {
-		    that.repository.updateResource(req.params.username, req.params.project, req.params.resource, body, req.headers['resource-sha1'],
+		    this.repository.updateResource(req.params.username, req.params.project, req.params.resource, body, req.headers['resource-sha1'],
 					req.headers['resource-timestamp'], function(error, result) {
-				if (error == null) {
-		        	res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
+				if (error === null) {
+					res.send(JSON.stringify(result), { 'Content-Type': 'application/json' }, 200);
 				}
 				else {
 					res.send(error);
@@ -121,21 +119,20 @@ RestRepository.prototype.putResource = function(req, res) {
 		    });
 		}
 
-	});
+	}.bind(this));
 
 	req.on('error', function(error) {
 		console.log('Error: ' + error);
 	});
-
-}
+};
 
 RestRepository.prototype.getResource = function(req, res) {
-    that.repository.getResource(req.params.username, req.params.project, req.params.resource, undefined, undefined, function(error, result) {
-		if (error == null) {
-        	res.send(result, 200);
+    this.repository.getResource(req.params.username, req.params.project, req.params.resource, undefined, undefined, function(error, result) {
+		if (error === null) {
+			res.send(result, 200);
 		}
 		else {
 			res.send(error);
 		}
     });
-}
+};
