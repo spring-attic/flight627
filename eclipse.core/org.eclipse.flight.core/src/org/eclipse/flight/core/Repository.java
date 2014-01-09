@@ -170,7 +170,11 @@ public class Repository {
 	}
 
 	public ConnectedProject getProject(IProject project) {
-		return this.syncedProjects.get(project.getName());
+		return getProject(project.getName());
+	}
+	
+	public ConnectedProject getProject(String projectName) {
+		return this.syncedProjects.get(projectName);
 	}
 
 	public boolean isConnected(IProject project) {

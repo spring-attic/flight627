@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -35,6 +35,14 @@ public class LiveEditCoordinator {
 		};
 		messagingConnector.addMessageHandler(startLiveUnit);
 		
+		IMessageHandler startLiveUnitResponse = new AbstractMessageHandler("liveResourceStartedResponse") {
+			@Override
+			public void handleMessage(String messageType, JSONObject message) {
+				startLiveUnitResponse(message);
+			}
+		};
+		messagingConnector.addMessageHandler(startLiveUnitResponse);
+		
 		IMessageHandler modelChangedHandler = new AbstractMessageHandler("liveResourceChanged") {
 			@Override
 			public void handleMessage(String messageType, JSONObject message) {
@@ -57,6 +65,26 @@ public class LiveEditCoordinator {
 			String liveEditID = projectName + "/" + resourcePath;
 			for (ILiveEditConnector connector : liveEditConnectors) {
 				connector.liveEditingStarted(requestSenderID, callbackID, username, liveEditID, hash, timestamp);
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	protected void startLiveUnitResponse(JSONObject message) {
+		try {
+			String requestSenderID = message.getString("requestSenderID");
+			int callbackID = message.getInt("callback_id");
+			String username = message.getString("username");
+			String projectName = message.getString("project");
+			String resourcePath = message.getString("resource");
+			String savePointHash = message.getString("savePointHash");
+			long savePointTimestamp = message.getLong("savePointTimestamp");
+			String content = message.getString("liveContent");
+
+			for (ILiveEditConnector connector : liveEditConnectors) {
+				connector.liveEditingStartedResponse(requestSenderID, callbackID, username, projectName, resourcePath, savePointHash, savePointTimestamp, content);
 			}
 		}
 		catch (Exception e) {
@@ -110,9 +138,11 @@ public class LiveEditCoordinator {
 			e.printStackTrace();
 		}
 		
+		String fullResourcePath = projectName + "/" + resourcePath;
+		
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
 			if (!connector.getConnectorID().equals(changeOriginID)) {
-				connector.liveEditingEvent(username, resourcePath, offset, removedCharactersCount, newText);
+				connector.liveEditingEvent(username, fullResourcePath, offset, removedCharactersCount, newText);
 			}
 		}
 	}
@@ -160,7 +190,7 @@ public class LiveEditCoordinator {
 		
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
 			if (!connector.getConnectorID().equals(responseOriginID)) {
-				connector.liveEditingStartedResponse(requestSenderID, callbackID, username, projectName, resourcePath, content);
+				connector.liveEditingStartedResponse(requestSenderID, callbackID, username, projectName, resourcePath, savePointHash, savePointTimestamp, content);
 			}
 		}
 	}

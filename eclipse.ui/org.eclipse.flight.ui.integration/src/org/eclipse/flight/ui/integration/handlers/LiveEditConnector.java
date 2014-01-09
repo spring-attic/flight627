@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.flight.core.ConnectedProject;
 import org.eclipse.flight.core.ILiveEditConnector;
 import org.eclipse.flight.core.LiveEditCoordinator;
 import org.eclipse.flight.core.Repository;
@@ -73,13 +74,13 @@ public class LiveEditConnector {
 
 			@Override
 			public void liveEditingStarted(String requestSenderID, int callbackID, String username, String resourcePath, String hash, long timestamp) {
-				// TODO Auto-generated method stub
+				remoteEditorStarted(requestSenderID, callbackID, username, resourcePath, hash, timestamp);
 			}
 
 			@Override
 			public void liveEditingStartedResponse(String requestSenderID, int callbackID, String username, String projectName, String resourcePath,
-					String content) {
-				// TODO Auto-generated method stub
+					String savePointHash, long savePointTimestamp, String content) {
+				handleRemoteLiveContent(requestSenderID, callbackID, username, projectName, resourcePath, savePointHash, savePointTimestamp, content);
 			}
 		};
 		this.liveEditCoordinator.addLiveEditConnector(liveEditConnector);
@@ -125,6 +126,55 @@ public class LiveEditConnector {
 		});
 	}
 	
+	protected void remoteEditorStarted(String requestSenderID, int callbackID, String username, String resourcePath, String hash, long timestamp) {
+		// a different editor was started editing the resource, we need to send back live content
+		
+		if (this.repository.getUsername().equals(username) && documentMappings.containsKey(resourcePath)) {
+			final IDocument document = documentMappings.get(resourcePath);
+			String content = document.get();
+			
+			String projectName = resourcePath.substring(0, resourcePath.indexOf('/'));
+			String relativeResourcePath = resourcePath.substring(projectName.length() + 1);
+			
+			this.liveEditCoordinator.sendLiveEditStartedResponse(LIVE_EDIT_CONNECTOR_ID, requestSenderID, callbackID, username, projectName, relativeResourcePath, hash, timestamp, content);
+		}
+	}
+
+	protected void handleRemoteLiveContent(String requestSenderID, int callbackID, String username, String projectName, String resource,
+			String savePointHash, long savePointTimestamp, final String content) {
+		// we started the editing and are getting remote live content back
+		
+		String resourcePath = projectName + "/" + resource;
+
+		if (this.repository.getUsername().equals(username) && documentMappings.containsKey(resourcePath)) {
+			final IDocument document = documentMappings.get(resourcePath);
+
+			ConnectedProject connectedProject = repository.getProject(projectName);
+			String hash = connectedProject.getHash(resource);
+			long timestamp = connectedProject.getTimestamp(resource);
+			
+			if (hash != null && hash.equals(savePointHash) && timestamp == savePointTimestamp) {
+				try {
+					Display.getDefault().asyncExec(new Runnable() {
+						public void run() {
+							try {
+								document.removeDocumentListener(documentListener);
+								document.set(content);
+								document.addDocumentListener(documentListener);
+							}
+							catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+					});
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 	protected void handleModelChanged(final String username, final String resourcePath, final int offset, final int removedCharCount, final String newText) {
 		if (repository.getUsername().equals(username) && resourcePath != null && documentMappings.containsKey(resourcePath)) {
 			final IDocument document = documentMappings.get(resourcePath);
@@ -161,17 +211,26 @@ public class LiveEditConnector {
 
 	protected void connectEditor(AbstractTextEditor texteditor) {
 		final IDocument document = texteditor.getDocumentProvider().getDocument(texteditor.getEditorInput());
-		IResource resource = (IResource) texteditor.getEditorInput().getAdapter(IResource.class);
+		IResource editorResource = (IResource) texteditor.getEditorInput().getAdapter(IResource.class);
 		
-		if (document != null && resource != null) {
-			IProject project = resource.getProject();
-			String resourcePath = resource.getProject().getName() + "/" + resource.getProjectRelativePath().toString();
+		if (document != null && editorResource != null) {
+			IProject project = editorResource.getProject();
+			String projectName = project.getName();
+			String resource = editorResource.getProjectRelativePath().toString();
+
+			String resourcePath = projectName + "/" + resource;
 			
 			if (repository.isConnected(project)) {
 				documentMappings.put(resourcePath, document);
 				resourceMappings.put(document, resourcePath);
 
 				document.addDocumentListener(documentListener);
+				
+				ConnectedProject connectedProject = repository.getProject(project);
+				String hash = connectedProject.getHash(resource);
+				long timestamp = connectedProject.getTimestamp(resource);
+				
+				this.liveEditCoordinator.sendLiveEditStartedMessage(LIVE_EDIT_CONNECTOR_ID, repository.getUsername(), projectName, resource, hash, timestamp);
 			}
 		}
 	}
@@ -180,10 +239,11 @@ public class LiveEditConnector {
 		final IDocument document = texteditor.getDocumentProvider().getDocument(texteditor.getEditorInput());
 		
 		String resourcePath = resourceMappings.get(document);
-		
-		document.removeDocumentListener(documentListener);
-		documentMappings.remove(resourcePath);
-		resourceMappings.remove(document);
+		if (resourcePath != null) {
+			document.removeDocumentListener(documentListener);
+			documentMappings.remove(resourcePath);
+			resourceMappings.remove(document);
+		}
 	}
 
 }

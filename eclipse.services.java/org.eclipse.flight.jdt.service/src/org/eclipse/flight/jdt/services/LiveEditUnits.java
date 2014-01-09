@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -18,8 +18,11 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.flight.core.CallbackIDAwareMessageHandler;
+import org.eclipse.flight.core.IConnectionListener;
 import org.eclipse.flight.core.ILiveEditConnector;
 import org.eclipse.flight.core.IMessagingConnector;
+import org.eclipse.flight.core.IRepositoryListener;
 import org.eclipse.flight.core.LiveEditCoordinator;
 import org.eclipse.flight.core.Repository;
 import org.eclipse.jdt.core.IBuffer;
@@ -28,6 +31,9 @@ import org.eclipse.jdt.core.IProblemRequestor;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.WorkingCopyOwner;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * @author Martin Lippert
@@ -35,7 +41,8 @@ import org.eclipse.jdt.core.WorkingCopyOwner;
 public class LiveEditUnits {
 	
 	private static final String LIVE_EDIT_CONNECTOR_ID = "JDT-Service-Live-Edit-Connector";
-
+	private static int GET_LIVE_RESOURCES_CALLBACK = "LiveEditUnits - getLiveResourcesCallback".hashCode();
+	
 	private ConcurrentMap<String, ICompilationUnit> liveEditUnits;
 	private Repository repository;
 	private IMessagingConnector messagingConnector;
@@ -66,13 +73,71 @@ public class LiveEditUnits {
 
 			@Override
 			public void liveEditingStartedResponse(String requestSenderID, int callbackID, String username, String projectName,
-					String resourcePath, String content) {
-				// TODO Auto-generated method stub
+					String resourcePath, String savePointHash, long savePointTimestamp, String content) {
+				updateLiveUnit(requestSenderID, callbackID, username, projectName, resourcePath, savePointHash, savePointTimestamp, content);
 			}
 		};
 		liveEditCoordinator.addLiveEditConnector(liveEditConnector);
+		
+		this.messagingConnector.addConnectionListener(new IConnectionListener() {
+			@Override
+			public void connected() {
+				startup();
+			}
+			@Override
+			public void disconnected() {
+				disconnect();
+			}
+		});
+		
+		this.repository.addRepositoryListener(new IRepositoryListener() {
+			@Override
+			public void projectConnected(IProject project) {
+				startupConnectedProject(project);
+			}
+			@Override
+			public void projectDisconnected(IProject project) {
+			}
+		});
+		
+		if (this.messagingConnector.isConnected()) {
+			startup();
+		}
+		
+		messagingConnector.addMessageHandler(new CallbackIDAwareMessageHandler("getLiveResourcesResponse", GET_LIVE_RESOURCES_CALLBACK) {
+			@Override
+			public void handleMessage(String messageType, JSONObject message) {
+				startupLiveUnits(message);
+			}
+		});
 	}
 	
+	protected void startup() {
+		try {
+			JSONObject message = new JSONObject();
+			message.put("username", repository.getUsername());
+			message.put("callback_id", GET_LIVE_RESOURCES_CALLBACK);
+			messagingConnector.send("getLiveResourcesRequest", message);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	protected void startupConnectedProject(IProject project) {
+		try {
+			JSONObject message = new JSONObject();
+			message.put("username", repository.getUsername());
+			message.put("project", project.getName());
+			message.put("callback_id", GET_LIVE_RESOURCES_CALLBACK);
+			messagingConnector.send("getLiveResourcesRequest", message);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	protected void disconnect() {
+	}
+
 	public boolean isLiveEditResource(String username, String resourcePath) {
 		return repository.getUsername().equals(username) && liveEditUnits.containsKey(resourcePath);
 	}
@@ -86,6 +151,31 @@ public class LiveEditUnits {
 		}
 	}
 
+	protected void startupLiveUnits(JSONObject message) {
+		try {
+			JSONArray liveUnits = message.getJSONArray("liveEditUnits");
+			for (int i = 0; i < liveUnits.length(); i++) {
+				JSONObject liveUnit = liveUnits.getJSONObject(i);
+				
+				String username = liveUnit.getString("username");
+				String projectName = liveUnit.getString("project");
+				String resource = liveUnit.getString("resource");
+				long timestamp =  liveUnit.getLong("savePointTimestamp");
+				String hash = liveUnit.getString("savePointHash");
+				
+				String resourcePath = projectName + "/" + resource;
+				if (repository.getUsername().equals(username) && !liveEditUnits.containsKey(resourcePath)) {
+					startLiveUnit(null, 0, username, resourcePath, hash, timestamp);
+				}
+				
+				this.liveEditCoordinator.sendLiveEditStartedMessage(LIVE_EDIT_CONNECTOR_ID, username, projectName, resource, hash, timestamp);
+			}
+		}
+		catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+
 	protected void startLiveUnit(String requestSenderID, int callbackID, String username, String resourcePath, String hash, long timestamp) {
 		if (repository.getUsername().equals(username) && resourcePath.endsWith(".java")) {
 			
@@ -93,11 +183,10 @@ public class LiveEditUnits {
 			String relativeResourcePath = resourcePath.substring(projectName.length() + 1);
 			
 			ICompilationUnit liveUnit = liveEditUnits.get(resourcePath);
-			String liveUnitHash = "";
 			if (liveUnit != null) {
 				try {
 					String liveContent = liveUnit.getBuffer().getContents();
-					liveUnitHash = DigestUtils.shaHex(liveContent);
+					String liveUnitHash = DigestUtils.shaHex(liveContent);
 					if (!liveUnitHash.equals(hash)) {
 						liveEditCoordinator.sendLiveEditStartedResponse(LIVE_EDIT_CONNECTOR_ID, requestSenderID, callbackID, username, projectName, relativeResourcePath, hash, timestamp, liveContent);
 					}
@@ -131,6 +220,29 @@ public class LiveEditUnits {
 				try {
 					liveUnit.reconcile(ICompilationUnit.NO_AST, true, null, null);
 				} catch (JavaModelException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	protected void updateLiveUnit(String requestSenderID, int callbackID, String username, String projectName, String resource, String savePointHash, long savePointTimestamp, String remoteContent) {
+		if (repository.getUsername().equals(username) && resource.endsWith(".java") && repository.isConnected(projectName)) {
+			String resourcePath = projectName + "/" + resource;
+			
+			ICompilationUnit liveUnit = liveEditUnits.get(resourcePath);
+			if (liveUnit != null) {
+				try {
+					String liveContent = liveUnit.getBuffer().getContents();
+					String liveUnitHash = DigestUtils.shaHex(liveContent);
+
+					String remoteContentHash = DigestUtils.shaHex(remoteContent);
+					if (!liveUnitHash.equals(remoteContentHash)) {
+						liveUnit.getBuffer().setContents(remoteContent);
+						liveUnit.reconcile(ICompilationUnit.NO_AST, true, null, null);
+					}
+				}
+				catch (JavaModelException e) {
 					e.printStackTrace();
 				}
 			}
