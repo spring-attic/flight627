@@ -154,22 +154,25 @@ public class LiveEditConnector {
 			long timestamp = connectedProject.getTimestamp(resource);
 			
 			if (hash != null && hash.equals(savePointHash) && timestamp == savePointTimestamp) {
-				try {
-					Display.getDefault().asyncExec(new Runnable() {
-						public void run() {
-							try {
-								document.removeDocumentListener(documentListener);
-								document.set(content);
-								document.addDocumentListener(documentListener);
+				String openedContent = document.get();
+				if (!openedContent.equals(content)) {
+					try {
+						Display.getDefault().asyncExec(new Runnable() {
+							public void run() {
+								try {
+									document.removeDocumentListener(documentListener);
+									document.set(content);
+									document.addDocumentListener(documentListener);
+								}
+								catch (Exception e) {
+									e.printStackTrace();
+								}
 							}
-							catch (Exception e) {
-								e.printStackTrace();
-							}
-						}
-					});
-				}
-				catch (Exception e) {
-					e.printStackTrace();
+						});
+					}
+					catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
