@@ -13,9 +13,8 @@ package org.eclipse.flight.ui.integration.handlers;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.eclipse.core.resources.IProject;
 import org.eclipse.flight.core.WorkspaceRepository;
-import org.eclipse.flight.ui.integration.Activator;
+import org.eclipse.flight.ui.integration.FlightUiPlugin;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.widgets.Shell;
@@ -31,7 +30,7 @@ public class SyncDownloadHandler extends AbstractHandler {
 	public Object execute(final ExecutionEvent event) throws ExecutionException {
 		final WorkspaceRepository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
 		
-		final Shell shell = Activator.getDefault().getWorkbench().getActiveWorkbenchWindow().getShell();
+		final Shell shell = FlightUiPlugin.getDefault().getWorkbench().getActiveWorkbenchWindow().getShell();
 
 		SyncDownloadSelectionDialog selectionDialog = new SyncDownloadSelectionDialog(shell, new LabelProvider());
 		int result = selectionDialog.open();

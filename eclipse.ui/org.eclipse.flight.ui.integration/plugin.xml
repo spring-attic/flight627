@@ -8,6 +8,7 @@
       		allPopups="false"
             locationURI="popup:org.eclipse.ui.popup.any?after=additions">
           <menu
+                icon="icons/obj16/flight.png"
                 id="org.eclipse.flight.ui.integration"
                 label="Flight">
 	         <command
@@ -91,6 +92,12 @@
                 <objectClass name="org.eclipse.core.resources.IProject"/>
             </enablement>
       </decorator>
+   </extension>
+   <extension
+         point="org.eclipse.ui.startup">
+      <startup
+            class="org.eclipse.flight.ui.integration.FlightUiPlugin">
+      </startup>
    </extension>
 
 </plugin>
