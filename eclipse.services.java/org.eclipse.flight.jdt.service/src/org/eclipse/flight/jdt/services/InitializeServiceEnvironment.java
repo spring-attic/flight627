@@ -15,7 +15,7 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.flight.core.Repository;
+import org.eclipse.flight.core.WorkspaceRepository;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,9 +26,9 @@ import org.json.JSONObject;
 public class InitializeServiceEnvironment {
 
 	private static int GET_PROJECTS_CALLBACK = "InitializeServiceEnvironment - getProjectsCallback".hashCode();
-	private Repository repository;
+	private WorkspaceRepository repository;
 
-	public InitializeServiceEnvironment(Repository repository) {
+	public InitializeServiceEnvironment(WorkspaceRepository repository) {
 		this.repository = repository;
 	}
 

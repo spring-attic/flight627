@@ -19,7 +19,7 @@ import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.expressions.IEvaluationContext;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.flight.core.Repository;
+import org.eclipse.flight.core.WorkspaceRepository;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.ISources;
@@ -37,7 +37,7 @@ public class SyncConnectHandler extends AbstractHandler {
 		ISelection selection = HandlerUtil.getCurrentSelection(event);
 		IProject[] selectedProjects = getSelectedProjects(selection);
 		
-		Repository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
+		WorkspaceRepository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
 
 		for (IProject project : selectedProjects) {
 			if (!repository.isConnected(project)) {
@@ -56,7 +56,7 @@ public class SyncConnectHandler extends AbstractHandler {
 			if (selection instanceof ISelection) {
 				IProject[] selectedProjects = getSelectedProjects((ISelection) selection);
 				
-				Repository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
+				WorkspaceRepository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
 				for (IProject project : selectedProjects) {
 					if (!repository.isConnected(project)) {
 						setBaseEnabled(true);

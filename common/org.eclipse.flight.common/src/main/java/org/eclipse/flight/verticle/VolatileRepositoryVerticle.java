@@ -10,14 +10,13 @@
  *******************************************************************************/
 package org.eclipse.flight.verticle;
 
-import org.eclipse.flight.resources.Repository;
 import org.eclipse.flight.resources.vertx.VertxManager;
 import org.eclipse.flight.resources.vertx.VertxRepository;
-import org.vertx.java.core.Vertx;
 import org.vertx.java.platform.Verticle;
 
 /**
  * A simple in memory container for shared project resources.
+ * (This is what is created if you launch common as a standalone vertx.)
  * 
  * @author Miles Parker
  */

@@ -18,11 +18,11 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.NullProgressMonitor;
-import org.eclipse.flight.Constants;
+import org.eclipse.flight.Ids;
 import org.eclipse.flight.core.ILiveEditConnector;
 import org.eclipse.flight.core.IRepositoryListener;
 import org.eclipse.flight.core.LiveEditCoordinator;
-import org.eclipse.flight.core.Repository;
+import org.eclipse.flight.core.WorkspaceRepository;
 import org.eclipse.flight.resources.Edit;
 import org.eclipse.flight.resources.Resource;
 import org.eclipse.flight.resources.vertx.Requester;
@@ -46,11 +46,11 @@ public class LiveEditUnits {
 
 	private ConcurrentMap<String, ICompilationUnit> liveEditUnits;
 
-	private Repository repository;
+	private WorkspaceRepository repository;
 
 	private LiveEditCoordinator liveEditCoordinator;
 
-	public LiveEditUnits(LiveEditCoordinator liveEditCoordinator, Repository repository) {
+	public LiveEditUnits(LiveEditCoordinator liveEditCoordinator, WorkspaceRepository repository) {
 		this.liveEditCoordinator = liveEditCoordinator;
 		this.repository = repository;
 
@@ -97,7 +97,7 @@ public class LiveEditUnits {
 	protected void startup() {
 		Resource resource = new Resource();
 		resource.setUserName(repository.getUsername());
-		VertxManager.get().request(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_REQUEST, resource,
+		VertxManager.get().request(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_REQUEST, resource,
 				new Requester() {
 
 					@Override
@@ -111,7 +111,7 @@ public class LiveEditUnits {
 		Resource resource = new Resource();
 		resource.setUserName(repository.getUsername());
 		resource.setProjectName(project.getName());
-		VertxManager.get().request(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_REQUEST, resource,
+		VertxManager.get().request(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_REQUEST, resource,
 				new Requester() {
 
 					@Override

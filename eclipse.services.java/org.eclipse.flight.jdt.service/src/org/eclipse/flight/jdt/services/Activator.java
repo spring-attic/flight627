@@ -11,7 +11,7 @@
 package org.eclipse.flight.jdt.services;
 
 import org.eclipse.flight.core.LiveEditCoordinator;
-import org.eclipse.flight.core.Repository;
+import org.eclipse.flight.core.WorkspaceRepository;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 
@@ -22,7 +22,7 @@ public class Activator implements BundleActivator {
 
 	@Override
 	public void start(BundleContext context) throws Exception {
-		Repository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
+		WorkspaceRepository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
 		LiveEditCoordinator liveEditCoordinator = org.eclipse.flight.core.Activator.getDefault().getLiveEditCoordinator(); 
 		
 		LiveEditUnits liveEditUnits = new LiveEditUnits(liveEditCoordinator, repository);

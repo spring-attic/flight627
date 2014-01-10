@@ -16,14 +16,14 @@
 
 var editor_id = Math.ceil(10000000 * Math.random());
 
-define([ "require", "vertx/vertxbus-2.1", "orion/editor/textView", "orion/keyBinding", "editor/textview/textStyler",
+define([ "require", "orion/editor/textView", "orion/keyBinding", "editor/textview/textStyler",
 		"orion/editor/textMateStyler", "orion/editor/htmlGrammar", "orion/editor/editor",
 		"orion/editor/editorFeatures", "orion/editor/contentAssist", "editor/javaContentAssist",
 		"orion/editor/linkedMode", "editor/sha1", "editor/socket.io" ],
 
-function(require, mvertx, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGrammar, mEditor, mEditorFeatures,
+function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGrammar, mEditor, mEditorFeatures,
 		mContentAssist, mJavaContentAssist, mLinkedMode) {
-	var eb = new vertx.EventBus('http://localhost:3001/eventbus');
+	var eb = new vertx.EventBus('http://localhost:6271/eventbus');
 
 	var editorDomNode = document.getElementById("editor");
 
@@ -306,23 +306,17 @@ function(require, mvertx, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, 
 					}
 				};
 
-				console.log('start');
 				eb.send('flight.resourceProvider', request, function(reply) {
 					var data = JSON.parse(JSON.stringify(reply)).contents;
-					console.log(data);
 
-					// if (lastSavePointTimestamp != 0 && lastSavePointHash !==
-					// '') {
-					// return;
-					// }
-
-					console.log(data.username);
-					// if (data.username !== username) {
-					// return;
-					// }
+					 if (lastSavePointTimestamp != 0 && lastSavePointHash !== '') {
+						return;
+					}
+					if (data.username !== username) {
+						return;
+					}
 
 					var text = data.data;
-					console.log("test" + text);
 
 					editor.setInput(fileShortName, null, text);
 					syntaxHighlighter.highlight(fileShortName, editor);
@@ -373,9 +367,10 @@ function(require, mvertx, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, 
 				eb.registerHandler('flight.editParticipant', function(message, replier) {
 					var msg = JSON.parse(JSON.stringify(message));
 					var data = msg.contents;
-					console.log(msg.action);
-					console.log(data);
-					if (data.username !== username || project !== data.projectName || data.path !== resource || msg.senderId == editor_id) {
+//					console.log(msg.action);
+//					console.log(data);
+					if (data.username !== username || project !== data.projectName || data.path !== resource
+							|| msg.senderId == editor_id) {
 						return;
 					}
 					if (msg.action == "live.resource.startedResponse") {
@@ -415,28 +410,23 @@ function(require, mvertx, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, 
 						}
 					} else if (msg.action == "live.resource.changed") {
 						var text = data.data !== undefined ? data.data : "";
-						console.log(text);
 						editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
 						editor.getModel().setText(text, data.offset, data.offset + data.removeCount);
 						editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 					} else if (msg.action == "live.metadata.changed") {
-						 var markers = [];
-						 for(i = 0; i < data.markers.length; i++) {
-						 var lineOffset = editor.getModel().getLineStart(data.markers[i].line -
-						 1);
-										
-						 console.log(lineOffset);
-										
-						 markers[i] = {
-						 'description' : data.markers[i].description,
-						 'line' : data.markers[i].sourceLine,
-						 'severity' : data.markers[i].severity,
-						 'start' : (data.markers[i].start - lineOffset) + 1,
-						 'end' : data.markers[i].end - lineOffset
-						 };
-						 }
-									
-						 editor.showProblems(markers);
+						var markers = [];
+						for (i = 0; i < data.markers.length; i++) {
+							var lineOffset = editor.getModel().getLineStart(data.markers[i].line - 1);
+							markers[i] = {
+								'description' : data.markers[i].description,
+								'line' : data.markers[i].sourceLine,
+								'severity' : data.markers[i].severity,
+								'start' : (data.markers[i].start - lineOffset) + 1,
+								'end' : data.markers[i].end - lineOffset
+							};
+						}
+
+						editor.showProblems(markers);
 					}
 				});
 			} else {

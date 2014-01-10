@@ -13,7 +13,7 @@ package org.eclipse.flight.jdt.services;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.flight.Constants;
+import org.eclipse.flight.Ids;
 import org.eclipse.flight.resources.Edit;
 import org.eclipse.flight.resources.Resource;
 import org.eclipse.flight.resources.ResourceMarker;
@@ -68,6 +68,6 @@ public class LiveEditProblemRequestor implements IProblemRequestor {
 			marker.setEnd(problem.getSourceEnd() + 1);
 			resource.getMarkers().add(marker);
 		}
-		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_METADATA_CHANGED, resource);
+		VertxManager.get().publish(Ids.EDIT_PARTICIPANT, Ids.LIVE_METADATA_CHANGED, resource);
 	}
 }

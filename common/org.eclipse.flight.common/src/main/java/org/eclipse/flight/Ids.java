@@ -15,13 +15,19 @@ package org.eclipse.flight;
  * 
  * @author Miles Parker
  */
-public interface Constants {
-	
-	public static int PORT = 6270;
-	
-	public static String HOST = "localhost";
+public interface Ids {
 
 	public static final String RESOURCE_PROVIDER = "flight.resourceProvider";
+
+	public static final String PROJECT_DISCONNECTED = "notify.project.disconnected";
+
+	public static final String PROJECT_CONNECTED = "notify.project.connected";
+
+	public static final String RESOURCE_CREATED = "notify.resource.created";
+
+	public static final String RESOURCE_DELETED = "notify.resource.deleted";
+
+	public static final String RESOURCE_MODIFIED = "notify.resource.modified";
 
 	public static final String CREATE_PROJECT = "project.create";
 

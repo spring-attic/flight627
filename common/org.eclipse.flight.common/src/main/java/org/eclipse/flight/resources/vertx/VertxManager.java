@@ -17,7 +17,8 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
-import org.eclipse.flight.Constants;
+import org.eclipse.flight.Configuration;
+import org.eclipse.flight.Ids;
 import org.eclipse.flight.resources.FlightObject;
 import org.eclipse.flight.resources.JsonWrapper;
 import org.eclipse.flight.resources.NotificationMessage;
@@ -30,7 +31,6 @@ import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
-import org.vertx.java.spi.cluster.impl.hazelcast.HazelcastClusterManagerFactory;
 
 /**
  * @author Miles Parker
@@ -82,8 +82,8 @@ public class VertxManager {
 
 	private VertxManager() {
 		id = (new Random()).nextLong();
-		System.setProperty("vertx.clusterManagerFactory", HazelcastClusterManagerFactory.class.getCanonicalName());
-		VertxFactory.newVertx(Constants.PORT, Constants.HOST,
+		System.setProperty("vertx.clusterManagerFactory", "org.vertx.java.spi.cluster.impl.hazelcast.HazelcastClusterManagerFactory");
+		VertxFactory.newVertx(Configuration.getEventBusPort(), Configuration.getHost(),
 				new Handler<AsyncResult<Vertx>>() {
 					@Override
 					public void handle(AsyncResult<Vertx> event) {
@@ -113,17 +113,17 @@ public class VertxManager {
 	}
 
 	public void start() {
-		logger.info("Starting vertx manager...");
+		logger.info("Starting vertx bridge server...");
 
-		HttpServer httpServer = vertx.createHttpServer();
+		HttpServer bridgeServer = vertx.createHttpServer();
 		JsonArray permitted = new JsonArray();
 		permitted.add(new JsonObject());
 
 		JsonObject config = new JsonObject().putString("prefix", "/eventbus");
-		vertx.createSockJSServer(httpServer).bridge(config, permitted, permitted);
+		vertx.createSockJSServer(bridgeServer).bridge(config, permitted, permitted);
 
-		httpServer.listen(3001, "localhost");
-		logger.info("Vertx manager started");
+		bridgeServer.listen(Configuration.getEventBusBridgePort(), Configuration.getHost());
+		logger.info("Vertx bridge server started");
 	}
 
 	public void register(FlightHandler handler) {
@@ -145,7 +145,7 @@ public class VertxManager {
 	public void publish(String address, String action, FlightObject object) {
 		logger.debug("Publishing @" + address + " " + action + "\n\t\t" + object);
 		vertx.eventBus().publish(
-				Constants.EDIT_PARTICIPANT,
+				Ids.EDIT_PARTICIPANT,
 				new NotificationMessage(id, action, object)
 						.toJson());
 	}

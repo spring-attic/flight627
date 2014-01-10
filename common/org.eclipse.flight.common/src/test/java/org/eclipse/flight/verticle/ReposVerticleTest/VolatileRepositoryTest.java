@@ -15,7 +15,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.vertx.testtools.VertxAssert.*;
 
 import org.apache.log4j.Logger;
-import org.eclipse.flight.Constants;
+import org.eclipse.flight.Ids;
 import org.eclipse.flight.resources.FlightObject;
 import org.eclipse.flight.resources.Project;
 import org.eclipse.flight.resources.RequestMessage;
@@ -60,14 +60,14 @@ public class VolatileRepositoryTest extends TestVerticle {
 		abstract void expect(Message<JsonObject> reply);
 
 		void execute() {
-			logger.debug("test sending @" + Constants.RESOURCE_PROVIDER + " " + action);
-			vertx.eventBus().send(Constants.RESOURCE_PROVIDER,
+			logger.debug("test sending @" + Ids.RESOURCE_PROVIDER + " " + action);
+			vertx.eventBus().send(Ids.RESOURCE_PROVIDER,
 					new RequestMessage(0, action, message).toJson(),
 					new Handler<Message<JsonObject>>() {
 						@Override
 						public void handle(Message<JsonObject> reply) {
 							try {
-								logger.debug("test_recieved @" + Constants.RESOURCE_PROVIDER + " " + action + "\n\t\t" + reply.body());
+								logger.debug("test_recieved @" + Ids.RESOURCE_PROVIDER + " " + action + "\n\t\t" + reply.body());
 								expect(reply);
 								if (next == null) {
 									testComplete();
@@ -108,7 +108,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		fooProject.setName("foo");
 	}
 
-	TestHandler createFooProject = new TestHandler(Constants.CREATE_PROJECT, fooProject) {
+	TestHandler createFooProject = new TestHandler(Ids.CREATE_PROJECT, fooProject) {
 		@Override
 		void expect(Message<JsonObject> reply) {
 			assertThat(reply.body().getObject("contents").getString("name"), is("foo"));
@@ -117,7 +117,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 
 	@Test
 	public void testGetProjectsEmpty() {
-		new TestHandler(Constants.GET_ALL_PROJECTS, null) {
+		new TestHandler(Ids.GET_ALL_PROJECTS, null) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				JsonArray projects = reply.body().getObject("contents")
@@ -129,7 +129,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 
 	@Test
 	public void testCreateProjects() {
-		execute(createFooProject, new TestHandler(Constants.GET_ALL_PROJECTS, null) {
+		execute(createFooProject, new TestHandler(Ids.GET_ALL_PROJECTS, null) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				JsonArray projects = reply.body().getObject("contents")
@@ -142,7 +142,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 
 	@Test
 	public void testGetProject() {
-		execute(createFooProject, new TestHandler(Constants.GET_PROJECT, fooProject) {
+		execute(createFooProject, new TestHandler(Ids.GET_PROJECT, fooProject) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply.body().getObject("contents").getString("name"),
@@ -166,7 +166,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		resourceIdent.setProjectName("foo");
 		resourceIdent.setPath("src/foo/bar/MyClass.java");
 
-		execute(createFooProject, new TestHandler(Constants.CREATE_RESOURCE, resource) {
+		execute(createFooProject, new TestHandler(Ids.CREATE_RESOURCE, resource) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				JsonObject contents = reply.body().getObject("contents");
@@ -174,7 +174,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 				assertThat(contents.getString("hash"), is("12345678"));
 				assertThat(contents.getString("data"), is((String) null));
 			}
-		}, new TestHandler(Constants.GET_PROJECT, fooProject) {
+		}, new TestHandler(Ids.GET_PROJECT, fooProject) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				JsonObject contents = reply.body().getObject("contents");
@@ -182,14 +182,14 @@ public class VolatileRepositoryTest extends TestVerticle {
 				JsonArray array = contents.getArray("resources");
 				assertThat(array.size(), is(1));
 			}
-		}, new TestHandler(Constants.GET_RESOURCE, resourceIdent) {
+		}, new TestHandler(Ids.GET_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				JsonObject contents = reply.body().getObject("contents");
 				assertThat(contents.getString("hash"), is("12345678"));
 				assertThat(contents.getString("data"), is("package foo.bar;..."));
 			}
-		}, new TestHandler(Constants.HAS_RESOURCE, resourceIdent) {
+		}, new TestHandler(Ids.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply.body().getObject("contents").getBoolean("exists"), is(true));
@@ -204,12 +204,12 @@ public class VolatileRepositoryTest extends TestVerticle {
 		final Resource resourceIdent = new Resource();
 		resourceIdent.setProjectName("foo");
 		resourceIdent.setPath("src/foo/bar/Missing.java");
-		execute(createFooProject, new TestHandler(Constants.GET_RESOURCE, resourceIdent) {
+		execute(createFooProject, new TestHandler(Ids.GET_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply, instanceOf(ReplyFailureMessage.class));
 			}
-		}, new TestHandler(Constants.HAS_RESOURCE, resourceIdent) {
+		}, new TestHandler(Ids.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply.body().getObject("contents").getBoolean("exists"), is(false));
@@ -222,13 +222,13 @@ public class VolatileRepositoryTest extends TestVerticle {
 		final Resource resourceIdent = new Resource();
 		resourceIdent.setProjectName("my.project");
 		resourceIdent.setPath("src/foo/bar/Missing.java");
-		execute(createFooProject, new TestHandler(Constants.GET_RESOURCE, resourceIdent) {
+		execute(createFooProject, new TestHandler(Ids.GET_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply, instanceOf(ReplyFailureMessage.class));
 				assertThat(reply.body(), instanceOf(ReplyException.class));
 			}
-		}, new TestHandler(Constants.HAS_RESOURCE, resourceIdent) {
+		}, new TestHandler(Ids.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
 				assertThat(reply.body().getObject("contents").getBoolean("exists"), is(false));

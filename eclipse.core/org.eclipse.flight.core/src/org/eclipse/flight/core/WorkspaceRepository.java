@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import org.eclipse.core.resources.IMarkerDelta;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.flight.Ids;
 import org.eclipse.flight.resources.Project;
 import org.eclipse.flight.resources.vertx.VertxManager;
 import org.eclipse.flight.resources.vertx.VertxRepository;
@@ -26,13 +27,13 @@ import org.eclipse.flight.resources.vertx.VertxRepository;
  * @author Martin Lippert
  * @author Miles Parker
  */
-public class Repository extends VertxRepository {
+public class WorkspaceRepository extends VertxRepository {
 
 	private String username;
 
 	private Collection<IRepositoryListener> repositoryListeners;
 
-	public Repository(final String user) {
+	public WorkspaceRepository(final String user) {
 		super(VertxManager.get());
 		this.username = user;
 		this.repositoryListeners = new ConcurrentLinkedDeque<>();
@@ -64,73 +65,6 @@ public class Repository extends VertxRepository {
 		// };
 		// this.messagingConnector.addMessageHandler(resourceDeletedHandler);
 
-//		EclipseVertx
-//				.get()
-//				.eventBus()
-//				.registerHandler(Messages.GET_ALL_PROJECTS,
-//						new Handler<Message<JsonObject>>() {
-//							@Override
-//							public void handle(Message<JsonObject> message) {
-//								JsonArray projects = new JsonArray();
-//								for (ConnectedProject project : syncedProjects.values()) {
-//									projects.addObject(project.toJson());
-//								}
-//								JsonObject response = new JsonObject();
-//								response.putArray("projects", projects);
-//								response.putString("user", user);
-//								message.reply(new Response(Messages.GET_ALL_PROJECTS,
-//										response));
-//							}
-//						});
-
-		// IMessageHandler getProjectRequestHandler = new
-		// AbstractMessageHandler("getProjectRequest") {
-		// @Override
-		// public void handleMessage(String messageType, JsonObject message) {
-		// getProject(message);
-		// }
-		// };
-		// this.messagingConnector.addMessageHandler(getProjectRequestHandler);
-		//
-		// IMessageHandler getProjectResponseHandler = new
-		// CallbackIDAwareMessageHandler("getProjectResponse",
-		// Repository.GET_PROJECT_CALLBACK) {
-		// @Override
-		// public void handleMessage(String messageType, JsonObject message) {
-		// getProjectResponse(message);
-		// }
-		// };
-		// this.messagingConnector.addMessageHandler(getProjectResponseHandler);
-		//
-		// IMessageHandler getResourceRequestHandler = new
-		// AbstractMessageHandler("getResourceRequest") {
-		// @Override
-		// public void handleMessage(String messageType, JsonObject message) {
-		// try {
-		// final String resourcePath = message.getString("resource");
-		//
-		// if (resourcePath.startsWith("classpath:")) {
-		// getClasspathResource(message);
-		// }
-		// else {
-		// getResource(message);
-		// }
-		// } catch (Exception e) {
-		// e.printStackTrace();
-		// }
-		// }
-		// };
-		// this.messagingConnector.addMessageHandler(getResourceRequestHandler);
-		//
-		// IMessageHandler getResourceResponseHandler = new
-		// CallbackIDAwareMessageHandler("getResourceResponse",
-		// Repository.GET_RESOURCE_CALLBACK) {
-		// @Override
-		// public void handleMessage(String messageType, JsonObject message) {
-		// getResourceResponse(message);
-		// }
-		// };
-		// this.messagingConnector.addMessageHandler(getResourceResponseHandler);
 		//
 		// IMessageHandler getMetadataRequestHandler = new
 		// AbstractMessageHandler("getMetadataRequest") {
@@ -186,15 +120,8 @@ public class Repository extends VertxRepository {
 		if (isConnected(projectName)) {
 			Project removed = removeProject(projectName);
 			((ConnectedProject) removed).disconnect();
-			notifyProjectDisonnected(project);
-			// try {
-			// JsonObject message = new JsonObject();
-			// message.put("username", this.username);
-			// message.put("project", projectName);
-			// messagingConnector.send("projectDisconnected", message);
-			// } catch (JSONException e) {
-			// e.printStackTrace();
-			// }
+			notifyProjectDisconnected(project);
+			VertxManager.get().publish(Ids.RESOURCE_PROVIDER, Ids.PROJECT_DISCONNECTED, removed);
 		}
 	}
 
@@ -235,7 +162,7 @@ public class Repository extends VertxRepository {
 		}
 	}
 
-	protected void notifyProjectDisonnected(IProject project) {
+	protected void notifyProjectDisconnected(IProject project) {
 		for (IRepositoryListener listener : this.repositoryListeners) {
 			listener.projectDisconnected(project);
 		}

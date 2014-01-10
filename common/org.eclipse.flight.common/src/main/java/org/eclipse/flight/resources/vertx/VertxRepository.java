@@ -1,6 +1,6 @@
 package org.eclipse.flight.resources.vertx;
 
-import org.eclipse.flight.Constants;
+import org.eclipse.flight.Ids;
 import org.eclipse.flight.resources.Project;
 import org.eclipse.flight.resources.Repository;
 import org.eclipse.flight.resources.Resource;
@@ -31,7 +31,7 @@ public class VertxRepository extends Repository {
 
 	public VertxRepository(VertxManager vertx) {
 
-		vertx.register(new Responder(Constants.RESOURCE_PROVIDER, Constants.CREATE_PROJECT) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.CREATE_PROJECT) {
 
 			@Override
 			public Object respond(JsonObject request) {
@@ -39,7 +39,7 @@ public class VertxRepository extends Repository {
 				return project.toJson(true);
 			}
 		});
-		vertx.register(new Responder(Constants.RESOURCE_PROVIDER, Constants.GET_PROJECT) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.GET_PROJECT) {
 
 			@Override
 			public Object respond(JsonObject request) {
@@ -47,14 +47,14 @@ public class VertxRepository extends Repository {
 				return project.toJson();
 			}
 		});
-		vertx.register(new Responder(Constants.RESOURCE_PROVIDER, Constants.GET_ALL_PROJECTS) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.GET_ALL_PROJECTS) {
 
 			@Override
 			public Object respond(JsonObject request) {
 				return VertxRepository.this.toJson(true);
 			}
 		});
-		vertx.register(new Responder(Constants.RESOURCE_PROVIDER, Constants.GET_RESOURCE) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.GET_RESOURCE) {
 
 			@Override
 			public Object respond(JsonObject request) {
@@ -63,7 +63,7 @@ public class VertxRepository extends Repository {
 				return getResource(remoteResource);
 			}
 		});
-		vertx.register(new Responder(Constants.RESOURCE_PROVIDER, Constants.HAS_RESOURCE) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.HAS_RESOURCE) {
 
 			@Override
 			public Object respond(JsonObject request) {
@@ -73,7 +73,7 @@ public class VertxRepository extends Repository {
 				return remoteResource.toJson().putBoolean("exists", resource != null);
 			}
 		});
-		vertx.register(new Responder(Constants.RESOURCE_PROVIDER, Constants.NEEDS_UPDATE_RESOURCE) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.NEEDS_UPDATE_RESOURCE) {
 
 			@Override
 			public Object respond(JsonObject request) {
@@ -82,7 +82,7 @@ public class VertxRepository extends Repository {
 				return new JsonObject().putBoolean("needsUpdate", needsUpdate(remoteResource));
 			}
 		});
-		vertx.register(new Responder(Constants.RESOURCE_PROVIDER, Constants.CREATE_RESOURCE) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.CREATE_RESOURCE) {
 
 			@Override
 			public Object respond(JsonObject request) {
@@ -92,13 +92,13 @@ public class VertxRepository extends Repository {
 			}
 		});
 
-		HttpServer server = vertx.getVertx().createHttpServer();
-
-		server.websocketHandler(new Handler<ServerWebSocket>() {
-			public void handle(final ServerWebSocket sock) {
-				Pump.createPump(sock, sock).start();
-			}
-		}).listen(3001, "localhost");
+//		HttpServer server = vertx.getVertx().createHttpServer();
+//
+//		server.websocketHandler(new Handler<ServerWebSocket>() {
+//			public void handle(final ServerWebSocket sock) {
+//				Pump.createPump(sock, sock).start();
+//			}
+//		}).listen(3001, "localhost");
 	}
 	//
 	// @Override

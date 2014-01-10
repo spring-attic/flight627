@@ -28,7 +28,7 @@ import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.flight.Constants;
+import org.eclipse.flight.Ids;
 import org.eclipse.flight.resources.Project;
 import org.eclipse.flight.resources.RequestMessage;
 import org.eclipse.flight.resources.Resource;
@@ -77,7 +77,7 @@ public class ConnectedProject extends Project {
 
 	private void requestResources() {
 		System.err.println("blah");
-		VertxManager.get().request(Constants.RESOURCE_PROVIDER, Constants.GET_PROJECT, ConnectedProject.this,
+		VertxManager.get().request(Ids.RESOURCE_PROVIDER, Ids.GET_PROJECT, ConnectedProject.this,
 				new Requester() {
 
 					@Override
@@ -138,7 +138,7 @@ public class ConnectedProject extends Project {
 				}
 				if (remoteResource.getType().equals("file")) {
 					if (newResource || updatedResource) {
-						VertxManager.get().request(Constants.RESOURCE_PROVIDER, Constants.GET_RESOURCE,
+						VertxManager.get().request(Ids.RESOURCE_PROVIDER, Ids.GET_RESOURCE,
 								ConnectedProject.this, new Requester() {
 									@Override
 									public void accept(JsonObject reply) {

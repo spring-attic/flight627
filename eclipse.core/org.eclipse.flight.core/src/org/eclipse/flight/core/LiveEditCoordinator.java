@@ -13,7 +13,7 @@ package org.eclipse.flight.core;
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.eclipse.flight.Constants;
+import org.eclipse.flight.Ids;
 import org.eclipse.flight.resources.Edit;
 import org.eclipse.flight.resources.vertx.Receiver;
 import org.eclipse.flight.resources.vertx.VertxManager;
@@ -29,7 +29,7 @@ public class LiveEditCoordinator {
 
 	public LiveEditCoordinator() {
 		this.liveEditConnectors = new CopyOnWriteArrayList<>();
-		VertxManager.get().register(new Receiver(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_STARTED) {
+		VertxManager.get().register(new Receiver(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_STARTED) {
 
 			@Override
 			public void receive(JsonObject contents) {
@@ -38,7 +38,7 @@ public class LiveEditCoordinator {
 				startLiveUnit(edit);
 			}
 		});
-		VertxManager.get().register(new Receiver(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_RESPONSE) {
+		VertxManager.get().register(new Receiver(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_RESPONSE) {
 
 			@Override
 			public void receive(JsonObject contents) {
@@ -47,7 +47,7 @@ public class LiveEditCoordinator {
 				startLiveUnitResponse(edit);
 			}
 		});
-		VertxManager.get().register(new Receiver(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_CHANGED) {
+		VertxManager.get().register(new Receiver(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_CHANGED) {
 
 			@Override
 			public void receive(JsonObject contents) {
@@ -79,7 +79,7 @@ public class LiveEditCoordinator {
 	}
 
 	public void sendModelChangedMessage(Edit edit) {
-		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_CHANGED, edit);
+		VertxManager.get().publish(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_CHANGED, edit);
 
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
 			if (!connector.getConnectorID().equals(edit.getEditType())) {
@@ -89,7 +89,7 @@ public class LiveEditCoordinator {
 	}
 
 	public void sendLiveEditStartedMessage(Edit edit) {
-		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_STARTED, edit);
+		VertxManager.get().publish(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_STARTED, edit);
 
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
 			if (!connector.getConnectorID().equals(edit.getEditType())) {
@@ -105,7 +105,7 @@ public class LiveEditCoordinator {
 	}
 
 	public void sendLiveEditStartedResponse(Edit edit) {
-		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_RESPONSE, edit);
+		VertxManager.get().publish(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_RESPONSE, edit);
 
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
 			if (!connector.getConnectorID().equals(edit.getEditType())) {

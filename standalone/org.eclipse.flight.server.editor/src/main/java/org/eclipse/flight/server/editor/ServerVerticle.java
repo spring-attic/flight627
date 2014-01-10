@@ -11,6 +11,7 @@
 
 package org.eclipse.flight.server.editor;
 
+import org.eclipse.flight.Configuration;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
@@ -35,7 +36,7 @@ public class ServerVerticle extends Verticle {
 		        System.err.println("request " + file);
 		        req.response().sendFile("web-client/" + file);      		    }
 		});
-		fileServer.listen(3000, "localhost");
+		fileServer.listen(Configuration.getWebEditorPort(), Configuration.getHost());
 		
 //		HttpServer bridgeServer = vertx.createHttpServer();
 //		JsonArray permitted = new JsonArray();
