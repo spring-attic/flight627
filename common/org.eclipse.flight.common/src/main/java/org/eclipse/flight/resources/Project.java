@@ -17,18 +17,18 @@ import java.util.Map;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 
-public class Project extends MessageObject {
+public class Project extends FlightObject {
 
 	String name;
 
-	String userName;
+	String username;
 
 	Map<String, Resource> resources = new HashMap<String, Resource>();
 
 	@Override
 	public void fromJson(JsonObject json) {
 		name = json.getString("name");
-		userName = json.getString("userName");
+		username = json.getString("username");
 		JsonArray jsonResources = json.getArray("resources");
 		for (Object object : jsonResources) {
 			JsonObject jsonResource = (JsonObject) object;
@@ -45,7 +45,7 @@ public class Project extends MessageObject {
 	@Override
 	protected void toJson(JsonObject json, boolean thin) {
 		json.putString("name", name);
-		json.putString("userName", userName);
+		json.putString("username", username);
 		if (!thin) {
 			JsonArray jsonResources = new JsonArray();
 			for (Resource resource : resources.values()) {
@@ -108,17 +108,17 @@ public class Project extends MessageObject {
 	}
 
 	/**
-	 * @return the userName
+	 * @return the username
 	 */
 	public String getUserName() {
-		return userName;
+		return username;
 	}
 
 	/**
-	 * @param userName
-	 *            the userName to set
+	 * @param username
+	 *            the username to set
 	 */
-	public void setUserName(String userName) {
-		this.userName = userName;
+	public void setUserName(String username) {
+		this.username = username;
 	}
 }

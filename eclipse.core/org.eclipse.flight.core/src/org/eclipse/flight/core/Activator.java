@@ -7,7 +7,7 @@
  *
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
-*******************************************************************************/
+ *******************************************************************************/
 package org.eclipse.flight.core;
 
 import org.eclipse.core.resources.IResourceChangeEvent;
@@ -29,27 +29,27 @@ public class Activator implements BundleActivator {
 	private static Activator plugin;
 
 	private Repository repository;
+
 	private LiveEditCoordinator liveEditCoordinator;
-	
+
 	@Override
 	public void start(BundleContext context) throws Exception {
 		System.out.println("core activator");
-		
+
 		plugin = this;
-		
+
 		String username = System.getProperty("flight-username", "defaultuser");
 		// TODO: change this username property to a preference and add authentication
-		
+
 		repository = new Repository(username);
 		liveEditCoordinator = new LiveEditCoordinator();
-		
+
 		CloudSyncResourceListener resourceListener = new CloudSyncResourceListener(repository);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(resourceListener, IResourceChangeEvent.POST_CHANGE);
 
 		CloudSyncMetadataListener metadataListener = new CloudSyncMetadataListener(repository);
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(metadataListener, IResourceChangeEvent.POST_BUILD);
-		
-		
+
 	}
 
 	@Override
@@ -59,17 +59,17 @@ public class Activator implements BundleActivator {
 
 	/**
 	 * Returns the shared instance
-	 *
+	 * 
 	 * @return the shared instance
 	 */
 	public static Activator getDefault() {
 		return plugin;
 	}
-	
+
 	public Repository getRepository() {
 		return repository;
 	}
-	
+
 	public LiveEditCoordinator getLiveEditCoordinator() {
 		return liveEditCoordinator;
 	}

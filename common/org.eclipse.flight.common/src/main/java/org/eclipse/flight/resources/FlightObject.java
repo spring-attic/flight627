@@ -12,13 +12,13 @@ package org.eclipse.flight.resources;
 
 import org.vertx.java.core.json.JsonObject;
 
-public abstract class MessageObject {
+public abstract class FlightObject {
 
 	protected abstract void fromJson(JsonObject json);
 	
 	protected abstract void toJson(JsonObject json, boolean thin);
 	
-	public final JsonObject toJson(boolean thin) {
+	public JsonObject toJson(boolean thin) {
 		JsonObject json = new JsonObject();
 		json.putString("class", getClass().getName());
 		toJson(json, thin);
@@ -29,11 +29,11 @@ public abstract class MessageObject {
 		return toJson(false);
 	}
 	
-	protected static MessageObject createFromJson(JsonObject json) {
+	protected static FlightObject createFromJson(JsonObject json) {
 		String clazz = json.getString("class");
-		MessageObject result = null;
+		FlightObject result = null;
 		try {
-			result = (MessageObject) Class.forName(clazz).newInstance();
+			result = (FlightObject) Class.forName(clazz).newInstance();
 			result.fromJson(json);
 		} catch (ClassCastException e) {
 			throw new RuntimeException("Class doesn't implement MessageObject: " + clazz);

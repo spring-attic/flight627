@@ -20,13 +20,13 @@ import org.vertx.java.core.json.JsonObject;
  * 
  * @author Miles Parker
  */
-public class Repository extends MessageObject {
+public class Repository extends FlightObject {
 	Map<String, Project> projects = createMap();
 
 	public Repository() {
 		projects = createMap();
 	}
-	
+
 	public Project getProject(String id) {
 		return projects.get(id);
 	}
@@ -46,6 +46,30 @@ public class Repository extends MessageObject {
 		return project;
 	}
 
+	public Resource getResource(Resource remoteResource) {
+		Project project = getProject(remoteResource.getProjectName());
+		if (project == null) {
+			return null;
+		}
+		return project.getResource(remoteResource);
+	}
+
+	public Resource putResource(Resource remoteResource) {
+		Project project = getProject(remoteResource.getProjectName());
+		if (project == null) {
+			return null;
+		}
+		return project.putResource(remoteResource);
+	}
+
+	public boolean needsUpdate(Resource remoteResource) {
+		Project project = getProject(remoteResource.getProjectName());
+		if (project == null) {
+			return false;
+		}
+		return project.needsUpdate(remoteResource);
+	}
+
 	public Project removeProject(String id) {
 		return projects.remove(id);
 	}
@@ -58,8 +82,12 @@ public class Repository extends MessageObject {
 		return new HashMap<String, Project>();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.flight.resources.MessageObject#fromJson(org.vertx.java.core.json.JsonObject)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.flight.resources.MessageObject#fromJson(org.vertx.java.core
+	 * .json.JsonObject)
 	 */
 	@Override
 	protected void fromJson(JsonObject json) {
@@ -69,8 +97,12 @@ public class Repository extends MessageObject {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.flight.resources.MessageObject#toJson(org.vertx.java.core.json.JsonObject)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.flight.resources.MessageObject#toJson(org.vertx.java.core
+	 * .json.JsonObject)
 	 */
 	@Override
 	protected void toJson(JsonObject json, boolean thin) {

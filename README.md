@@ -57,14 +57,25 @@
 
   The sync backbone provides a RESTful API to access and change resources and metadata. Additional communication
   (announcing changes, sending around metadata) is implemented using WebSockets.
+
+## Building
+
+  [Martin, I'm not sure any of this will actually work given all of the gradle maven stuff that has to happen. :) Let me know..]
+
+  1. Most everything is an Eclipse project, so you can just import all projects from the git repos.
+  1. You'll probably have to build "common/org.eclipse.flight.common" to make sure that all of the stuff you need is in the proper place. Just do something like:
+  
+  ```
+  ./gradlew clean cleanEclipse eclipse build install
+  ```
   
 ## Running the prototype
 
-  The node.js-based server can be found in the "node-sync-server" folder. In that folder, you can start the
-  node app:
+  The vertx server editor can be found in the "standalone/org.eclipse.flight.server.editor" folder. In that folder, you can start the
+  vertx app:
   
   ```
-  npm start
+  ./gradlew runModEclipse -i
   ```
   
   The Eclipse plugin can be found in the folder "eclipse-plugin" and is just an Eclipse project at the moment.

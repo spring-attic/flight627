@@ -15,9 +15,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.vertx.testtools.VertxAssert.*;
 
 import org.eclipse.flight.Constants;
-import org.eclipse.flight.resources.MessageObject;
+import org.eclipse.flight.resources.FlightObject;
 import org.eclipse.flight.resources.Project;
-import org.eclipse.flight.resources.Request;
+import org.eclipse.flight.resources.RequestMessage;
 import org.eclipse.flight.resources.Resource;
 import org.junit.Test;
 import org.junit.internal.runners.statements.Fail;
@@ -41,11 +41,11 @@ public class VolatileRepositoryTest extends TestVerticle {
 
 	abstract class TestHandler {
 		private String address;
-		private MessageObject message;
+		private FlightObject message;
 
 		TestHandler next;
 
-		TestHandler(String address, MessageObject message) {
+		TestHandler(String address, FlightObject message) {
 			this.address = address;
 			this.message = message;
 		}
@@ -57,7 +57,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 
 		void execute() {
 			vertx.eventBus().send(Constants.RESOURCE_PROVIDER,
-					new Request(address, message).toJson(),
+					new RequestMessage(address, message).toJson(),
 					new Handler<Message<JsonObject>>() {
 						@Override
 						public void handle(Message<JsonObject> reply) {

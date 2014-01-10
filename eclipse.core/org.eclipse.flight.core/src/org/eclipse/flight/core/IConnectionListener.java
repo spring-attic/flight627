@@ -7,7 +7,7 @@
  *
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
-*******************************************************************************/
+ *******************************************************************************/
 package org.eclipse.flight.core;
 
 /**
@@ -16,6 +16,7 @@ package org.eclipse.flight.core;
 public interface IConnectionListener {
 
 	void connected();
+
 	void disconnected();
 
 }

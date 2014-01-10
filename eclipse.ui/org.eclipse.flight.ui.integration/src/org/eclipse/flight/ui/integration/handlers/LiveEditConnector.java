@@ -18,6 +18,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.flight.core.ILiveEditConnector;
 import org.eclipse.flight.core.LiveEditCoordinator;
 import org.eclipse.flight.core.Repository;
+import org.eclipse.flight.resources.Edit;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IDocumentListener;
@@ -62,24 +63,21 @@ public class LiveEditConnector {
 		
 		ILiveEditConnector liveEditConnector = new ILiveEditConnector() {
 			@Override
-			public String getConnectorID() {
+			public String getEditType() {
 				return LIVE_EDIT_CONNECTOR_ID;
 			}
 
 			@Override
-			public void liveEditingEvent(String username, String resourcePath, int offset, int removeCount, String newText) {
-				handleModelChanged(username, resourcePath, offset, removeCount, newText);
+			public void liveEditingEvent(Edit edit) {
+				handleModelChanged(edit);
 			}
 
 			@Override
-			public void liveEditingStarted(String requestSenderID, int callbackID, String username, String resourcePath, String hash, long timestamp) {
-				// TODO Auto-generated method stub
+			public void liveEditingStarted(Edit edit) {
 			}
 
 			@Override
-			public void liveEditingStartedResponse(String requestSenderID, int callbackID, String username, String projectName, String resourcePath,
-					String content) {
-				// TODO Auto-generated method stub
+			public void liveEditingStartedResponse(Edit edit) {
 			}
 		};
 		this.liveEditCoordinator.addLiveEditConnector(liveEditConnector);
@@ -125,16 +123,16 @@ public class LiveEditConnector {
 		});
 	}
 	
-	protected void handleModelChanged(final String username, final String resourcePath, final int offset, final int removedCharCount, final String newText) {
-		if (repository.getUsername().equals(username) && resourcePath != null && documentMappings.containsKey(resourcePath)) {
-			final IDocument document = documentMappings.get(resourcePath);
+	protected void handleModelChanged(final Edit edit) {
+		if (repository.getUsername().equals(edit.getUserName()) && edit.getFullPath() != null && documentMappings.containsKey(edit.getFullPath())) {
+			final IDocument document = documentMappings.get(edit.getFullPath());
 			
 			try {
 				Display.getDefault().asyncExec(new Runnable() {
 					public void run() {
 						try {
 							document.removeDocumentListener(documentListener);
-							document.replace(offset, removedCharCount, newText);
+							document.replace(edit.getOffset(), edit.getRemoveCount(), edit.getData());
 							document.addDocumentListener(documentListener);
 						}
 						catch (Exception e) {
@@ -154,8 +152,15 @@ public class LiveEditConnector {
 		if (resourcePath != null) {
 			String projectName = resourcePath.substring(0, resourcePath.indexOf('/'));
 			String relativeResourcePath = resourcePath.substring(projectName.length() + 1);
-
-			this.liveEditCoordinator.sendModelChangedMessage(LIVE_EDIT_CONNECTOR_ID, repository.getUsername(), projectName, relativeResourcePath, event.getOffset(), event.getLength(), event.getText());
+			Edit edit = new Edit();
+			edit.setUserName(repository.getUsername());
+			edit.setProjectName(projectName);
+			edit.setPath(relativeResourcePath);
+			edit.setOffset(event.getOffset());
+			edit.setRemoveCount(event.getLength());
+			edit.setData(event.getText());
+			edit.setEditType(LIVE_EDIT_CONNECTOR_ID);
+			this.liveEditCoordinator.sendModelChangedMessage(edit);
 		}
 	}
 

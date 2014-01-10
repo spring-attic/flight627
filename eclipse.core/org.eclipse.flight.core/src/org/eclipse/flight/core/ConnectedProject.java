@@ -29,12 +29,13 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.flight.Constants;
-import org.eclipse.flight.core.internal.vertx.EclipseVertx;
 import org.eclipse.flight.resources.Project;
-import org.eclipse.flight.resources.Request;
+import org.eclipse.flight.resources.RequestMessage;
 import org.eclipse.flight.resources.Resource;
 import org.eclipse.flight.resources.Resource;
-import org.eclipse.flight.resources.Response;
+import org.eclipse.flight.resources.ResponseMessage;
+import org.eclipse.flight.resources.vertx.Requester;
+import org.eclipse.flight.resources.vertx.VertxManager;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;
@@ -56,7 +57,7 @@ public class ConnectedProject extends Project {
 		} catch (CoreException e) {
 			throw new RuntimeException(e);
 		}
-		//requestResources();
+		// requestResources();
 	}
 
 	/**
@@ -68,7 +69,7 @@ public class ConnectedProject extends Project {
 		try {
 			project.create(null);
 			project.open(null);
-			//requestResources();
+			// requestResources();
 		} catch (CoreException e1) {
 			completionCallback.downloadFailed();
 		}
@@ -76,18 +77,14 @@ public class ConnectedProject extends Project {
 
 	private void requestResources() {
 		System.err.println("blah");
-		EclipseVertx
-				.get()
-				.eventBus()
-				.send(Constants.RESOURCE_PROVIDER,
-						new Request(Constants.GET_PROJECT, ConnectedProject.this)
-								.toJson(true), new Handler<Message<JsonObject>>() {
-							@Override
-							public void handle(Message<JsonObject> reply) {
-								synchronizeProject(reply.body().getObject("contents"),
-										null);
-							}
-						});
+		VertxManager.get().request(Constants.RESOURCE_PROVIDER, Constants.GET_PROJECT, ConnectedProject.this,
+				new Requester() {
+
+					@Override
+					public void accept(JsonObject message) {
+						synchronizeProject(message, null);
+					}
+				});
 	}
 
 	public void updateResources() throws CoreException {
@@ -120,21 +117,18 @@ public class ConnectedProject extends Project {
 		}, IResource.DEPTH_INFINITE, IContainer.EXCLUDE_DERIVED);
 	}
 
-	public void synchronizeProject(JsonObject remoteObject,
-			final CompletionCallback completionCallback) {
+	public void synchronizeProject(JsonObject remoteObject, final CompletionCallback completionCallback) {
 		Project remoteProject = new Project();
 		remoteProject.fromJson(remoteObject);
 
-		if (remoteProject.getName().equals(getName())
-				&& remoteProject.getUserName().equals(getUserName())) {
+		if (remoteProject.getName().equals(getName()) && remoteProject.getUserName().equals(getUserName())) {
 
 			final AtomicInteger requestedFileCount = new AtomicInteger(0);
 			final AtomicInteger downloadedFileCount = new AtomicInteger(0);
 
 			for (Resource remoteResource : remoteProject.getResources()) {
 
-				final Resource localResource = getResource(remoteResource
-						.getPath());
+				final Resource localResource = getResource(remoteResource.getPath());
 				boolean newResource = localResource == null;
 				boolean updatedResource = localResource != null
 						&& !remoteResource.getHash().equals(localResource.getHash())
@@ -144,27 +138,19 @@ public class ConnectedProject extends Project {
 				}
 				if (remoteResource.getType().equals("file")) {
 					if (newResource || updatedResource) {
-						EclipseVertx
-								.get()
-								.eventBus()
-								.send(Constants.RESOURCE_PROVIDER,
-										new Request(Constants.GET_RESOURCE, ConnectedProject.this).toJson(true),
-										new Handler<Message<JsonObject>>() {
-											@Override
-											public void handle(Message<JsonObject> reply) {
-												synchronizeResource(reply.body()
-														.getObject("contents"));
-												if (completionCallback != null) {
-													int downloaded = downloadedFileCount
-															.incrementAndGet();
-													if (downloaded == requestedFileCount
-															.get()) {
-														completionCallback
-																.downloadComplete(project);
-													}
-												}
+						VertxManager.get().request(Constants.RESOURCE_PROVIDER, Constants.GET_RESOURCE,
+								ConnectedProject.this, new Requester() {
+									@Override
+									public void accept(JsonObject reply) {
+										synchronizeResource(reply);
+										if (completionCallback != null) {
+											int downloaded = downloadedFileCount.incrementAndGet();
+											if (downloaded == requestedFileCount.get()) {
+												completionCallback.downloadComplete(project);
 											}
-										});
+										}
+									}
+								});
 					}
 				} else if (remoteResource.getType().equals("folder") && newResource) {
 					IFolder folder = project.getFolder(remoteResource.getPath());
@@ -319,8 +305,7 @@ public class ConnectedProject extends Project {
 		if (remoteResource.getType().equals("file")) {
 
 			Resource localResource = getResource(remoteResource.getPath());
-			ByteArrayInputStream remoteData = new ByteArrayInputStream(remoteResource
-					.getData().getBytes());
+			ByteArrayInputStream remoteData = new ByteArrayInputStream(remoteResource.getData().getBytes());
 			try {
 				if (localResource == null) {
 					IFile file = project.getFile(remoteResource.getPath());

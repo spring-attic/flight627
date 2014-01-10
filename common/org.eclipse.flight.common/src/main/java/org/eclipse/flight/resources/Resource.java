@@ -15,7 +15,7 @@ import java.util.Map;
 
 import org.vertx.java.core.json.JsonObject;
 
-public class Resource extends MessageObject {
+public class Resource extends FlightObject {
 
 	Map<String, String> metadata = new HashMap<String, String>();
 
@@ -23,7 +23,7 @@ public class Resource extends MessageObject {
 
 	String projectName;
 
-	String userName;
+	String username;
 
 	String hash;
 
@@ -40,7 +40,7 @@ public class Resource extends MessageObject {
 	}
 
 	public String getUserName() {
-		return userName;
+		return username;
 	}
 
 	public String getHash() {
@@ -66,6 +66,10 @@ public class Resource extends MessageObject {
 	public void setType(String type) {
 		this.type = type;
 	}
+	
+	public String getFullPath() {
+		return getProjectName() + "/" + getPath();
+	}
 
 	public String getPath() {
 		return path;
@@ -75,8 +79,8 @@ public class Resource extends MessageObject {
 		this.path = path;
 	}
 
-	public void setUserName(String userName) {
-		this.userName = userName;
+	public void setUserName(String username) {
+		this.username = username;
 	}
 
 	public void setProjectName(String projectId) {
@@ -105,7 +109,7 @@ public class Resource extends MessageObject {
 		timestamp = json.getLong("timestamp");
 		type = json.getString("type");
 		path = json.getString("path");
-		userName = json.getString("userName");
+		username = json.getString("username");
 		projectName = json.getString("projectName");
 		data = json.getString("data");
 	}
@@ -114,7 +118,7 @@ public class Resource extends MessageObject {
 	protected void toJson(JsonObject json, boolean thin) {
 		json.putString("hash", hash).putNumber("timestamp", timestamp)
 				.putString("type", type).putString("path", path)
-				.putString("userName", userName).putString("projectName", projectName);
+				.putString("username", username).putString("projectName", projectName);
 		if (!thin) {
 			json.putString("data", data);
 		}

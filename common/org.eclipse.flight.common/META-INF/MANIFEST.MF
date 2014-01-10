@@ -6,5 +6,6 @@ Bundle-Version: 0.1.0.qualifier
 Export-Package: org.eclipse.flight,
  org.eclipse.flight.resources,
  org.eclipse.flight.resources.vertx
-Require-Bundle: org.vertx;bundle-version="2.1.0"
+Require-Bundle: org.vertx;bundle-version="2.1.0",
+ org.apache.log4j;bundle-version="1.2.15"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7

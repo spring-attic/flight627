@@ -18,8 +18,8 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import org.eclipse.core.resources.IMarkerDelta;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceDelta;
-import org.eclipse.flight.core.internal.vertx.EclipseVertx;
 import org.eclipse.flight.resources.Project;
+import org.eclipse.flight.resources.vertx.VertxManager;
 import org.eclipse.flight.resources.vertx.VertxRepository;
 
 /**
@@ -29,10 +29,11 @@ import org.eclipse.flight.resources.vertx.VertxRepository;
 public class Repository extends VertxRepository {
 
 	private String username;
+
 	private Collection<IRepositoryListener> repositoryListeners;
 
 	public Repository(final String user) {
-		super(EclipseVertx.get());
+		super(VertxManager.get());
 		this.username = user;
 		this.repositoryListeners = new ConcurrentLinkedDeque<>();
 

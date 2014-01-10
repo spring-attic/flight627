@@ -23,7 +23,6 @@ import org.vertx.java.core.json.JsonObject;
 
 /**
  * @author Miles Parker
- * 
  */
 public class ConnectedResource extends Resource {
 
@@ -39,8 +38,7 @@ public class ConnectedResource extends Resource {
 	protected void toJson(JsonObject json, boolean thin) {
 		super.toJson(json, thin);
 		if (!thin) {
-			IResource eclipseResource = ((ConnectedProject) getProject()).getProject()
-					.findMember(getPath());
+			IResource eclipseResource = ((ConnectedProject) getProject()).getProject().findMember(getPath());
 
 			if (eclipseResource instanceof IFile) {
 				IFile file = (IFile) eclipseResource;

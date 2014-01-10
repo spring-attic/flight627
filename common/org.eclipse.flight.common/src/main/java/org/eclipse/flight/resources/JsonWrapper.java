@@ -8,33 +8,30 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
-
 package org.eclipse.flight.resources;
 
 import org.vertx.java.core.json.JsonObject;
 
-/**
- * @author Miles Parker
- *
- */
-public class Request extends MessageObjectWrapper {
+public class JsonWrapper extends FlightObject {
 
-	/**
-	 * @param type
-	 * @param object
-	 */
-	public Request(String description, MessageObject object) {
-		super(description, object);
-		// TODO Auto-generated constructor stub
+	JsonObject object;
+	
+	public JsonWrapper(JsonObject object) {
+		this.object = object;
 	}
 
+	protected void fromJson(JsonObject json) {
+		object = json;
+	}
+	
+	protected void toJson(JsonObject json, boolean thin) {
+	}
+	
 	/* (non-Javadoc)
-	 * @see org.eclipse.flight.resources.JsonProvider#toJson(org.vertx.java.core.json.JsonObject)
+	 * @see org.eclipse.flight.resources.FlightObject#toJson(boolean)
 	 */
 	@Override
-	protected void toJson(JsonObject json, boolean thin) {
-		super.toJson(json, thin);
-		json.putString("kind", "request");
+	public JsonObject toJson(boolean thin) {
+		return object;
 	}
-
 }

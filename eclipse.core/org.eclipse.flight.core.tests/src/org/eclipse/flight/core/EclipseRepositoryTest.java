@@ -28,11 +28,11 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.flight.Constants;
-import org.eclipse.flight.core.internal.vertx.EclipseVertx;
-import org.eclipse.flight.resources.MessageObject;
+import org.eclipse.flight.resources.FlightObject;
 import org.eclipse.flight.resources.Project;
-import org.eclipse.flight.resources.Request;
+import org.eclipse.flight.resources.RequestMessage;
 import org.eclipse.flight.resources.Resource;
+import org.eclipse.flight.resources.vertx.VertxManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,11 +53,11 @@ public class EclipseRepositoryTest {
 
 	abstract class TestHandler {
 		private String address;
-		private MessageObject message;
+		private FlightObject message;
 
 		TestHandler next;
 
-		TestHandler(String address, MessageObject message) {
+		TestHandler(String address, FlightObject message) {
 			this.address = address;
 			this.message = message;
 		}
@@ -69,11 +69,11 @@ public class EclipseRepositoryTest {
 
 		void execute() throws InterruptedException {
 			done = null;
-			EclipseVertx
+			VertxManager
 					.get()
-					.eventBus()
+					.getVertx().eventBus()
 					.send(Constants.RESOURCE_PROVIDER,
-							new Request(address, message).toJson(),
+							new RequestMessage(0, address, message).toJson(),
 							new Handler<Message<JsonObject>>() {
 								@Override
 								public void handle(Message<JsonObject> reply) {

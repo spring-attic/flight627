@@ -14,8 +14,6 @@ package org.eclipse.flight.server.editor;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
-import org.vertx.java.core.json.JsonArray;
-import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.platform.Verticle;
 
 /**
@@ -34,6 +32,7 @@ public class ServerVerticle extends Verticle {
 		        } else if (!req.path().contains("..")) {
 		          file = req.path();
 		        }
+		        System.err.println("request " + file);
 		        req.response().sendFile("web-client/" + file);      		    }
 		});
 		fileServer.listen(3000, "localhost");

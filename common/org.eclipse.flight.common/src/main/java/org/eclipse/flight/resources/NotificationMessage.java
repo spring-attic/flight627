@@ -8,24 +8,32 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.flight.verticle;
 
-import org.eclipse.flight.resources.Repository;
-import org.eclipse.flight.resources.vertx.VertxManager;
-import org.eclipse.flight.resources.vertx.VertxRepository;
-import org.vertx.java.core.Vertx;
-import org.vertx.java.platform.Verticle;
+package org.eclipse.flight.resources;
+
+import org.vertx.java.core.json.JsonObject;
 
 /**
- * A simple in memory container for shared project resources.
- * 
  * @author Miles Parker
+ *
  */
-public class VolatileRepositoryVerticle extends Verticle {
+public class NotificationMessage extends FlightMessage {
 
-	public void start() {
-		VertxManager vertxManager = new VertxManager(vertx);
-		vertxManager.start();
-		new VertxRepository(vertxManager);
+	/**
+	 * @param type
+	 * @param object
+	 */
+	public NotificationMessage(long senderId, String action, FlightObject object) {
+		super(senderId, action, object);
 	}
+
+	/* (non-Javadoc)
+	 * @see org.eclipse.flight.resources.JsonProvider#toJson(org.vertx.java.core.json.JsonObject)
+	 */
+	@Override
+	protected void toJson(JsonObject json, boolean thin) {
+		super.toJson(json, thin);
+		json.putString("kind", "notification");
+	}
+
 }

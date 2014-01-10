@@ -14,11 +14,13 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.vertx.testtools.VertxAssert.*;
 
+import org.apache.log4j.Logger;
 import org.eclipse.flight.Constants;
-import org.eclipse.flight.resources.MessageObject;
+import org.eclipse.flight.resources.FlightObject;
 import org.eclipse.flight.resources.Project;
-import org.eclipse.flight.resources.Request;
+import org.eclipse.flight.resources.RequestMessage;
 import org.eclipse.flight.resources.Resource;
+import org.eclipse.flight.resources.vertx.VertxManager;
 import org.junit.Test;
 import org.junit.internal.runners.statements.Fail;
 import org.vertx.java.core.AsyncResult;
@@ -33,6 +35,8 @@ import org.vertx.testtools.TestVerticle;
 
 public class VolatileRepositoryTest extends TestVerticle {
 
+	Logger logger = Logger.getLogger(VolatileRepositoryTest.class);
+	
 	static long TIME_OUT = 1000;
 
 	class Harness {
@@ -40,13 +44,13 @@ public class VolatileRepositoryTest extends TestVerticle {
 	}
 
 	abstract class TestHandler {
-		private String address;
-		private MessageObject message;
+		private String action;
+		private FlightObject message;
 
 		TestHandler next;
 
-		TestHandler(String address, MessageObject message) {
-			this.address = address;
+		TestHandler(String action, FlightObject message) {
+			this.action = action;
 			this.message = message;
 		}
 
@@ -56,12 +60,14 @@ public class VolatileRepositoryTest extends TestVerticle {
 		abstract void expect(Message<JsonObject> reply);
 
 		void execute() {
+			logger.debug("test sending @" + Constants.RESOURCE_PROVIDER + " " + action);
 			vertx.eventBus().send(Constants.RESOURCE_PROVIDER,
-					new Request(address, message).toJson(),
+					new RequestMessage(0, action, message).toJson(),
 					new Handler<Message<JsonObject>>() {
 						@Override
 						public void handle(Message<JsonObject> reply) {
 							try {
+								logger.debug("test_recieved @" + Constants.RESOURCE_PROVIDER + " " + action + "\n\t\t" + reply.body());
 								expect(reply);
 								if (next == null) {
 									testComplete();
@@ -91,9 +97,9 @@ public class VolatileRepositoryTest extends TestVerticle {
 			if (index < handlers.length - 1) {
 				testHandler.setNext(handlers[index + 1]);
 			}
-			testHandler.execute();
 			index++;
 		}
+		handlers[0].execute();
 	}
 
 	Project fooProject = new Project();
@@ -186,7 +192,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		}, new TestHandler(Constants.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
-				assertThat(reply.body().getBoolean("exists"), is(true));
+				assertThat(reply.body().getObject("contents").getBoolean("exists"), is(true));
 				assertThat(reply.body().getObject("contents").getString("path"),
 						is("src/foo/bar/MyClass.java"));
 			}
@@ -206,7 +212,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		}, new TestHandler(Constants.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
-				assertThat(reply.body().getBoolean("exists"), is(false));
+				assertThat(reply.body().getObject("contents").getBoolean("exists"), is(false));
 			}
 		});
 	}
@@ -225,7 +231,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		}, new TestHandler(Constants.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
-				assertThat(reply.body(), instanceOf(ReplyException.class));
+				assertThat(reply.body().getObject("contents").getBoolean("exists"), is(false));
 			}
 		});
 	}

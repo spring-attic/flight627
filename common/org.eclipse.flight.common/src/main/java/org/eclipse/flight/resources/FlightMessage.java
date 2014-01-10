@@ -17,14 +17,17 @@ import org.vertx.java.core.json.JsonObject;
  * @author Miles Parker
  * 
  */
-public class MessageObjectWrapper extends MessageObject {
+public class FlightMessage extends FlightObject {
 
-	String description;
+	String action;
 
-	MessageObject object;
+	FlightObject object;
 
-	public MessageObjectWrapper(String description, MessageObject object) {
-		this.description = description;
+	private long senderId;
+
+	public FlightMessage(long senderId, String action, FlightObject object) {
+		this.senderId = senderId;
+		this.action = action;
 		this.object = object;
 	}
 
@@ -37,10 +40,11 @@ public class MessageObjectWrapper extends MessageObject {
 	 */
 	@Override
 	protected void fromJson(JsonObject json) {
-		this.description = json.getString("description");
+		this.action = json.getString("action");
+		this.senderId= json.getLong("senderId");
 		JsonObject contents = json.getObject("contents");
 		if (contents != null) {
-			this.object = MessageObject.createFromJson(contents);
+			this.object = FlightObject.createFromJson(contents);
 		}
 	}
 
@@ -53,7 +57,8 @@ public class MessageObjectWrapper extends MessageObject {
 	 */
 	@Override
 	protected void toJson(JsonObject json, boolean thin) {
-		json.putString("description", description);
+		json.putString("action", action);
+		json.putNumber("senderId", senderId);
 		if (object != null) {
 			json.putObject("contents", object.toJson(thin));
 		} else {
@@ -64,14 +69,14 @@ public class MessageObjectWrapper extends MessageObject {
 	/**
 	 * @return the object
 	 */
-	public MessageObject getObject() {
+	public FlightObject getObject() {
 		return object;
 	}
 
 	/**
-	 * @return the description
+	 * @return the action
 	 */
 	public String getDescription() {
-		return description;
+		return action;
 	}
 }

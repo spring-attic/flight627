@@ -7,155 +7,94 @@
  *
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
-*******************************************************************************/
+ *******************************************************************************/
 package org.eclipse.flight.core;
 
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.eclipse.flight.Constants;
+import org.eclipse.flight.resources.Edit;
+import org.eclipse.flight.resources.vertx.Receiver;
+import org.eclipse.flight.resources.vertx.VertxManager;
 import org.vertx.java.core.json.JsonObject;
 
 /**
  * @author Martin Lippert
+ * @author Miles Parker
  */
 public class LiveEditCoordinator {
-	
+
 	private Collection<ILiveEditConnector> liveEditConnectors;
-	
+
 	public LiveEditCoordinator() {
 		this.liveEditConnectors = new CopyOnWriteArrayList<>();
-		
-//		IMessageHandler startLiveUnit = new AbstractMessageHandler("liveResourceStarted") {
-//			@Override
-//			public void handleMessage(String messageType, JsonObject message) {
-//				startLiveUnit(message);
-//			}
-//		};
-//		messagingConnector.addMessageHandler(startLiveUnit);
-//		
-//		IMessageHandler modelChangedHandler = new AbstractMessageHandler("liveResourceChanged") {
-//			@Override
-//			public void handleMessage(String messageType, JsonObject message) {
-//				modelChanged(message);
-//			}
-//		};
-//		messagingConnector.addMessageHandler(modelChangedHandler);
-	}
-	
-	protected void startLiveUnit(JsonObject message) {
-		try {
-			String requestSenderID = message.getString("requestSenderID");
-			int callbackID = message.getInteger("callback_id");
-			String username = message.getString("username");
-			String projectName = message.getString("project");
-			String resourcePath = message.getString("resource");
-			String hash = message.getString("hash");
-			long timestamp = message.getLong("timestamp");
+		VertxManager.get().register(new Receiver(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_STARTED) {
 
-			String liveEditID = projectName + "/" + resourcePath;
-			for (ILiveEditConnector connector : liveEditConnectors) {
-				connector.liveEditingStarted(requestSenderID, callbackID, username, liveEditID, hash, timestamp);
+			@Override
+			public void receive(JsonObject contents) {
+				Edit edit = new Edit();
+				edit.fromJson(contents);
+				startLiveUnit(edit);
 			}
-		}
-		catch (Exception e) {
-			e.printStackTrace();
+		});
+		VertxManager.get().register(new Receiver(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_CHANGED) {
+
+			@Override
+			public void receive(JsonObject contents) {
+				Edit edit = new Edit();
+				edit.fromJson(contents);
+				modelChanged(edit);
+			}
+		});
+	}
+
+	protected void startLiveUnit(Edit edit) {
+		for (ILiveEditConnector connector : liveEditConnectors) {
+			connector.liveEditingStarted(edit);
 		}
 	}
-	
-	protected void modelChanged(JsonObject message) {
-		try {
-			String username = message.getString("username");
-			String projectName = message.getString("project");
-			String resourcePath = message.getString("resource");
 
-			int offset = message.getInteger("offset");
-			int removedCharCount = message.getInteger("removedCharCount");
-			String addedChars = message.getValue("addedCharacters") != null ? message.getString("addedCharacters") : "";
-
-			String liveEditID = projectName + "/" + resourcePath;
-
-			for (ILiveEditConnector connector : liveEditConnectors) {
-				connector.liveEditingEvent(username, liveEditID, offset, removedCharCount, addedChars);
-			}
-		}
-		catch (Exception e) {
-			e.printStackTrace();
+	protected void modelChanged(Edit edit) {
+		for (ILiveEditConnector connector : liveEditConnectors) {
+			connector.liveEditingEvent(edit);
 		}
 	}
 
 	public void addLiveEditConnector(ILiveEditConnector connector) {
 		liveEditConnectors.add(connector);
 	}
-	
+
 	public void removeLiveEditConnector(ILiveEditConnector connector) {
 		liveEditConnectors.remove(connector);
 	}
-	
-	public void sendModelChangedMessage(String changeOriginID, String username, String projectName, String resourcePath, int offset, int removedCharactersCount, String newText) {
-		try {
-			JsonObject message = new JsonObject();
-			message.putString("username", username);
-			message.putString("project", projectName);
-			message.putString("resource", resourcePath);
-			message.putNumber("offset", offset);
-			message.putNumber("offset", offset);
-			message.putNumber("removedCharCount", removedCharactersCount);
-			message.putString("addedCharacters", newText != null ? newText : "");
 
-//			this.messagingConnector.send("liveResourceChanged", message);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		
+	public void sendModelChangedMessage(Edit edit) {
+		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_CHANGED, edit);
+
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
-			if (!connector.getConnectorID().equals(changeOriginID)) {
-				connector.liveEditingEvent(username, resourcePath, offset, removedCharactersCount, newText);
+			if (!connector.getEditType().equals(edit.getEditType())) {
+				connector.liveEditingEvent(edit);
 			}
 		}
 	}
 
-	public void sendLiveEditStartedMessage(String changeOriginID, String username, String projectName, String resourcePath, String hash, long timestamp) {
-		try {
-			JsonObject message = new JsonObject();
-			message.putString("username", username);
-			message.putString("project", projectName);
-			message.putString("resource", resourcePath);
-			message.putString("hash", hash);
-			message.putNumber("timestamp", timestamp);
-			
-//			this.messagingConnector.send("liveResourceStarted", message);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		
+	public void sendLiveEditStartedMessage(Edit edit) {
+		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_STARTED, edit);
+
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
-			if (!connector.getConnectorID().equals(changeOriginID)) {
-				connector.liveEditingStarted("local", 0, username, resourcePath, hash, timestamp);
+			if (!connector.getEditType().equals(edit.getEditType())) {
+				connector.liveEditingStarted(edit);
 			}
 		}
 	}
-	
-	public void sendLiveEditStartedResponse(String responseOriginID, String requestSenderID, int callbackID, String username, String projectName, String resourcePath, String savePointHash, long savePointTimestamp, String content) {
-		try {
-			JsonObject message = new JsonObject();
-			message.putString("username", username);
-			message.putString("project", projectName);
-			message.putString("resource", resourcePath);
-			message.putNumber("savePointTimestamp", savePointTimestamp);
-			message.putString("savePointHash", savePointHash);
-			message.putString("liveContent", content);
-	
-//			this.messagingConnector.send("liveResourceStartedResponse", message);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		
+
+	public void sendLiveEditStartedResponse(Edit edit) {
+		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_RESPONSE, edit);
+
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
-			if (!connector.getConnectorID().equals(responseOriginID)) {
-				connector.liveEditingStartedResponse(requestSenderID, callbackID, username, projectName, resourcePath, content);
+			if (!connector.getEditType().equals(edit.getEditType())) {
+				connector.liveEditingStartedResponse(edit);
 			}
 		}
 	}

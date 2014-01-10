@@ -7,7 +7,7 @@
  *
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
-*******************************************************************************/
+ *******************************************************************************/
 package org.eclipse.flight.core;
 
 import org.eclipse.core.resources.IProject;
@@ -16,8 +16,9 @@ import org.eclipse.core.resources.IProject;
  * @author Martin Lippert
  */
 public interface IRepositoryListener {
-	
+
 	void projectConnected(IProject project);
+
 	void projectDisconnected(IProject project);
 
 }

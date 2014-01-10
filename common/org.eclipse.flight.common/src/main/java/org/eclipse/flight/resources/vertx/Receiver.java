@@ -8,24 +8,34 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.flight.verticle;
 
-import org.eclipse.flight.resources.Repository;
-import org.eclipse.flight.resources.vertx.VertxManager;
-import org.eclipse.flight.resources.vertx.VertxRepository;
-import org.vertx.java.core.Vertx;
-import org.vertx.java.platform.Verticle;
+package org.eclipse.flight.resources.vertx;
+
+import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.json.JsonObject;
 
 /**
- * A simple in memory container for shared project resources.
- * 
  * @author Miles Parker
+ *
  */
-public class VolatileRepositoryVerticle extends Verticle {
+public abstract class Receiver extends FlightHandler {
+	/**
+	 * @param id
+	 * @param action
+	 */
+	public Receiver(String address, String action) {
+		super(address, action);
+	}
 
-	public void start() {
-		VertxManager vertxManager = new VertxManager(vertx);
-		vertxManager.start();
-		new VertxRepository(vertxManager);
+	public abstract void receive(JsonObject contents);
+
+	@Override
+	public void doHandle(Message<JsonObject> message, JsonObject contents) {
+		receive(contents);
+	}
+
+	@Override
+	public String toString() {
+		return "Receive @" + getAddress() + " " + getAction();
 	}
 }

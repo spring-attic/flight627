@@ -16,7 +16,6 @@ Require-Bundle: org.eclipse.core.resources,
 Bundle-ClassPath: lib/socketio.jar,
  .
 Export-Package: org.eclipse.flight.core,
- org.eclipse.flight.core.internal;x-friends:="org.eclipse.flight.core.tests",
- org.eclipse.flight.core.internal.vertx;x-friends:="org.eclipse.flight.core.tests"
+ org.eclipse.flight.core.internal;x-friends:="org.eclipse.flight.core.tests"
 Bundle-ActivationPolicy: lazy
 Bundle-Activator: org.eclipse.flight.core.Activator

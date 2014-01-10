@@ -15,7 +15,6 @@ import org.eclipse.core.resources.IProject;
 
 /**
  * @author Martin Lippert
- * 
  */
 public interface CompletionCallback {
 	public void downloadComplete(IProject project);

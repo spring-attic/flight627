@@ -24,14 +24,12 @@ import org.json.JSONObject;
  */
 public class LiveEditProblemRequestor implements IProblemRequestor {
 
-	private IMessagingConnector messagingConnector;
 	private String resourcePath;
 	private List<IProblem> problems;
 	private String username;
 	private String projectName;
 
-	public LiveEditProblemRequestor(IMessagingConnector messagingConnector, String username, String projectName, String resourcePath) {
-		this.messagingConnector = messagingConnector;
+	public LiveEditProblemRequestor(String username, String projectName, String resourcePath) {
 		this.username = username;
 		this.projectName = projectName;
 		this.resourcePath = resourcePath;
@@ -69,7 +67,9 @@ public class LiveEditProblemRequestor implements IProblemRequestor {
 			message.put("resource", this.resourcePath);
 			message.put("problems", array);
 			
-			messagingConnector.send("liveMetadataChanged", message);
+//			messagingConnector.send("liveMetadataChanged", message);
+			
+			
 			System.out.println("livemetadata transmitted");
 		} catch (Exception e) {
 			e.printStackTrace();

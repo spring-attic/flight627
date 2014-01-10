@@ -7,18 +7,23 @@
  *
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
-*******************************************************************************/
+ *******************************************************************************/
 package org.eclipse.flight.core;
+
+import org.eclipse.flight.resources.Edit;
 
 /**
  * @author Martin Lippert
+ * @author Miles Parker
  */
 public interface ILiveEditConnector {
 
-	String getConnectorID();
-	
-	void liveEditingStarted(String requestSenderID, int callbackID, String username, String resourcePath, String hash, long timestamp);
-	void liveEditingStartedResponse(String requestSenderID, int callbackID, String username, String projectName, String resourcePath, String content);
-	void liveEditingEvent(String username, String resourcePath, int offset, int removeCount, String newText);
+	String getEditType();
+
+	void liveEditingStarted(Edit edit);
+
+	void liveEditingStartedResponse(Edit edit);
+
+	void liveEditingEvent(Edit edit);
 
 }
