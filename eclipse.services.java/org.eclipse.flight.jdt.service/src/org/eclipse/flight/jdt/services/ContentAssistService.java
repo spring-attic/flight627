@@ -15,9 +15,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import org.eclipse.flight.core.AbstractMessageHandler;
-import org.eclipse.flight.core.IMessageHandler;
-import org.eclipse.flight.core.IMessagingConnector;
 import org.eclipse.jdt.core.CompletionProposal;
 import org.eclipse.jdt.core.CompletionRequestor;
 import org.eclipse.jdt.core.IAccessRule;
@@ -34,19 +31,17 @@ import org.json.JSONObject;
 public class ContentAssistService {
 
 	private LiveEditUnits liveEditUnits;
-	private IMessagingConnector messagingConnector;
 
-	public ContentAssistService(IMessagingConnector messagingConnector, LiveEditUnits liveEditUnits) {
-		this.messagingConnector = messagingConnector;
+	public ContentAssistService(LiveEditUnits liveEditUnits) {
 		this.liveEditUnits = liveEditUnits;
 		
-		IMessageHandler contentAssistRequestHandler = new AbstractMessageHandler("contentassistrequest") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				handleContentAssistRequest(message);
-			}
-		};
-		messagingConnector.addMessageHandler(contentAssistRequestHandler);
+//		IMessageHandler contentAssistRequestHandler = new AbstractMessageHandler("contentassistrequest") {
+//			@Override
+//			public void handleMessage(String messageType, JSONObject message) {
+//				handleContentAssistRequest(message);
+//			}
+//		};
+//		messagingConnector.addMessageHandler(contentAssistRequestHandler);
 	}
 	
 	protected void handleContentAssistRequest(JSONObject message) {
@@ -75,7 +70,7 @@ public class ContentAssistService {
 				JSONArray proposals = new JSONArray(proposalsSource);
 				responseMessage.put("proposals", proposals);
 
-				messagingConnector.send("contentassistresponse", responseMessage);
+//				messagingConnector.send("contentassistresponse", responseMessage);
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();

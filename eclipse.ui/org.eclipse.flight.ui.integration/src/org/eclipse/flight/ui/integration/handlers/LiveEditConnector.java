@@ -62,8 +62,9 @@ public class LiveEditConnector {
 		};
 		
 		ILiveEditConnector liveEditConnector = new ILiveEditConnector() {
+			
 			@Override
-			public String getEditType() {
+			public String getConnectorID() {
 				return LIVE_EDIT_CONNECTOR_ID;
 			}
 

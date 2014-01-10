@@ -31,7 +31,7 @@ define([
 	"editor/sha1",
 	"editor/socket.io"],
 
-function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGrammar, mEditor, mEditorFeatures, mContentAssist, mJavaContentAssist, mLinkedMode){
+function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGrammar, mEditor, mEditorFeatures, mContentAssist, mJavaContentAssist, mLinkedMode) {
 	var editorDomNode = document.getElementById("editor");
 	
 	var textViewFactory = function() {
@@ -405,6 +405,24 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 					'savePointTimestamp' : lastSavePointTimestamp,
 					'savePointHash'      : lastSavePointHash,
 					'liveContent'        : editor.getText()
+				});
+			}
+		}
+	});
+	
+	socket.on('getLiveResourcesRequest', function(data) {
+		if (data.username === username && data.callback_id !== undefined) {
+			if (data.project === undefined || data.project === project) {
+				socket.emit('getLiveResourcesResponse', {
+					'callback_id'        : data.callback_id,
+					'requestSenderID'    : data.requestSenderID,
+					'liveEditUnits'      : [{
+						'username'           : username,
+						'project'            : project,
+						'resource'           : resource,
+						'savePointTimestamp' : lastSavePointTimestamp,
+						'savePointHash'      : lastSavePointHash
+					}]
 				});
 			}
 		}

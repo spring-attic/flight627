@@ -10,7 +10,6 @@
 *******************************************************************************/
 package org.eclipse.flight.jdt.services;
 
-import org.eclipse.flight.core.IMessagingConnector;
 import org.eclipse.flight.core.LiveEditCoordinator;
 import org.eclipse.flight.core.Repository;
 import org.osgi.framework.BundleActivator;
@@ -23,17 +22,16 @@ public class Activator implements BundleActivator {
 
 	@Override
 	public void start(BundleContext context) throws Exception {
-		IMessagingConnector messagingConnector = org.eclipse.flight.core.Activator.getDefault().getMessagingConnector();
 		Repository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
 		LiveEditCoordinator liveEditCoordinator = org.eclipse.flight.core.Activator.getDefault().getLiveEditCoordinator(); 
 		
-		LiveEditUnits liveEditUnits = new LiveEditUnits(messagingConnector, liveEditCoordinator, repository);
-		new ContentAssistService(messagingConnector, liveEditUnits);
-		new NavigationService(messagingConnector, liveEditUnits);
-		new RenameService(messagingConnector, liveEditUnits);
+		LiveEditUnits liveEditUnits = new LiveEditUnits(liveEditCoordinator, repository);
+		new ContentAssistService(liveEditUnits);
+		new NavigationService(liveEditUnits);
+		new RenameService(liveEditUnits);
 		
 		if (Boolean.getBoolean("flight-initjdt")) {
-			InitializeServiceEnvironment initializer = new InitializeServiceEnvironment(messagingConnector, repository);
+			InitializeServiceEnvironment initializer = new InitializeServiceEnvironment(repository);
 			initializer.start();
 		}
 	}

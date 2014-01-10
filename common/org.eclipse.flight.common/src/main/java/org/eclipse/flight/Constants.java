@@ -40,10 +40,14 @@ public interface Constants {
 
 	public static final String EDIT_PARTICIPANT = "flight.editParticipant";
 
+	public static final String LIVE_RESOURCE_REQUEST = "live.resource.request";
+
 	public static final String LIVE_RESOURCE_STARTED = "live.resource.started";
 
 	public static final String LIVE_RESOURCE_RESPONSE = "live.resource.startedResponse";
 
 	public static final String LIVE_RESOURCE_CHANGED = "live.resource.changed";
+
+	public static final String LIVE_METADATA_CHANGED = "live.metadata.changed";
 
 }

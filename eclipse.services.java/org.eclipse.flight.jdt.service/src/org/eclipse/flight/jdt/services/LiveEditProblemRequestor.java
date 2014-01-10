@@ -7,13 +7,17 @@
  *
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
-*******************************************************************************/
+ *******************************************************************************/
 package org.eclipse.flight.jdt.services;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.flight.core.IMessagingConnector;
+import org.eclipse.flight.Constants;
+import org.eclipse.flight.resources.Edit;
+import org.eclipse.flight.resources.Resource;
+import org.eclipse.flight.resources.ResourceMarker;
+import org.eclipse.flight.resources.vertx.VertxManager;
 import org.eclipse.jdt.core.IProblemRequestor;
 import org.eclipse.jdt.core.compiler.IProblem;
 import org.json.JSONArray;
@@ -24,16 +28,12 @@ import org.json.JSONObject;
  */
 public class LiveEditProblemRequestor implements IProblemRequestor {
 
-	private String resourcePath;
+	private Resource resource;
+
 	private List<IProblem> problems;
-	private String username;
-	private String projectName;
 
-	public LiveEditProblemRequestor(String username, String projectName, String resourcePath) {
-		this.username = username;
-		this.projectName = projectName;
-		this.resourcePath = resourcePath;
-
+	public LiveEditProblemRequestor(Resource resource) {
+		this.resource = resource;
 		this.problems = new ArrayList<IProblem>();
 	}
 
@@ -58,48 +58,15 @@ public class LiveEditProblemRequestor implements IProblemRequestor {
 	}
 
 	private void sendMarkers(IProblem[] problems) {
-		String problemsJSON = toJSON(problems);
-		try {
-			JSONArray array = new JSONArray(problemsJSON);
-			JSONObject message = new JSONObject();
-			message.put("username", this.username);
-			message.put("project", this.projectName);
-			message.put("resource", this.resourcePath);
-			message.put("problems", array);
-			
-//			messagingConnector.send("liveMetadataChanged", message);
-			
-			
-			System.out.println("livemetadata transmitted");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private String toJSON(IProblem[] problems) {
-		StringBuilder result = new StringBuilder();
-		boolean flag = false;
-		result.append("[");
+		resource.getMarkers().clear();
 		for (IProblem problem : problems) {
-			if (flag) {
-				result.append(",");
-			}
-
-			result.append("{");
-			result.append("\"description\":" + JSONObject.quote(problem.getMessage()));
-			result.append(",\"line\":" + problem.getSourceLineNumber());
-			result.append(",\"severity\":\"" + (problem.isError() ? "error" : "warning") + "\"");
-			result.append(",\"start\":" + problem.getSourceStart());
-			
-			int end = problem.getSourceEnd() + 1;
-			
-			result.append(",\"end\":" + end);
-			result.append("}");
-
-			flag = true;
+			ResourceMarker marker = new ResourceMarker();
+			marker.setDescription(problem.getMessage());
+			marker.setSeverity((problem.isError() ? "error" : "warning"));
+			marker.setStart(problem.getSourceLineNumber());
+			marker.setStart(problem.getSourceStart());
+			marker.setEnd(problem.getSourceEnd() + 1);
 		}
-		result.append("]");
-		return result.toString();
+		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_METADATA_CHANGED, resource);
 	}
-
 }

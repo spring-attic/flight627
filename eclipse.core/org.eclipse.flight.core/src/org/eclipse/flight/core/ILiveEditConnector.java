@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -17,13 +17,12 @@ import org.eclipse.flight.resources.Edit;
  * @author Miles Parker
  */
 public interface ILiveEditConnector {
-
-	String getEditType();
+	
+	String getConnectorID();
 
 	void liveEditingStarted(Edit edit);
 
 	void liveEditingStartedResponse(Edit edit);
 
 	void liveEditingEvent(Edit edit);
-
 }

@@ -38,6 +38,15 @@ public class LiveEditCoordinator {
 				startLiveUnit(edit);
 			}
 		});
+		VertxManager.get().register(new Receiver(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_RESPONSE) {
+
+			@Override
+			public void receive(JsonObject contents) {
+				Edit edit = new Edit();
+				edit.fromJson(contents);
+				startLiveUnitResponse(edit);
+			}
+		});
 		VertxManager.get().register(new Receiver(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_CHANGED) {
 
 			@Override
@@ -73,7 +82,7 @@ public class LiveEditCoordinator {
 		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_CHANGED, edit);
 
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
-			if (!connector.getEditType().equals(edit.getEditType())) {
+			if (!connector.getConnectorID().equals(edit.getEditType())) {
 				connector.liveEditingEvent(edit);
 			}
 		}
@@ -83,9 +92,15 @@ public class LiveEditCoordinator {
 		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_STARTED, edit);
 
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
-			if (!connector.getEditType().equals(edit.getEditType())) {
+			if (!connector.getConnectorID().equals(edit.getEditType())) {
 				connector.liveEditingStarted(edit);
 			}
+		}
+	}
+
+	protected void startLiveUnitResponse(Edit edit) {
+		for (ILiveEditConnector connector : liveEditConnectors) {
+			connector.liveEditingStartedResponse(edit);
 		}
 	}
 
@@ -93,7 +108,7 @@ public class LiveEditCoordinator {
 		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_RESOURCE_RESPONSE, edit);
 
 		for (ILiveEditConnector connector : this.liveEditConnectors) {
-			if (!connector.getEditType().equals(edit.getEditType())) {
+			if (!connector.getConnectorID().equals(edit.getEditType())) {
 				connector.liveEditingStartedResponse(edit);
 			}
 		}

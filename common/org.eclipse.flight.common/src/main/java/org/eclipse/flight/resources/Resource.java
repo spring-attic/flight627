@@ -10,9 +10,12 @@
  *******************************************************************************/
 package org.eclipse.flight.resources;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 
 public class Resource extends FlightObject {
@@ -34,6 +37,8 @@ public class Resource extends FlightObject {
 	String path;
 
 	String data;
+
+	Collection<ResourceMarker> markers;
 
 	public String getProjectName() {
 		return projectName;
@@ -66,7 +71,7 @@ public class Resource extends FlightObject {
 	public void setType(String type) {
 		this.type = type;
 	}
-	
+
 	public String getFullPath() {
 		return getProjectName() + "/" + getPath();
 	}
@@ -104,6 +109,17 @@ public class Resource extends FlightObject {
 		this.data = data;
 	}
 
+	/**
+	 * @return the markers
+	 */
+	public Collection<ResourceMarker> getMarkers() {
+		//Lazy...
+		if (markers == null) {
+			markers = new ArrayList<ResourceMarker>();
+		}
+		return markers;
+	}
+
 	public void fromJson(JsonObject json) {
 		hash = json.getString("hash");
 		timestamp = json.getLong("timestamp");
@@ -112,15 +128,36 @@ public class Resource extends FlightObject {
 		username = json.getString("username");
 		projectName = json.getString("projectName");
 		data = json.getString("data");
+		//Don't have to worry abotu this until we have non-Eclipse sources of markers
+//		JsonArray jsonMarkers = json.getArray("markers");
+//		if (jsonMarkers != null) {
+//			for (Object object : jsonMarkers) {
+//				if (object instanceof JsonObject) {
+//					JsonObject marker = new JsonObject();
+//				}
+//			}
+//		}
 	}
 
 	@Override
 	protected void toJson(JsonObject json, boolean thin) {
-		json.putString("hash", hash).putNumber("timestamp", timestamp)
-				.putString("type", type).putString("path", path)
-				.putString("username", username).putString("projectName", projectName);
+		json.putString("hash", hash)
+				.putNumber("timestamp", timestamp)
+				.putString("type", type)
+				.putString("path", path)
+				.putString("username", username)
+				.putString("projectName", projectName);
 		if (!thin) {
 			json.putString("data", data);
+		}
+		if (markers != null) {
+			JsonArray jsonMarkers = new JsonArray();
+			json.putArray("markers", jsonMarkers);
+			for (ResourceMarker marker : markers) {
+				JsonObject jsonMarker = new JsonObject();
+				marker.toJson(jsonMarker, false);
+				jsonMarkers.add(marker);
+			}
 		}
 	}
 }

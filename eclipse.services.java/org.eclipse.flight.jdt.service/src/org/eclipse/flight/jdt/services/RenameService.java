@@ -13,9 +13,6 @@ package org.eclipse.flight.jdt.services;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.flight.core.AbstractMessageHandler;
-import org.eclipse.flight.core.IMessageHandler;
-import org.eclipse.flight.core.IMessagingConnector;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -33,19 +30,17 @@ import org.json.JSONObject;
 public class RenameService {
 
 	private LiveEditUnits liveEditUnits;
-	private IMessagingConnector messagingConnector;
 
-	public RenameService(IMessagingConnector messagingConnector, LiveEditUnits liveEditUnits) {
-		this.messagingConnector = messagingConnector;
+	public RenameService(LiveEditUnits liveEditUnits) {
 		this.liveEditUnits = liveEditUnits;
 		
-		IMessageHandler contentAssistRequestHandler = new AbstractMessageHandler("renameinfilerequest") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				handleRenameInFileRequest(message);
-			}
-		};
-		messagingConnector.addMessageHandler(contentAssistRequestHandler);
+//		IMessageHandler contentAssistRequestHandler = new AbstractMessageHandler("renameinfilerequest") {
+//			@Override
+//			public void handleMessage(String messageType, JSONObject message) {
+//				handleRenameInFileRequest(message);
+//			}
+//		};
+//		messagingConnector.addMessageHandler(contentAssistRequestHandler);
 	}
 	
 	protected void handleRenameInFileRequest(JSONObject message) {
@@ -73,7 +68,7 @@ public class RenameService {
 					responseMessage.put("requestSenderID", sender);
 					responseMessage.put("references", references);
 	
-					messagingConnector.send("renameinfileresponse", responseMessage);
+//					messagingConnector.send("renameinfileresponse", responseMessage);
 				}
 			}
 		} catch (JSONException e) {

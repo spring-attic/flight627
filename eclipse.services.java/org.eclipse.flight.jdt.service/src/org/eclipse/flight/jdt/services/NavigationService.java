@@ -11,9 +11,6 @@
 package org.eclipse.flight.jdt.services;
 
 import org.eclipse.core.resources.IResource;
-import org.eclipse.flight.core.AbstractMessageHandler;
-import org.eclipse.flight.core.IMessageHandler;
-import org.eclipse.flight.core.IMessagingConnector;
 import org.eclipse.jdt.core.IClassFile;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
@@ -29,19 +26,17 @@ import org.json.JSONObject;
 public class NavigationService {
 
 	private LiveEditUnits liveEditUnits;
-	private IMessagingConnector messagingConnector;
 
-	public NavigationService(IMessagingConnector messagingConnector, LiveEditUnits liveEditUnits) {
-		this.messagingConnector = messagingConnector;
+	public NavigationService(LiveEditUnits liveEditUnits) {
 		this.liveEditUnits = liveEditUnits;
 		
-		IMessageHandler contentAssistRequestHandler = new AbstractMessageHandler("navigationrequest") {
-			@Override
-			public void handleMessage(String messageType, JSONObject message) {
-				handleNavigationRequest(message);
-			}
-		};
-		messagingConnector.addMessageHandler(contentAssistRequestHandler);
+//		IMessageHandler contentAssistRequestHandler = new AbstractMessageHandler("navigationrequest") {
+//			@Override
+//			public void handleMessage(String messageType, JSONObject message) {
+//				handleNavigationRequest(message);
+//			}
+//		};
+//		messagingConnector.addMessageHandler(contentAssistRequestHandler);
 	}
 	
 	protected void handleNavigationRequest(JSONObject message) {
@@ -69,7 +64,7 @@ public class NavigationService {
 					responseMessage.put("requestSenderID", sender);
 					responseMessage.put("navigation", navigationResult);
 	
-					messagingConnector.send("navigationresponse", responseMessage);
+//					messagingConnector.send("navigationresponse", responseMessage);
 				}
 			}
 		} catch (JSONException e) {
