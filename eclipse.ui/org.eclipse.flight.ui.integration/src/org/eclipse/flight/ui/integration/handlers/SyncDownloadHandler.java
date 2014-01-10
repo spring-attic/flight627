@@ -18,7 +18,7 @@ import org.eclipse.flight.core.DownloadProject;
 import org.eclipse.flight.core.DownloadProject.CompletionCallback;
 import org.eclipse.flight.core.IMessagingConnector;
 import org.eclipse.flight.core.Repository;
-import org.eclipse.flight.ui.integration.Activator;
+import org.eclipse.flight.ui.integration.FlightUiPlugin;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.widgets.Shell;
@@ -35,7 +35,7 @@ public class SyncDownloadHandler extends AbstractHandler {
 		final Repository repository = org.eclipse.flight.core.Activator.getDefault().getRepository();
 		final IMessagingConnector messagingConnector = org.eclipse.flight.core.Activator.getDefault().getMessagingConnector();
 		
-		final Shell shell = Activator.getDefault().getWorkbench().getActiveWorkbenchWindow().getShell();
+		final Shell shell = FlightUiPlugin.getDefault().getWorkbench().getActiveWorkbenchWindow().getShell();
 
 		SyncDownloadSelectionDialog selectionDialog = new SyncDownloadSelectionDialog(shell, new LabelProvider(), messagingConnector);
 		int result = selectionDialog.open();
