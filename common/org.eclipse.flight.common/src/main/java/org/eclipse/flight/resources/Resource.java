@@ -160,4 +160,14 @@ public class Resource extends FlightObject {
 			}
 		}
 	}
+	
+	public Edit toEdit() {
+		Edit edit = new Edit();
+		edit.setUserName(getUserName());
+		edit.setProjectName(getProjectName());
+		edit.setPath(getPath());
+		edit.setHash(getHash());
+		edit.setTimestamp(getTimestamp());
+		return edit;
+	}
 }

@@ -66,6 +66,7 @@ public class LiveEditProblemRequestor implements IProblemRequestor {
 			marker.setStart(problem.getSourceLineNumber());
 			marker.setStart(problem.getSourceStart());
 			marker.setEnd(problem.getSourceEnd() + 1);
+			resource.getMarkers().add(marker);
 		}
 		VertxManager.get().publish(Constants.EDIT_PARTICIPANT, Constants.LIVE_METADATA_CHANGED, resource);
 	}

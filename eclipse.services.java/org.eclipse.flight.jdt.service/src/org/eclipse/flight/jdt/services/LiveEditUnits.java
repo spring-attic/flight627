@@ -33,8 +33,6 @@ import org.eclipse.jdt.core.IProblemRequestor;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.WorkingCopyOwner;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.vertx.java.core.json.JsonObject;
 
 /**

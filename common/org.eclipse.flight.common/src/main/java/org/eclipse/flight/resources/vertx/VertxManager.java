@@ -146,7 +146,7 @@ public class VertxManager {
 		logger.debug("Publishing @" + address + " " + action + "\n\t\t" + object);
 		vertx.eventBus().publish(
 				Constants.EDIT_PARTICIPANT,
-				new NotificationMessage(id, Constants.LIVE_RESOURCE_CHANGED, object)
+				new NotificationMessage(id, action, object)
 						.toJson());
 	}
 

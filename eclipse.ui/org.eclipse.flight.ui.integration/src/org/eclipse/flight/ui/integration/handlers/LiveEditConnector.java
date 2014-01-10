@@ -15,10 +15,13 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.flight.core.ConnectedProject;
+import org.eclipse.flight.core.ConnectedResource;
 import org.eclipse.flight.core.ILiveEditConnector;
 import org.eclipse.flight.core.LiveEditCoordinator;
 import org.eclipse.flight.core.Repository;
 import org.eclipse.flight.resources.Edit;
+import org.eclipse.flight.resources.Resource;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IDocumentListener;
@@ -75,10 +78,13 @@ public class LiveEditConnector {
 
 			@Override
 			public void liveEditingStarted(Edit edit) {
+				//This doesn't seem to work right now -- Miles
+				//remoteEditorStarted(edit);
 			}
 
 			@Override
 			public void liveEditingStartedResponse(Edit edit) {
+				handleRemoteLiveContent(edit);
 			}
 		};
 		this.liveEditCoordinator.addLiveEditConnector(liveEditConnector);
@@ -123,7 +129,45 @@ public class LiveEditConnector {
 			}
 		});
 	}
-	
+	protected void remoteEditorStarted(Edit edit) {
+		// a different editor was started editing the resource, we need to send back live content
+		if (this.repository.getUsername().equals(edit.getUserName()) && documentMappings.containsKey(edit.getFullPath())) {
+			final IDocument document = documentMappings.get(edit.getFullPath());
+			edit.setData(document.get());
+			this.liveEditCoordinator.sendLiveEditStartedResponse(edit);
+		}
+	}
+
+	protected void handleRemoteLiveContent(final Edit edit) {
+		// we started the editing and are getting remote live content back
+		if (this.repository.getUsername().equals(edit.getUserName()) && documentMappings.containsKey(edit.getFullPath())) {
+			final IDocument document = documentMappings.get(edit.getFullPath());
+
+			ConnectedProject connectedProject = (ConnectedProject) repository.getProject(edit.getProjectName());
+			ConnectedResource localResource = (ConnectedResource) connectedProject.getResource(edit.getPath());
+			
+			if (localResource.getHash() != null && localResource.getHash().equals(edit.getSavePointHash()) && localResource.getTimestamp() == edit.getSavePointTimestamp()) {
+				try {
+					Display.getDefault().asyncExec(new Runnable() {
+						public void run() {
+							try {
+								document.removeDocumentListener(documentListener);
+								document.set(edit.getData());
+								document.addDocumentListener(documentListener);
+							}
+							catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+					});
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 	protected void handleModelChanged(final Edit edit) {
 		if (repository.getUsername().equals(edit.getUserName()) && edit.getFullPath() != null && documentMappings.containsKey(edit.getFullPath())) {
 			final IDocument document = documentMappings.get(edit.getFullPath());
@@ -167,17 +211,21 @@ public class LiveEditConnector {
 
 	protected void connectEditor(AbstractTextEditor texteditor) {
 		final IDocument document = texteditor.getDocumentProvider().getDocument(texteditor.getEditorInput());
-		IResource resource = (IResource) texteditor.getEditorInput().getAdapter(IResource.class);
+		IResource eclipseResource = (IResource) texteditor.getEditorInput().getAdapter(IResource.class);
 		
-		if (document != null && resource != null) {
-			IProject project = resource.getProject();
-			String resourcePath = resource.getProject().getName() + "/" + resource.getProjectRelativePath().toString();
+		if (document != null && eclipseResource != null) {
+			IProject project = eclipseResource.getProject();
+			String resourcePath = eclipseResource.getProject().getName() + "/" + eclipseResource.getProjectRelativePath().toString();
 			
 			if (repository.isConnected(project)) {
 				documentMappings.put(resourcePath, document);
 				resourceMappings.put(document, resourcePath);
 
 				document.addDocumentListener(documentListener);
+				
+				ConnectedProject connectedProject = (ConnectedProject) repository.getProject(project);
+				Resource resource = connectedProject.getResource(eclipseResource.getProjectRelativePath().toString());
+				this.liveEditCoordinator.sendLiveEditStartedMessage(resource.toEdit());
 			}
 		}
 	}

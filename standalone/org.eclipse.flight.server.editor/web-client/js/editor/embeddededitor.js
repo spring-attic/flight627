@@ -419,6 +419,24 @@ function(require, mvertx, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, 
 						editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
 						editor.getModel().setText(text, data.offset, data.offset + data.removeCount);
 						editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
+					} else if (msg.action == "live.metadata.changed") {
+						 var markers = [];
+						 for(i = 0; i < data.markers.length; i++) {
+						 var lineOffset = editor.getModel().getLineStart(data.markers[i].line -
+						 1);
+										
+						 console.log(lineOffset);
+										
+						 markers[i] = {
+						 'description' : data.markers[i].description,
+						 'line' : data.markers[i].sourceLine,
+						 'severity' : data.markers[i].severity,
+						 'start' : (data.markers[i].start - lineOffset) + 1,
+						 'end' : data.markers[i].end - lineOffset
+						 };
+						 }
+									
+						 editor.showProblems(markers);
 					}
 				});
 			} else {
@@ -427,7 +445,30 @@ function(require, mvertx, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, 
 			}
 		}
 	}
-
+	// socket.on('liveMetadataChanged', function (data) {
+	// if (username === data.username && project === data.project && resource
+	// ===
+	// data.resource && data.problems !== undefined) {
+	// var markers = [];
+	// for(i = 0; i < data.problems.length; i++) {
+	// var lineOffset = editor.getModel().getLineStart(data.problems[i].line -
+	// 1);
+	//				
+	// console.log(lineOffset);
+	//				
+	// markers[i] = {
+	// 'description' : data.problems[i].description,
+	// 'line' : data.problems[i].line,
+	// 'severity' : data.problems[i].severity,
+	// 'start' : (data.problems[i].start - lineOffset) + 1,
+	// 'end' : data.problems[i].end - lineOffset
+	// };
+	// }
+	//			
+	// editor.showProblems(markers);
+	// }
+	// console.log(data);
+	// });
 	function extractJumpToInformation(hash) {
 		var hashValues = hash.split('#');
 		var offset = undefined;
