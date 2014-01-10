@@ -22,6 +22,8 @@ import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.flight.core.IRepositoryListener;
@@ -34,6 +36,7 @@ import org.eclipse.jface.viewers.LabelProviderChangedEvent;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IStartup;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.eclipse.ui.statushandlers.StatusManager;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.prefs.BackingStoreException;
 
@@ -58,6 +61,11 @@ public class FlightUiPlugin extends AbstractUIPlugin implements IStartup {
 		super.start(context);
 		plugin = this;
 
+		try {
+			Class ignore = org.eclipse.flight.jdt.services.Activator.class;
+		} catch (NoClassDefFoundError e) {
+			StatusManager.getManager().handle(new Status(IStatus.INFO, PLUGIN_ID, "The jdt.services bundle is not installed. Some flight services will not be available."));
+		}
 		org.eclipse.flight.core.Activator.getDefault().getRepository()
 				.addRepositoryListener(new IRepositoryListener() {
 					@Override
@@ -93,11 +101,12 @@ public class FlightUiPlugin extends AbstractUIPlugin implements IStartup {
 						IProject project = (IProject) event.getResource();
 						removeConnectedProjectPreference(project.getName());
 					} else if (delta.getKind() == IResourceDelta.CHANGED) {
-						//TODO, we aren't handling project renaming yet
-//						IProject project = (IProject) event.getResource();
-//						String oldName = delta.getMovedFromPath().lastSegment();
-//						removeConnectedProjectPreference(oldName);
-//						addConnectedProjectPreference(project.getName());
+						// TODO, we aren't handling project renaming yet
+						// IProject project = (IProject) event.getResource();
+						// String oldName =
+						// delta.getMovedFromPath().lastSegment();
+						// removeConnectedProjectPreference(oldName);
+						// addConnectedProjectPreference(project.getName());
 					}
 				}
 				System.out.println("Something changed!");
