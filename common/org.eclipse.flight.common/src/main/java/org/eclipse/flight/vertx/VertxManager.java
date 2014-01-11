@@ -9,7 +9,7 @@
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
 
-package org.eclipse.flight.resources.vertx;
+package org.eclipse.flight.vertx;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,10 +19,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.log4j.Logger;
 import org.eclipse.flight.Configuration;
 import org.eclipse.flight.Ids;
-import org.eclipse.flight.resources.FlightObject;
-import org.eclipse.flight.resources.JsonWrapper;
-import org.eclipse.flight.resources.NotificationMessage;
-import org.eclipse.flight.resources.RequestMessage;
+import org.eclipse.flight.messages.NotificationMessage;
+import org.eclipse.flight.messages.RequestMessage;
+import org.eclipse.flight.objects.FlightObject;
+import org.eclipse.flight.objects.JsonWrapper;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
@@ -163,7 +163,8 @@ public class VertxManager {
 					@Override
 					public void handle(Message<JsonObject> reply) {
 						logger.debug("Accepting @" + address + " " + action + "\n\t\t" + reply.body());
-						requester.accept(reply.body().getObject("contents"));
+						FlightObject flightObject = FlightObject.createFromJson(reply.body().getObject("contents"));
+						requester.accept(flightObject);
 					}
 				});
 	}

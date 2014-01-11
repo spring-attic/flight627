@@ -9,11 +9,11 @@
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
 
-package org.eclipse.flight.resources.vertx;
+package org.eclipse.flight.vertx;
 
-import org.eclipse.flight.resources.FlightObject;
-import org.eclipse.flight.resources.JsonWrapper;
-import org.eclipse.flight.resources.ResponseMessage;
+import org.eclipse.flight.messages.ResponseMessage;
+import org.eclipse.flight.objects.FlightObject;
+import org.eclipse.flight.objects.JsonWrapper;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;

@@ -18,7 +18,7 @@ import org.apache.commons.io.IOUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.flight.resources.Resource;
+import org.eclipse.flight.objects.Resource;
 import org.vertx.java.core.json.JsonObject;
 
 /**

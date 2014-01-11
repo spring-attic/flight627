@@ -8,19 +8,18 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.flight.resources;
+package org.eclipse.flight.objects;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.flight.objects.services.Edit;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 
 public class Resource extends FlightObject {
-
-	Map<String, String> metadata = new HashMap<String, String>();
 
 	Project project;
 
@@ -30,7 +29,7 @@ public class Resource extends FlightObject {
 
 	String hash;
 
-	long timestamp;
+	Long timestamp;
 
 	String type;
 
@@ -56,11 +55,11 @@ public class Resource extends FlightObject {
 		this.hash = hash;
 	}
 
-	public long getTimestamp() {
+	public Long getTimestamp() {
 		return timestamp;
 	}
 
-	public void setTimestamp(long timestamp) {
+	public void setTimestamp(Long timestamp) {
 		this.timestamp = timestamp;
 	}
 
@@ -151,13 +150,7 @@ public class Resource extends FlightObject {
 			json.putString("data", data);
 		}
 		if (markers != null) {
-			JsonArray jsonMarkers = new JsonArray();
-			json.putArray("markers", jsonMarkers);
-			for (ResourceMarker marker : markers) {
-				JsonObject jsonMarker = new JsonObject();
-				marker.toJson(jsonMarker, false);
-				jsonMarkers.add(marker);
-			}
+			toJsonArray(json, "markers", markers);
 		}
 	}
 	

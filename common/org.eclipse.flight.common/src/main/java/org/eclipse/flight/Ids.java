@@ -42,8 +42,8 @@ public interface Ids {
 	public static final String NEEDS_UPDATE_RESOURCE = "resource.needsUpdate";
 
 	public static final String CREATE_RESOURCE = "resource.create";
-	
 
+	
 	public static final String EDIT_PARTICIPANT = "flight.editParticipant";
 
 	public static final String LIVE_RESOURCE_REQUEST = "live.resource.request";
@@ -55,5 +55,9 @@ public interface Ids {
 	public static final String LIVE_RESOURCE_CHANGED = "live.resource.changed";
 
 	public static final String LIVE_METADATA_CHANGED = "live.metadata.changed";
+	
+	
+	public static final String CONTENT_ASSSIST_SERVICE = "flight.proposalService";
 
+	public static final String CONTENT_ASSIST_REQUEST = "proposal.request";
 }

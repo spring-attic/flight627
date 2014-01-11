@@ -19,9 +19,9 @@ import org.eclipse.core.resources.IMarkerDelta;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.flight.Ids;
-import org.eclipse.flight.resources.Project;
-import org.eclipse.flight.resources.vertx.VertxManager;
-import org.eclipse.flight.resources.vertx.VertxRepository;
+import org.eclipse.flight.objects.Project;
+import org.eclipse.flight.vertx.VertxManager;
+import org.eclipse.flight.vertx.VertxRepository;
 
 /**
  * @author Martin Lippert

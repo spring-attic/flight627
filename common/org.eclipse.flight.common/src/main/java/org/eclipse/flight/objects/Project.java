@@ -8,7 +8,7 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.flight.resources;
+package org.eclipse.flight.objects;
 
 import java.util.Collection;
 import java.util.HashMap;

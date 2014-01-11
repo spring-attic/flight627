@@ -10,8 +10,8 @@
  *******************************************************************************/
 package org.eclipse.flight.verticle;
 
-import org.eclipse.flight.resources.vertx.VertxManager;
-import org.eclipse.flight.resources.vertx.VertxRepository;
+import org.eclipse.flight.vertx.VertxManager;
+import org.eclipse.flight.vertx.VertxRepository;
 import org.vertx.java.platform.Verticle;
 
 /**

@@ -9,14 +9,32 @@
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
 
-package org.eclipse.flight.resources.vertx;
+package org.eclipse.flight.messages;
 
+import org.eclipse.flight.objects.FlightObject;
 import org.vertx.java.core.json.JsonObject;
 
 /**
  * @author Miles Parker
  *
  */
-public abstract class Requester {
-	public abstract void accept(JsonObject message);
+public class ResponseMessage extends FlightMessage {
+
+	/**
+	 * @param type
+	 * @param object
+	 */
+	public ResponseMessage(long senderId, String action, FlightObject object) {
+		super(senderId, action, object);
+		// TODO Auto-generated constructor stub
+	}
+
+	/* (non-Javadoc)
+	 * @see org.eclipse.flight.resources.JsonProvider#toJson(org.vertx.java.core.json.JsonObject)
+	 */
+	@Override
+	protected void toJson(JsonObject json, boolean thin) {
+		super.toJson(json, thin);
+		json.putString("kind", "response");
+	}
 }

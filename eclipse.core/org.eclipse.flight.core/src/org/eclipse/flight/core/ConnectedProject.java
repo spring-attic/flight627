@@ -29,13 +29,13 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.flight.Ids;
-import org.eclipse.flight.resources.Project;
-import org.eclipse.flight.resources.RequestMessage;
-import org.eclipse.flight.resources.Resource;
-import org.eclipse.flight.resources.Resource;
-import org.eclipse.flight.resources.ResponseMessage;
-import org.eclipse.flight.resources.vertx.Requester;
-import org.eclipse.flight.resources.vertx.VertxManager;
+import org.eclipse.flight.messages.RequestMessage;
+import org.eclipse.flight.messages.ResponseMessage;
+import org.eclipse.flight.objects.FlightObject;
+import org.eclipse.flight.objects.Project;
+import org.eclipse.flight.objects.Resource;
+import org.eclipse.flight.vertx.Requester;
+import org.eclipse.flight.vertx.VertxManager;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;
@@ -76,13 +76,12 @@ public class ConnectedProject extends Project {
 	}
 
 	private void requestResources() {
-		System.err.println("blah");
 		VertxManager.get().request(Ids.RESOURCE_PROVIDER, Ids.GET_PROJECT, ConnectedProject.this,
 				new Requester() {
 
 					@Override
-					public void accept(JsonObject message) {
-						synchronizeProject(message, null);
+					public void accept(FlightObject message) {
+						synchronizeProject((Project) message, null);
 					}
 				});
 	}
@@ -117,10 +116,7 @@ public class ConnectedProject extends Project {
 		}, IResource.DEPTH_INFINITE, IContainer.EXCLUDE_DERIVED);
 	}
 
-	public void synchronizeProject(JsonObject remoteObject, final CompletionCallback completionCallback) {
-		Project remoteProject = new Project();
-		remoteProject.fromJson(remoteObject);
-
+	public void synchronizeProject(Project remoteProject, final CompletionCallback completionCallback) {
 		if (remoteProject.getName().equals(getName()) && remoteProject.getUserName().equals(getUserName())) {
 
 			final AtomicInteger requestedFileCount = new AtomicInteger(0);
@@ -141,8 +137,8 @@ public class ConnectedProject extends Project {
 						VertxManager.get().request(Ids.RESOURCE_PROVIDER, Ids.GET_RESOURCE,
 								ConnectedProject.this, new Requester() {
 									@Override
-									public void accept(JsonObject reply) {
-										synchronizeResource(reply);
+									public void accept(FlightObject reply) {
+										synchronizeResource((Resource) reply);
 										if (completionCallback != null) {
 											int downloaded = downloadedFileCount.incrementAndGet();
 											if (downloaded == requestedFileCount.get()) {
@@ -299,9 +295,7 @@ public class ConnectedProject extends Project {
 	// }
 	// }
 
-	public void synchronizeResource(JsonObject response) {
-		Resource remoteResource = new Resource();
-		remoteResource.fromJson(response);
+	public void synchronizeResource(Resource remoteResource) {
 		if (remoteResource.getType().equals("file")) {
 
 			Resource localResource = getResource(remoteResource.getPath());

@@ -9,33 +9,33 @@
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
 
-package org.eclipse.flight.resources.vertx;
+package org.eclipse.flight.messages;
 
-import org.vertx.java.core.eventbus.Message;
+import org.eclipse.flight.objects.FlightObject;
 import org.vertx.java.core.json.JsonObject;
 
 /**
  * @author Miles Parker
  *
  */
-public abstract class Receiver extends FlightHandler {
+public class RequestMessage extends FlightMessage {
+
 	/**
-	 * @param id
-	 * @param action
+	 * @param type
+	 * @param object
 	 */
-	public Receiver(String address, String action) {
-		super(address, action);
+	public RequestMessage(long senderId, String action, FlightObject object) {
+		super(senderId, action, object);
+		// TODO Auto-generated constructor stub
 	}
 
-	public abstract void receive(JsonObject contents);
-
+	/* (non-Javadoc)
+	 * @see org.eclipse.flight.resources.JsonProvider#toJson(org.vertx.java.core.json.JsonObject)
+	 */
 	@Override
-	public void doHandle(Message<JsonObject> message, JsonObject contents) {
-		receive(contents);
+	protected void toJson(JsonObject json, boolean thin) {
+		super.toJson(json, thin);
+		json.putString("kind", "request");
 	}
 
-	@Override
-	public String toString() {
-		return "Receive @" + getAddress() + " " + getAction();
-	}
 }

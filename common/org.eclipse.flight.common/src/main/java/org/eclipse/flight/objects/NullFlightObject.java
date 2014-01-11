@@ -8,32 +8,25 @@
  * Contributors:
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
-
-package org.eclipse.flight.resources;
+package org.eclipse.flight.objects;
 
 import org.vertx.java.core.json.JsonObject;
 
-/**
- * @author Miles Parker
- *
- */
-public class NotificationMessage extends FlightMessage {
+public class NullFlightObject extends FlightObject {
 
-	/**
-	 * @param type
-	 * @param object
+	/* (non-Javadoc)
+	 * @see org.eclipse.flight.objects.FlightObject#fromJson(org.vertx.java.core.json.JsonObject)
 	 */
-	public NotificationMessage(long senderId, String action, FlightObject object) {
-		super(senderId, action, object);
+	@Override
+	protected void fromJson(JsonObject json) {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.eclipse.flight.resources.JsonProvider#toJson(org.vertx.java.core.json.JsonObject)
+	 * @see org.eclipse.flight.objects.FlightObject#toJson(org.vertx.java.core.json.JsonObject, boolean)
 	 */
 	@Override
 	protected void toJson(JsonObject json, boolean thin) {
-		super.toJson(json, thin);
-		json.putString("kind", "notification");
+		json.putString("exists", "false");
 	}
 
 }

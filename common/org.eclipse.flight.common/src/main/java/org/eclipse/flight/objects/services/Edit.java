@@ -9,8 +9,9 @@
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
 
-package org.eclipse.flight.resources;
+package org.eclipse.flight.objects.services;
 
+import org.eclipse.flight.objects.Resource;
 import org.vertx.java.core.json.JsonObject;
 
 /**

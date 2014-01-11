@@ -23,17 +23,17 @@ import org.eclipse.flight.core.ILiveEditConnector;
 import org.eclipse.flight.core.IRepositoryListener;
 import org.eclipse.flight.core.LiveEditCoordinator;
 import org.eclipse.flight.core.WorkspaceRepository;
-import org.eclipse.flight.resources.Edit;
-import org.eclipse.flight.resources.Resource;
-import org.eclipse.flight.resources.vertx.Requester;
-import org.eclipse.flight.resources.vertx.VertxManager;
+import org.eclipse.flight.objects.FlightObject;
+import org.eclipse.flight.objects.Resource;
+import org.eclipse.flight.objects.services.Edit;
+import org.eclipse.flight.vertx.Requester;
+import org.eclipse.flight.vertx.VertxManager;
 import org.eclipse.jdt.core.IBuffer;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IProblemRequestor;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.WorkingCopyOwner;
-import org.vertx.java.core.json.JsonObject;
 
 /**
  * @author Martin Lippert
@@ -101,7 +101,7 @@ public class LiveEditUnits {
 				new Requester() {
 
 					@Override
-					public void accept(JsonObject message) {
+					public void accept(FlightObject message) {
 						//not sure what to do w/ this yet..
 					}
 				});
@@ -115,7 +115,7 @@ public class LiveEditUnits {
 				new Requester() {
 
 					@Override
-					public void accept(JsonObject message) {
+					public void accept(FlightObject message) {
 						//not sure what to do w/ this yet..
 					}
 				});
@@ -165,7 +165,7 @@ public class LiveEditUnits {
 											return liveEditProblemRequestor;
 										}
 									}, new NullProgressMonitor());
-							liveEditUnits.put(edit.getPath(), liveUnit);
+							liveEditUnits.put(edit.getFullPath(), liveUnit);
 						} catch (JavaModelException e) {
 							e.printStackTrace();
 						}

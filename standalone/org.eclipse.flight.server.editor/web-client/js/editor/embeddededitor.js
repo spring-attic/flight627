@@ -45,10 +45,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 	};
 
-	// var socket = io.connect();
-	// var javaContentAssistProvider = new
-	// mJavaContentAssist.JavaContentAssistProvider(socket);
-	// javaContentAssistProvider.setSocket(socket);
+	 var javaContentAssistProvider = new mJavaContentAssist.JavaContentAssistProvider();
 	//	
 	// Canned highlighters for js, java, and css. Grammar-based highlighter
 	// for
@@ -85,49 +82,42 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 
 	var annotationFactory = new mEditorFeatures.AnnotationFactory();
 
-	// var linkedMode;
-	//	
-	// var keyBindingFactory = function(editor, keyModeStack, undoStack,
-	// contentAssist) {
-	//		
-	// // Create keybindings for generic editing
-	// var genericBindings = new mEditorFeatures.TextActions(editor, undoStack);
-	// keyModeStack.push(genericBindings);
-	//		
-	// // Linked Mode
-	// linkedMode = new mLinkedMode.LinkedMode(editor, undoStack,
-	// contentAssist);
-	// keyModeStack.push(linkedMode);
-	//
-	// // create keybindings for source editing
-	// var codeBindings = new mEditorFeatures.SourceCodeActions(editor,
-	// undoStack,
-	// contentAssist, linkedMode);
-	// keyModeStack.push(codeBindings);
-	//		
-	// // save binding
-	// editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding("s", true),
-	// "save");
-	// editor.getTextView().setAction("save", function(){
-	// save(editor);
-	// return true;
-	// });
-	//		
-	// editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding(114),
-	// "navigate");
-	// editor.getTextView().setAction("navigate", function(){
-	// navigate(editor);
-	// return true;
-	// });
-	//
-	// editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding(115),
-	// "renameinfile");
-	// editor.getTextView().setAction("renameinfile", function(){
-	// renameInFile(editor);
-	// return true;
-	// });
-	//
-	// };
+	var linkedMode;
+
+	var keyBindingFactory = function(editor, keyModeStack, undoStack, contentAssist) {
+
+		// Create keybindings for generic editing
+		var genericBindings = new mEditorFeatures.TextActions(editor, undoStack);
+		keyModeStack.push(genericBindings);
+
+		// Linked Mode
+		linkedMode = new mLinkedMode.LinkedMode(editor, undoStack, contentAssist);
+		keyModeStack.push(linkedMode);
+
+		// create keybindings for source editing
+		var codeBindings = new mEditorFeatures.SourceCodeActions(editor, undoStack, contentAssist, linkedMode);
+		keyModeStack.push(codeBindings);
+
+		// save binding
+		editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding("s", true), "save");
+		editor.getTextView().setAction("save", function() {
+			save(editor);
+			return true;
+		});
+
+		editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding(114), "navigate");
+		editor.getTextView().setAction("navigate", function() {
+			navigate(editor);
+			return true;
+		});
+
+		editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding(115), "renameinfile");
+		editor.getTextView().setAction("renameinfile", function() {
+			renameInFile(editor);
+			return true;
+		});
+
+	};
 
 	var dirtyIndicator = "";
 	var status = "";
@@ -145,8 +135,8 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		undoStackFactory : new mEditorFeatures.UndoFactory(),
 		annotationFactory : annotationFactory,
 		lineNumberRulerFactory : new mEditorFeatures.LineNumberRulerFactory(),
-		// contentAssistFactory: contentAssistFactory,
-		// keyBindingFactory: keyBindingFactory,
+		contentAssistFactory : contentAssistFactory,
+		keyBindingFactory : keyBindingFactory,
 		statusReporter : statusReporter,
 		domNode : editorDomNode
 	});
@@ -167,9 +157,9 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 
 	editor.installTextView();
 
-	// contentAssist.addEventListener("Activating", function() {
-	// contentAssist.setProviders([javaContentAssistProvider]);
-	// });
+	contentAssist.addEventListener("Activating", function() {
+		contentAssist.setProviders([ javaContentAssistProvider ]);
+	});
 
 	window.onbeforeunload = function() {
 		if (editor.isDirty()) {
@@ -272,6 +262,8 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	var lastSavePointTimestamp = 0;
 
 	function start() {
+		 javaContentAssistProvider.setEventBus(eb);
+
 		filePath = window.location.href.split('#')[1];
 
 		if (filePath !== undefined) {
@@ -298,6 +290,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 					action : 'resource.get',
 					senderId : editor_id,
 					contents : {
+						'class' : 'org.eclipse.flight.objects.Resource',
 						'username' : username,
 						'projectName' : project,
 						'path' : resource,
@@ -309,7 +302,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				eb.send('flight.resourceProvider', request, function(reply) {
 					var data = JSON.parse(JSON.stringify(reply)).contents;
 
-					 if (lastSavePointTimestamp != 0 && lastSavePointHash !== '') {
+					if (lastSavePointTimestamp != 0 && lastSavePointHash !== '') {
 						return;
 					}
 					if (data.username !== username) {
@@ -332,9 +325,9 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 						});
 					}
 
-					// javaContentAssistProvider.setProject(project);
-					// javaContentAssistProvider.setResourcePath(resource);
-					// javaContentAssistProvider.setUsername(username);
+					 javaContentAssistProvider.setProject(project);
+					 javaContentAssistProvider.setResourcePath(resource);
+					 javaContentAssistProvider.setUsername(username);
 
 					lastSavePointContent = text;
 					lastSavePointHash = data.hash;
@@ -347,6 +340,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 						action : 'live.resource.started',
 						senderId : editor_id,
 						contents : {
+							"class" : 'org.eclipse.flight.objects.Edit',
 							'username' : username,
 							'projectName' : project,
 							'path' : resource,
@@ -367,8 +361,8 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				eb.registerHandler('flight.editParticipant', function(message, replier) {
 					var msg = JSON.parse(JSON.stringify(message));
 					var data = msg.contents;
-//					console.log(msg.action);
-//					console.log(data);
+					// console.log(msg.action);
+					// console.log(data);
 					if (data.username !== username || project !== data.projectName || data.path !== resource
 							|| msg.senderId == editor_id) {
 						return;
@@ -396,6 +390,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 								senderId : editor_id,
 								contents : {
 									'username' : data.username,
+									'class' : 'org.eclipse.flight.objects.Edit',
 									'projectName' : data.project,
 									'path' : data.resource,
 									'timestamp' : data.timestamp,
@@ -414,19 +409,21 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 						editor.getModel().setText(text, data.offset, data.offset + data.removeCount);
 						editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 					} else if (msg.action == "live.metadata.changed") {
-						var markers = [];
-						for (i = 0; i < data.markers.length; i++) {
-							var lineOffset = editor.getModel().getLineStart(data.markers[i].line - 1);
-							markers[i] = {
-								'description' : data.markers[i].description,
-								'line' : data.markers[i].sourceLine,
-								'severity' : data.markers[i].severity,
-								'start' : (data.markers[i].start - lineOffset) + 1,
-								'end' : data.markers[i].end - lineOffset
-							};
-						}
+						if (data.markers) {
+							var markers = [];
+							for (i = 0; i < data.markers.length; i++) {
+								var lineOffset = editor.getModel().getLineStart(data.markers[i].line - 1);
+								markers[i] = {
+									'description' : data.markers[i].description,
+									'line' : data.markers[i].sourceLine,
+									'severity' : data.markers[i].severity,
+									'start' : (data.markers[i].start - lineOffset) + 1,
+									'end' : data.markers[i].end - lineOffset
+								};
+							}
 
-						editor.showProblems(markers);
+							editor.showProblems(markers);
+						}
 					}
 				});
 			} else {
@@ -501,6 +498,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			contents : {
 				'username' : username,
 				'projectName' : project,
+				'class' : 'org.eclipse.flight.objects.Resource',
 				'path' : resource,
 				'offset' : evt.start,
 				'timestamp' : lastSavePointTimestamp,

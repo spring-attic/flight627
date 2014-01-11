@@ -16,11 +16,11 @@ import static org.vertx.testtools.VertxAssert.*;
 
 import org.apache.log4j.Logger;
 import org.eclipse.flight.Ids;
-import org.eclipse.flight.resources.FlightObject;
-import org.eclipse.flight.resources.Project;
-import org.eclipse.flight.resources.RequestMessage;
-import org.eclipse.flight.resources.Resource;
-import org.eclipse.flight.resources.vertx.VertxManager;
+import org.eclipse.flight.messages.RequestMessage;
+import org.eclipse.flight.objects.FlightObject;
+import org.eclipse.flight.objects.Project;
+import org.eclipse.flight.objects.Resource;
+import org.eclipse.flight.vertx.VertxManager;
 import org.junit.Test;
 import org.junit.internal.runners.statements.Fail;
 import org.vertx.java.core.AsyncResult;
@@ -192,7 +192,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		}, new TestHandler(Ids.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
-				assertThat(reply.body().getObject("contents").getBoolean("exists"), is(true));
+				assertThat(reply.body().getBoolean("exists"), is(true));
 				assertThat(reply.body().getObject("contents").getString("path"),
 						is("src/foo/bar/MyClass.java"));
 			}
@@ -212,7 +212,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		}, new TestHandler(Ids.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
-				assertThat(reply.body().getObject("contents").getBoolean("exists"), is(false));
+				assertThat(reply.body().getBoolean("exists"), is(false));
 			}
 		});
 	}
@@ -231,7 +231,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		}, new TestHandler(Ids.HAS_RESOURCE, resourceIdent) {
 			@Override
 			void expect(Message<JsonObject> reply) {
-				assertThat(reply.body().getObject("contents").getBoolean("exists"), is(false));
+				assertThat(reply.body().getBoolean("exists"), is(false));
 			}
 		});
 	}

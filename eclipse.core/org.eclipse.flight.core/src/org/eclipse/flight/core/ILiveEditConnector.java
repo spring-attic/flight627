@@ -10,7 +10,7 @@
  *******************************************************************************/
 package org.eclipse.flight.core;
 
-import org.eclipse.flight.resources.Edit;
+import org.eclipse.flight.objects.services.Edit;
 
 /**
  * @author Martin Lippert

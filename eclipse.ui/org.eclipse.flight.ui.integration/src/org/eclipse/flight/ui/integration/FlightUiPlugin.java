@@ -29,7 +29,7 @@ import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.flight.core.IRepositoryListener;
 import org.eclipse.flight.core.LiveEditCoordinator;
 import org.eclipse.flight.core.WorkspaceRepository;
-import org.eclipse.flight.resources.Repository;
+import org.eclipse.flight.objects.Repository;
 import org.eclipse.flight.ui.integration.handlers.LiveEditConnector;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.LabelProviderChangedEvent;

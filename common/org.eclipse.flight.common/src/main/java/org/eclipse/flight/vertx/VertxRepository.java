@@ -1,10 +1,12 @@
-package org.eclipse.flight.resources.vertx;
+package org.eclipse.flight.vertx;
 
 import org.eclipse.flight.Ids;
-import org.eclipse.flight.resources.Project;
-import org.eclipse.flight.resources.Repository;
-import org.eclipse.flight.resources.Resource;
-import org.eclipse.flight.resources.ResponseMessage;
+import org.eclipse.flight.messages.ResponseMessage;
+import org.eclipse.flight.objects.FlightObject;
+import org.eclipse.flight.objects.NullFlightObject;
+import org.eclipse.flight.objects.Project;
+import org.eclipse.flight.objects.Repository;
+import org.eclipse.flight.objects.Resource;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.eventbus.Message;
@@ -34,61 +36,60 @@ public class VertxRepository extends Repository {
 		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.CREATE_PROJECT) {
 
 			@Override
-			public Object respond(JsonObject request) {
-				Project project = putProject(request.getString("name"));
-				return project.toJson(true);
+			public FlightObject respond(FlightObject request) {
+				return putProject(((Project) request).getName());
 			}
 		});
 		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.GET_PROJECT) {
 
 			@Override
-			public Object respond(JsonObject request) {
-				Project project = getProject(request.getString("name"));
-				return project.toJson();
+			public FlightObject respond(FlightObject request) {
+				return getProject(((Project) request).getName());
 			}
 		});
-		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.GET_ALL_PROJECTS) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.GET_ALL_PROJECTS, true) {
 
 			@Override
-			public Object respond(JsonObject request) {
-				return VertxRepository.this.toJson(true);
+			public FlightObject respond(FlightObject request) {
+				return VertxRepository.this;
 			}
 		});
 		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.GET_RESOURCE) {
 
 			@Override
-			public Object respond(JsonObject request) {
-				Resource remoteResource = new Resource();
-				remoteResource.fromJson(request);
-				return getResource(remoteResource);
+			public FlightObject respond(FlightObject request) {
+				return getResource((Resource) request);
 			}
 		});
-		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.HAS_RESOURCE) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.HAS_RESOURCE, true) {
 
 			@Override
-			public Object respond(JsonObject request) {
-				Resource remoteResource = new Resource();
-				remoteResource.fromJson(request);
-				Resource resource = getResource(remoteResource);
-				return remoteResource.toJson().putBoolean("exists", resource != null);
+			public FlightObject respond(FlightObject request) {
+				return request;
+			}
+			
+			@Override
+			public void modifyJsonResponse(FlightObject request, JsonObject json) {
+				json.putBoolean("exists", getResource((Resource) request) != null);
 			}
 		});
-		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.NEEDS_UPDATE_RESOURCE) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.NEEDS_UPDATE_RESOURCE, true) {
 
 			@Override
-			public Object respond(JsonObject request) {
-				Resource remoteResource = new Resource();
-				remoteResource.fromJson(request);
-				return new JsonObject().putBoolean("needsUpdate", needsUpdate(remoteResource));
+			public FlightObject respond(FlightObject request) {
+				return request;
+			}
+			
+			@Override
+			public void modifyJsonResponse(FlightObject request, JsonObject json) {
+				json.putBoolean("needsUpdate", needsUpdate((Resource) request));
 			}
 		});
-		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.CREATE_RESOURCE) {
+		vertx.register(new Responder(Ids.RESOURCE_PROVIDER, Ids.CREATE_RESOURCE, true) {
 
 			@Override
-			public Object respond(JsonObject request) {
-				Resource remoteResource = new Resource();
-				remoteResource.fromJson(request);
-				return putResource(remoteResource).toJson(true);
+			public FlightObject respond(FlightObject request) {
+				return putResource((Resource) request);
 			}
 		});
 

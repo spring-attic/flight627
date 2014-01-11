@@ -9,15 +9,16 @@
  *     Pivotal Software, Inc. - initial API and implementation
  *******************************************************************************/
 
-package org.eclipse.flight.resources;
+package org.eclipse.flight.messages;
 
+import org.eclipse.flight.objects.FlightObject;
 import org.vertx.java.core.json.JsonObject;
 
 /**
  * @author Miles Parker
  * 
  */
-public class FlightMessage extends FlightObject {
+public abstract class FlightMessage extends FlightObject {
 
 	String action;
 
