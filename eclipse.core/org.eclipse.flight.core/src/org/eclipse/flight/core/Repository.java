@@ -345,6 +345,8 @@ public class Repository {
 					String hash = resource.optString("hash");
 					
 					boolean newFile = type != null && type.equals("file") && !connectedProject.containsResource(resourcePath);
+					boolean updatedFileTimestamp =  type != null && type.equals("file") && connectedProject.containsResource(resourcePath)
+							&& connectedProject.getHash(resourcePath).equals(hash) && connectedProject.getTimestamp(resourcePath) < timestamp;
 					boolean updatedFile = type != null && type.equals("file") && connectedProject.containsResource(resourcePath)
 							&& !connectedProject.getHash(resourcePath).equals(hash) && connectedProject.getTimestamp(resourcePath) < timestamp;
 
@@ -359,7 +361,13 @@ public class Repository {
 
 						messagingConnector.send("getResourceRequest", message);
 					}
-
+					
+					if (updatedFileTimestamp) {
+						connectedProject.setTimestamp(resourcePath, timestamp);
+						IResource file  = connectedProject.getProject().findMember(resourcePath);
+						file.setLocalTimeStamp(timestamp);
+					}
+					
 					boolean newFolder = type != null && type.equals("folder") && !connectedProject.containsResource(resourcePath);
 					boolean updatedFolder = type != null && type.equals("folder") && connectedProject.containsResource(resourcePath)
 							&& !connectedProject.getHash(resourcePath).equals(hash) && connectedProject.getTimestamp(resourcePath) < timestamp;

@@ -13,16 +13,26 @@ package org.eclipse.flight.ui.integration.handlers;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.eclipse.core.filebuffers.FileBuffers;
+import org.eclipse.core.filebuffers.IFileBuffer;
+import org.eclipse.core.filebuffers.IFileBufferListener;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.flight.core.ConnectedProject;
 import org.eclipse.flight.core.ILiveEditConnector;
+import org.eclipse.flight.core.IRepositoryListener;
 import org.eclipse.flight.core.LiveEditCoordinator;
 import org.eclipse.flight.core.Repository;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IDocumentListener;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IEditorReference;
 import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchPartReference;
@@ -60,6 +70,91 @@ public class LiveEditConnector {
 			public void documentAboutToBeChanged(DocumentEvent event) {
 			}
 		};
+		
+		FileBuffers.getTextFileBufferManager().addFileBufferListener(new IFileBufferListener() {
+			@Override
+			public void underlyingFileMoved(IFileBuffer buffer, IPath path) {
+			}
+			
+			@Override
+			public void underlyingFileDeleted(IFileBuffer buffer) {
+			}
+			
+			@Override
+			public void stateValidationChanged(IFileBuffer buffer, boolean isStateValidated) {
+			}
+			
+			@Override
+			public void stateChanging(IFileBuffer buffer) {
+			}
+			
+			@Override
+			public void stateChangeFailed(IFileBuffer buffer) {
+			}
+			
+			@Override
+			public void dirtyStateChanged(IFileBuffer buffer, boolean isDirty) {
+			}
+
+			@Override
+			public void bufferDisposed(IFileBuffer buffer) {
+			}
+
+			@Override
+			public void bufferCreated(IFileBuffer buffer) {
+			}
+			
+			@Override
+			public void bufferContentReplaced(IFileBuffer buffer) {
+				IPath path = buffer.getLocation();
+
+				IWorkspace workspace = ResourcesPlugin.getWorkspace();
+				IWorkspaceRoot root = workspace.getRoot();
+				IResource resource = root.findMember(path);
+				if (resource != null) {
+					IProject project = resource.getProject();
+					String resourcePath = resource.getProjectRelativePath().toString();
+					
+					String fullPath = project.getName() + "/" + resourcePath;
+					IDocument doc = documentMappings.get(fullPath);
+					if (doc != null) {
+						doc.addDocumentListener(documentListener);
+					}
+				}
+				
+				System.out.println("content replaced by new version on the file system");
+			}
+			
+			@Override
+			public void bufferContentAboutToBeReplaced(IFileBuffer buffer) {
+				IPath path = buffer.getLocation();
+
+				IWorkspace workspace = ResourcesPlugin.getWorkspace();
+				IWorkspaceRoot root = workspace.getRoot();
+				IResource resource = root.findMember(path);
+				if (resource != null) {
+					IProject project = resource.getProject();
+					String resourcePath = resource.getProjectRelativePath().toString();
+					
+					String fullPath = project.getName() + "/" + resourcePath;
+					IDocument doc = documentMappings.get(fullPath);
+					if (doc != null) {
+						doc.removeDocumentListener(documentListener);
+					}
+				}
+			}
+		});
+		
+		this.repository.addRepositoryListener(new IRepositoryListener() {
+			@Override
+			public void projectConnected(IProject project) {
+				connectOpenEditors(project);
+			}
+			@Override
+			public void projectDisconnected(IProject project) {
+				disconnectOpenEditors(project);
+			}
+		});
 		
 		ILiveEditConnector liveEditConnector = new ILiveEditConnector() {
 			@Override
@@ -141,39 +236,39 @@ public class LiveEditConnector {
 	}
 
 	protected void handleRemoteLiveContent(String requestSenderID, int callbackID, String username, String projectName, String resource,
-			String savePointHash, long savePointTimestamp, final String content) {
+			final String savePointHash, final long savePointTimestamp, final String content) {
 		// we started the editing and are getting remote live content back
 		
-		String resourcePath = projectName + "/" + resource;
-
+		final String resourcePath = projectName + "/" + resource;
+		
 		if (this.repository.getUsername().equals(username) && documentMappings.containsKey(resourcePath)) {
 			final IDocument document = documentMappings.get(resourcePath);
 
 			ConnectedProject connectedProject = repository.getProject(projectName);
-			String hash = connectedProject.getHash(resource);
-			long timestamp = connectedProject.getTimestamp(resource);
+			final String hash = connectedProject.getHash(resource);
+			final long timestamp = connectedProject.getTimestamp(resource);
 			
-			if (hash != null && hash.equals(savePointHash) && timestamp == savePointTimestamp) {
-				String openedContent = document.get();
-				if (!openedContent.equals(content)) {
-					try {
-						Display.getDefault().asyncExec(new Runnable() {
-							public void run() {
-								try {
+			try {
+				Display.getDefault().asyncExec(new Runnable() {
+					public void run() {
+						try {
+							if (hash != null && hash.equals(savePointHash) && timestamp == savePointTimestamp) {
+								String openedContent = document.get();
+								if (!openedContent.equals(content)) {
 									document.removeDocumentListener(documentListener);
 									document.set(content);
 									document.addDocumentListener(documentListener);
 								}
-								catch (Exception e) {
-									e.printStackTrace();
-								}
 							}
-						});
+						}
+						catch (Exception e) {
+							e.printStackTrace();
+						}
 					}
-					catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
+				});
+			}
+			catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
 	}
@@ -247,6 +342,36 @@ public class LiveEditConnector {
 			documentMappings.remove(resourcePath);
 			resourceMappings.remove(document);
 		}
+	}
+
+	protected void connectOpenEditors(IProject project) {
+		Display.getDefault().asyncExec(new Runnable() {
+			public void run() {
+				IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+				IEditorReference[] editorReferences = window.getActivePage().getEditorReferences();
+				for (IEditorReference editorReference : editorReferences) {
+					IEditorPart editorPart = editorReference.getEditor(false);
+					if (editorPart instanceof AbstractTextEditor) {
+						connectEditor((AbstractTextEditor) editorPart);
+					}
+				}
+			}
+		});
+	}
+	
+	protected void disconnectOpenEditors(IProject project) {
+		Display.getDefault().asyncExec(new Runnable() {
+			public void run() {
+				IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+				IEditorReference[] editorReferences = window.getActivePage().getEditorReferences();
+				for (IEditorReference editorReference : editorReferences) {
+					IEditorPart editorPart = editorReference.getEditor(false);
+					if (editorPart instanceof AbstractTextEditor) {
+						disconnectEditor((AbstractTextEditor) editorPart);
+					}
+				}
+			}
+		});
 	}
 
 }
