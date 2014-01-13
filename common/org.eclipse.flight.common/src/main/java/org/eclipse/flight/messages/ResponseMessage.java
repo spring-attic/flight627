@@ -24,7 +24,7 @@ public class ResponseMessage extends FlightMessage {
 	 * @param type
 	 * @param object
 	 */
-	public ResponseMessage(long senderId, String action, FlightObject object) {
+	public ResponseMessage(Long senderId, String action, FlightObject object) {
 		super(senderId, action, object);
 		// TODO Auto-generated constructor stub
 	}

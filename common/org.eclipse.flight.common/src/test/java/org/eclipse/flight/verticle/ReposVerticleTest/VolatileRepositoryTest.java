@@ -62,7 +62,7 @@ public class VolatileRepositoryTest extends TestVerticle {
 		void execute() {
 			logger.debug("test sending @" + Ids.RESOURCE_PROVIDER + " " + action);
 			vertx.eventBus().send(Ids.RESOURCE_PROVIDER,
-					new RequestMessage(0, action, message).toJson(),
+					new RequestMessage(0L, action, message).toJson(),
 					new Handler<Message<JsonObject>>() {
 						@Override
 						public void handle(Message<JsonObject> reply) {

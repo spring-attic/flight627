@@ -24,9 +24,9 @@ public abstract class FlightMessage extends FlightObject {
 
 	FlightObject object;
 
-	private long senderId;
+	private Long senderId;
 
-	public FlightMessage(long senderId, String action, FlightObject object) {
+	public FlightMessage(Long senderId, String action, FlightObject object) {
 		this.senderId = senderId;
 		this.action = action;
 		this.object = object;

@@ -24,7 +24,7 @@ public class NotificationMessage extends FlightMessage {
 	 * @param type
 	 * @param object
 	 */
-	public NotificationMessage(long senderId, String action, FlightObject object) {
+	public NotificationMessage(Long senderId, String action, FlightObject object) {
 		super(senderId, action, object);
 	}
 

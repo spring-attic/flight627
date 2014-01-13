@@ -73,7 +73,7 @@ public class EclipseRepositoryTest {
 					.get()
 					.getVertx().eventBus()
 					.send(Ids.RESOURCE_PROVIDER,
-							new RequestMessage(0, address, message).toJson(),
+							new RequestMessage(0L, address, message).toJson(),
 							new Handler<Message<JsonObject>>() {
 								@Override
 								public void handle(Message<JsonObject> reply) {

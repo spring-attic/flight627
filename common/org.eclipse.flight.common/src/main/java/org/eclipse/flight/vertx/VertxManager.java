@@ -39,25 +39,30 @@ import org.vertx.java.core.json.JsonObject;
 public class VertxManager {
 
 	Logger logger = Logger.getLogger(VertxManager.class);
-	
+
 	private static VertxManager INSTANCE;
 
 	class MultiHandler implements Handler<Message<JsonObject>> {
 		String address;
-		
+
 		public MultiHandler(String address) {
 			this.address = address;
 		}
-		
+
 		Map<String, FlightHandler> handlerForAction = new HashMap<String, FlightHandler>();
 
 		@Override
-		public void handle(Message<JsonObject> event) {
-			String action = event.body().getString("action");
+		public void handle(Message<JsonObject> message) {
+			JsonObject body = message.body();
+			Long senderId = body.getLong("senderId");
+			if (senderId.equals(id)) {
+				return;// Don't send back to ourselves
+			}
+			String action = message.body().getString("action");
 			FlightHandler handler = handlerForAction.get(action);
 			if (handler != null) {
 				logger.debug("Handling " + handler);
-				handler.handle(event);
+				handler.handle(message);
 			} else {
 				logger.warn("No handler for @" + address + " " + action);
 			}
@@ -68,9 +73,9 @@ public class VertxManager {
 
 	Vertx vertx;
 
-	long id;
+	Long id;
 
-	public VertxManager(Vertx vertx, long id) {
+	public VertxManager(Vertx vertx, Long id) {
 		this.vertx = vertx;
 		this.id = id;
 	}
@@ -82,7 +87,8 @@ public class VertxManager {
 
 	private VertxManager() {
 		id = (new Random()).nextLong();
-		System.setProperty("vertx.clusterManagerFactory", "org.vertx.java.spi.cluster.impl.hazelcast.HazelcastClusterManagerFactory");
+		System.setProperty("vertx.clusterManagerFactory",
+				"org.vertx.java.spi.cluster.impl.hazelcast.HazelcastClusterManagerFactory");
 		VertxFactory.newVertx(Configuration.getEventBusPort(), Configuration.getHost(),
 				new Handler<AsyncResult<Vertx>>() {
 					@Override
@@ -122,7 +128,8 @@ public class VertxManager {
 		JsonObject config = new JsonObject().putString("prefix", "/eventbus");
 		vertx.createSockJSServer(bridgeServer).bridge(config, permitted, permitted);
 
-		bridgeServer.listen(Configuration.getEventBusBridgePort(), Configuration.getHost());
+		bridgeServer.listen(Configuration.getEventBusBridgePort(),
+				Configuration.getHost());
 		logger.info("Vertx bridge server started");
 	}
 
@@ -144,10 +151,8 @@ public class VertxManager {
 
 	public void publish(String address, String action, FlightObject object) {
 		logger.debug("Publishing @" + address + " " + action + "\n\t\t" + object);
-		vertx.eventBus().publish(
-				Ids.EDIT_PARTICIPANT,
-				new NotificationMessage(id, action, object)
-						.toJson());
+		vertx.eventBus().publish(address,
+				new NotificationMessage(id, action, object).toJson());
 	}
 
 	public void publish(String address, String action, JsonObject json) {
@@ -162,8 +167,10 @@ public class VertxManager {
 				new Handler<Message<JsonObject>>() {
 					@Override
 					public void handle(Message<JsonObject> reply) {
-						logger.debug("Accepting @" + address + " " + action + "\n\t\t" + reply.body());
-						FlightObject flightObject = FlightObject.createFromJson(reply.body().getObject("contents"));
+						logger.debug("Accepting @" + address + " " + action + "\n\t\t"
+								+ reply.body());
+						FlightObject flightObject = FlightObject.createFromJson(reply
+								.body().getObject("contents"));
 						requester.accept(flightObject);
 					}
 				});

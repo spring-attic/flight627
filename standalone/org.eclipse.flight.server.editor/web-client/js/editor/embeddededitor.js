@@ -382,17 +382,16 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 						}
 					} else if (msg.action == "live.resource.started") {
 						if ((data.hash === undefined || data.hash === lastSavePointHash)
-								&& data.timestamp === undefined || data.timestamp === lastSavePointTimestamp) {
-
+								&& (data.timestamp === undefined || data.timestamp === lastSavePointTimestamp)) {
 							eb.publish('flight.editParticipant', {
 								kind : 'notification',
-								action : 'live.resource.started',
+								action : 'live.resource.startedResponse',
 								senderId : editor_id,
 								contents : {
 									'username' : data.username,
 									'class' : 'org.eclipse.flight.objects.Edit',
-									'projectName' : data.project,
-									'path' : data.resource,
+									'projectName' : data.projectName,
+									'path' : data.path,
 									'timestamp' : data.timestamp,
 									'offset' : -1,
 									'removeCount' : 0,

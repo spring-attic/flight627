@@ -78,8 +78,7 @@ public class LiveEditConnector {
 
 			@Override
 			public void liveEditingStarted(Edit edit) {
-				//This doesn't seem to work right now -- Miles
-				//remoteEditorStarted(edit);
+				remoteEditorStarted(edit);
 			}
 
 			@Override

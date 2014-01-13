@@ -24,11 +24,11 @@ public class ResourceMarker extends FlightObject {
 
 	private String severity;
 
-	private int sourceLine;
+	private Integer sourceLine;
 
-	private int start;
+	private Integer start;
 
-	private int end;
+	private Integer end;
 
 	public Resource getResource() {
 		return resource;
@@ -54,27 +54,27 @@ public class ResourceMarker extends FlightObject {
 		this.severity = severity;
 	}
 
-	public int getStart() {
+	public Integer getStart() {
 		return start;
 	}
 
-	public void setStart(int start) {
+	public void setStart(Integer start) {
 		this.start = start;
 	}
 
-	public int getEnd() {
+	public Integer getEnd() {
 		return end;
 	}
 
-	public void setEnd(int end) {
+	public void setEnd(Integer end) {
 		this.end = end;
 	}
 
-	public int getSourceLine() {
+	public Integer getSourceLine() {
 		return sourceLine;
 	}
 
-	public void setSourceLine(int sourceLine) {
+	public void setSourceLine(Integer sourceLine) {
 		this.sourceLine = sourceLine;
 	}
 

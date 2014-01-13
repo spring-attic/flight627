@@ -18,29 +18,29 @@ import org.vertx.java.core.json.JsonObject;
  * @author Miles Parker
  */
 public class Edit extends Resource {
-	int offset;
+	Integer offset;
 
-	int removeCount;
+	Integer removeCount;
 
 	String editType;
 
-	long savePointTimestamp;
+	Long savePointTimestamp;
 
 	String savePointHash;
 
-	public int getOffset() {
+	public Integer getOffset() {
 		return offset;
 	}
 
-	public void setOffset(int offset) {
+	public void setOffset(Integer offset) {
 		this.offset = offset;
 	}
 
-	public int getRemoveCount() {
+	public Integer getRemoveCount() {
 		return removeCount;
 	}
 
-	public void setRemoveCount(int removeCount) {
+	public void setRemoveCount(Integer removeCount) {
 		this.removeCount = removeCount;
 	}
 
@@ -52,11 +52,11 @@ public class Edit extends Resource {
 		this.editType = editType;
 	}
 
-	public long getSavePointTimestamp() {
+	public Long getSavePointTimestamp() {
 		return savePointTimestamp;
 	}
 
-	public void setSavePointTimestamp(long savePointTimestamp) {
+	public void setSavePointTimestamp(Long savePointTimestamp) {
 		this.savePointTimestamp = savePointTimestamp;
 	}
 

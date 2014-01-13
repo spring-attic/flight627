@@ -28,23 +28,23 @@ public class ContentAssist extends Resource {
 
 		public static class Position extends FlightObject {
 
-			int offset;
+			Integer offset;
 
-			int length;
+			Integer length;
 
-			public int getOffset() {
+			public Integer getOffset() {
 				return offset;
 			}
 
-			public void setOffset(int offset) {
+			public void setOffset(Integer offset) {
 				this.offset = offset;
 			}
 
-			public int getLength() {
+			public Integer getLength() {
 				return length;
 			}
 
-			public void setLength(int length) {
+			public void setLength(Integer length) {
 				this.length = length;
 			}
 
@@ -240,15 +240,15 @@ public class ContentAssist extends Resource {
 
 	Collection<Proposal> proposals;
 
-	int offset;
+	Integer offset;
 
 	String prefix;
 
-	public int getOffset() {
+	public Integer getOffset() {
 		return offset;
 	}
 
-	public void setOffset(int offset) {
+	public void setOffset(Integer offset) {
 		this.offset = offset;
 	}
 

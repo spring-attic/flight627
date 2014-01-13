@@ -11,9 +11,6 @@
 
 package org.eclipse.flight.vertx;
 
-import org.eclipse.flight.messages.ResponseMessage;
-import org.eclipse.flight.objects.FlightObject;
-import org.eclipse.flight.objects.JsonWrapper;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;
@@ -23,11 +20,11 @@ import org.vertx.java.core.json.JsonObject;
  * 
  */
 public abstract class FlightHandler implements Handler<Message<JsonObject>> {
-	
-	protected long id;
+
+	protected Long id;
 	protected String action;
 	private String address;
-	
+
 	public FlightHandler(String address, String action) {
 		super();
 		this.address = address;
@@ -35,15 +32,14 @@ public abstract class FlightHandler implements Handler<Message<JsonObject>> {
 	}
 
 	public abstract void doHandle(Message<JsonObject> message, JsonObject contents);
-	
+
 	@Override
 	public void handle(Message<JsonObject> message) {
 		JsonObject body = message.body();
-		long senderId = body.getLong("senderId");
+		Long senderId = body.getLong("senderId");
 		if (senderId == id) {
 			return;// Don't send back to ourselves
-		}
-		else {
+		} else {
 			String messageAction = body.getString("action");
 			if (action.equals(messageAction)) {
 				JsonObject contents = body.getObject("contents");
@@ -51,8 +47,8 @@ public abstract class FlightHandler implements Handler<Message<JsonObject>> {
 			}
 		}
 	}
-	
-	public void setId(long id) {
+
+	public void setId(Long id) {
 		this.id = id;
 	}
 
@@ -62,7 +58,7 @@ public abstract class FlightHandler implements Handler<Message<JsonObject>> {
 	public String getAddress() {
 		return address;
 	}
-	
+
 	/**
 	 * @return the action
 	 */
