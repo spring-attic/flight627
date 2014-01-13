@@ -16,11 +16,17 @@ import java.util.concurrent.ConcurrentMap;
 import org.eclipse.core.filebuffers.FileBuffers;
 import org.eclipse.core.filebuffers.IFileBuffer;
 import org.eclipse.core.filebuffers.IFileBufferListener;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IResourceChangeEvent;
+import org.eclipse.core.resources.IResourceChangeListener;
+import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.resources.IResourceDeltaVisitor;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.flight.core.ConnectedProject;
 import org.eclipse.flight.core.ILiveEditConnector;
@@ -54,12 +60,16 @@ public class LiveEditConnector {
 	private ConcurrentMap<String, IDocument> documentMappings;
 	private LiveEditCoordinator liveEditCoordinator;
 
+	private ConcurrentHashMap<String, PendingLiveEditStartedResponse> pendingLiveEditStartedResponses;
+
 	public LiveEditConnector(LiveEditCoordinator liveEditCoordinator, Repository repository) {
 		this.liveEditCoordinator = liveEditCoordinator;
 		this.repository = repository;
 		
 		this.resourceMappings = new ConcurrentHashMap<IDocument, String>();
 		this.documentMappings = new ConcurrentHashMap<String, IDocument>();
+		
+		this.pendingLiveEditStartedResponses = new ConcurrentHashMap<String, PendingLiveEditStartedResponse>();
 		
 		this.documentListener = new IDocumentListener() {
 			@Override
@@ -180,6 +190,14 @@ public class LiveEditConnector {
 		};
 		this.liveEditCoordinator.addLiveEditConnector(liveEditConnector);
 		
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		workspace.addResourceChangeListener(new IResourceChangeListener() {
+			@Override
+			public void resourceChanged(IResourceChangeEvent event) {
+				reactToResourceChanged(event);
+			}
+		});
+		
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
 				IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
@@ -235,29 +253,41 @@ public class LiveEditConnector {
 		}
 	}
 
-	protected void handleRemoteLiveContent(String requestSenderID, int callbackID, String username, String projectName, String resource,
+	protected void handleRemoteLiveContent(String requestSenderID, int callbackID, final String username, final String projectName, final String resource,
 			final String savePointHash, final long savePointTimestamp, final String content) {
 		// we started the editing and are getting remote live content back
 		
-		final String resourcePath = projectName + "/" + resource;
+		PendingLiveEditStartedResponse newResponse = new PendingLiveEditStartedResponse(username, projectName, resource, savePointHash, savePointTimestamp, content);
+		handleRemoteLiveContent(newResponse);
+	}
+	
+	protected void handleRemoteLiveContent(final PendingLiveEditStartedResponse pendingResponse) {
 		
-		if (this.repository.getUsername().equals(username) && documentMappings.containsKey(resourcePath)) {
+		final String resourcePath = pendingResponse.getProjectName() + "/" + pendingResponse.getResource();
+		
+		if (this.repository.getUsername().equals(pendingResponse.getUsername()) && documentMappings.containsKey(resourcePath)) {
 			final IDocument document = documentMappings.get(resourcePath);
 
-			ConnectedProject connectedProject = repository.getProject(projectName);
-			final String hash = connectedProject.getHash(resource);
-			final long timestamp = connectedProject.getTimestamp(resource);
-			
 			try {
 				Display.getDefault().asyncExec(new Runnable() {
 					public void run() {
 						try {
-							if (hash != null && hash.equals(savePointHash) && timestamp == savePointTimestamp) {
+							ConnectedProject connectedProject = repository.getProject(pendingResponse.getProjectName());
+							final String hash = connectedProject.getHash(pendingResponse.getResource());
+							final long timestamp = connectedProject.getTimestamp(pendingResponse.getResource());
+							
+							if (hash != null && hash.equals(pendingResponse.getSavePointHash()) && timestamp == pendingResponse.getSavePointTimestamp()) {
 								String openedContent = document.get();
-								if (!openedContent.equals(content)) {
+								if (!openedContent.equals(pendingResponse.getContent())) {
 									document.removeDocumentListener(documentListener);
-									document.set(content);
+									document.set(pendingResponse.getContent());
 									document.addDocumentListener(documentListener);
+								}
+							}
+							else if (pendingResponse.getSavePointTimestamp() > timestamp) {
+								PendingLiveEditStartedResponse existingPendingRespose = pendingLiveEditStartedResponses.putIfAbsent(resourcePath, pendingResponse);
+								if (pendingResponse.getSavePointTimestamp() > existingPendingRespose.getSavePointTimestamp()) {
+									pendingLiveEditStartedResponses.put(resourcePath, pendingResponse);
 								}
 							}
 						}
@@ -271,6 +301,7 @@ public class LiveEditConnector {
 				e.printStackTrace();
 			}
 		}
+
 	}
 
 	protected void handleModelChanged(final String username, final String resourcePath, final int offset, final int removedCharCount, final String newText) {
@@ -372,6 +403,64 @@ public class LiveEditConnector {
 				}
 			}
 		});
+	}
+
+	public void reactToResourceChanged(IResourceChangeEvent event) {
+		try {
+			event.getDelta().accept(new IResourceDeltaVisitor() {
+				@Override
+				public boolean visit(IResourceDelta delta) throws CoreException {
+					reactToResourceChanged(delta);
+					return true;
+				}
+			});
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+	}
+
+	protected void reactToResourceChanged(IResourceDelta delta) {
+		IProject project = delta.getResource().getProject();
+		if (project != null) {
+			if (repository.isConnected(project)) {
+				reactToResourceChange(delta);
+			}
+		}
+	}
+
+	private void reactToResourceChange(IResourceDelta delta) {
+		IResource resource = delta.getResource();
+
+		if (resource != null && resource.isDerived(IResource.CHECK_ANCESTORS)) {
+			return;
+		}
+
+		switch (delta.getKind()) {
+		case IResourceDelta.ADDED:
+			// TODO: cleanup
+			break;
+		case IResourceDelta.REMOVED:
+			// TODO: cleanup
+			break;
+		case IResourceDelta.CHANGED:
+			reactOnResourceChange(resource);
+			break;
+		}
+	}
+
+	private void reactOnResourceChange(IResource resource) {
+		if (resource != null && resource instanceof IFile) {
+			final ConnectedProject connectedProject = this.repository.getProject(resource.getProject());
+			final String resourcePath = resource.getProjectRelativePath().toString();
+			
+			if (connectedProject != null && connectedProject.containsResource(resourcePath)) {
+				String key = connectedProject.getName() + "/" + resourcePath;
+				PendingLiveEditStartedResponse pendingResponse = pendingLiveEditStartedResponses.get(key);
+				if (pendingResponse != null) {
+					handleRemoteLiveContent(pendingResponse);
+				}
+			}
+		}
 	}
 
 }
