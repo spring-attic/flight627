@@ -17,6 +17,7 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.flight.common;bundle-version="0.1.0",
  org.eclipse.flight.jdt.service;bundle-version="1.0.0";resolution:=optional,
  org.apache.commons.lang,
- org.apache.commons.codec
+ org.apache.commons.codec,
+ org.eclipse.core.filebuffers
 Bundle-Activator: org.eclipse.flight.ui.integration.FlightUiPlugin
 Bundle-ActivationPolicy: lazy
