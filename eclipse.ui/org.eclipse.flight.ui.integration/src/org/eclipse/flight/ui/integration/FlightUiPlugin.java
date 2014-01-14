@@ -45,9 +45,6 @@ import org.osgi.service.prefs.BackingStoreException;
  */
 public class FlightUiPlugin extends AbstractUIPlugin implements IStartup {
 
-	/**
-	 * 
-	 */
 	private static final String CONNECTED_PROJECTS_ID = "connected.projects";
 
 	// The plug-in ID
@@ -66,20 +63,20 @@ public class FlightUiPlugin extends AbstractUIPlugin implements IStartup {
 		} catch (NoClassDefFoundError e) {
 			StatusManager.getManager().handle(new Status(IStatus.INFO, PLUGIN_ID, "The jdt.services bundle is not installed. Some flight services will not be available."));
 		}
-		org.eclipse.flight.core.Activator.getDefault().getRepository()
-				.addRepositoryListener(new IRepositoryListener() {
-					@Override
-					public void projectDisconnected(IProject project) {
-						updateProjectLabel(project);
-						removeConnectedProjectPreference(project.getName());
-					}
+		
+		org.eclipse.flight.core.Activator.getDefault().getRepository().addRepositoryListener(new IRepositoryListener() {
+			@Override
+			public void projectDisconnected(IProject project) {
+				updateProjectLabel(project);
+				removeConnectedProjectPreference(project.getName());
+			}
 
-					@Override
-					public void projectConnected(IProject project) {
-						updateProjectLabel(project);
-						addConnectedProjectPreference(project.getName());
-					}
-				});
+			@Override
+			public void projectConnected(IProject project) {
+				updateProjectLabel(project);
+				addConnectedProjectPreference(project.getName());
+			}
+		});
 
 		if (Boolean.getBoolean("flight-eclipse-editor-connect")) {
 			WorkspaceRepository repository = org.eclipse.flight.core.Activator.getDefault()
@@ -113,7 +110,7 @@ public class FlightUiPlugin extends AbstractUIPlugin implements IStartup {
 			}
 		};
 		workspace.addResourceChangeListener(listener);
-
+		
 		updateProjectConnections();
 	}
 
