@@ -143,25 +143,28 @@ public class LiveEditConnector {
 			final IDocument document = documentMappings.get(edit.getFullPath());
 
 			ConnectedProject connectedProject = (ConnectedProject) repository.getProject(edit.getProjectName());
-			ConnectedResource localResource = (ConnectedResource) connectedProject.getResource(edit.getPath());
+			final ConnectedResource localResource = (ConnectedResource) connectedProject.getResource(edit.getPath());
 			
 			if (localResource.getHash() != null && localResource.getHash().equals(edit.getSavePointHash()) && localResource.getTimestamp() == edit.getSavePointTimestamp()) {
-				try {
-					Display.getDefault().asyncExec(new Runnable() {
-						public void run() {
-							try {
-								document.removeDocumentListener(documentListener);
-								document.set(edit.getData());
-								document.addDocumentListener(documentListener);
+				String openedContent = document.get();
+				if (!openedContent.equals(localResource.getData())) {
+					try {
+						Display.getDefault().asyncExec(new Runnable() {
+							public void run() {
+								try {
+									document.removeDocumentListener(documentListener);
+									document.set(localResource.getData());
+									document.addDocumentListener(documentListener);
+								}
+								catch (Exception e) {
+									e.printStackTrace();
+								}
 							}
-							catch (Exception e) {
-								e.printStackTrace();
-							}
-						}
-					});
-				}
-				catch (Exception e) {
-					e.printStackTrace();
+						});
+					}
+					catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
