@@ -11,6 +11,8 @@
 
 package org.eclipse.flight.vertx;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;
@@ -21,6 +23,8 @@ import org.vertx.java.core.json.JsonObject;
  */
 public abstract class FlightHandler implements Handler<Message<JsonObject>> {
 
+	Logger logger = LoggerFactory.getLogger(FlightHandler.class);
+	
 	protected Long id;
 	protected String action;
 	private String address;
@@ -38,10 +42,12 @@ public abstract class FlightHandler implements Handler<Message<JsonObject>> {
 		JsonObject body = message.body();
 		Long senderId = body.getLong("senderId");
 		if (senderId == id) {
+			logger.debug("Ignoring: " + getAction() + "@" + getAddress() + "  (same source)");
 			return;// Don't send back to ourselves
 		} else {
 			String messageAction = body.getString("action");
 			if (action.equals(messageAction)) {
+				logger.debug("Message: " + getAction() + "@" + getAddress());
 				JsonObject contents = body.getObject("contents");
 				doHandle(message, contents);
 			}

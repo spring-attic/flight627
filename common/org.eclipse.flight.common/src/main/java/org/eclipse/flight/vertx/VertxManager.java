@@ -142,15 +142,17 @@ public class VertxManager {
 		}
 		handler.setId(id);
 		multiHandler.handlerForAction.put(handler.getAction(), handler);
+		logger.debug("Registered Handler: " + handler);
 	}
 
 	public void send(String address, String action, FlightObject object) {
+		logger.debug("Sending: " + action + "@" + address + "\n\t\t" + object);
 		vertx.eventBus().send(address,
 				new RequestMessage(id, action, object).toJson(true));
 	}
 
 	public void publish(String address, String action, FlightObject object) {
-		logger.debug("Publishing @" + address + " " + action + "\n\t\t" + object);
+		logger.debug("Publishing: " + action + "@" + address + "\n\t\t" + object);
 		vertx.eventBus().publish(address,
 				new NotificationMessage(id, action, object).toJson());
 	}
@@ -167,10 +169,10 @@ public class VertxManager {
 				new Handler<Message<JsonObject>>() {
 					@Override
 					public void handle(Message<JsonObject> reply) {
-						logger.debug("Accepting @" + address + " " + action + "\n\t\t"
-								+ reply.body());
-						FlightObject flightObject = FlightObject.createFromJson(reply
-								.body().getObject("contents"));
+						JsonObject contents = reply.body().getObject("contents");
+						logger.debug("Accepting: " + action + "@" + address + "\n\t\t"
+								+ contents);
+						FlightObject flightObject = FlightObject.createFromJson(contents);
 						requester.accept(flightObject);
 					}
 				});

@@ -31,6 +31,7 @@ public abstract class Receiver extends FlightHandler {
 
 	@Override
 	public void doHandle(Message<JsonObject> message, JsonObject contents) {
+		logger.debug("Recieved: " + contents);
 		receive(contents);
 	}
 

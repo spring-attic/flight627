@@ -26,9 +26,9 @@ public class Activator implements BundleActivator {
 		LiveEditCoordinator liveEditCoordinator = org.eclipse.flight.core.Activator.getDefault().getLiveEditCoordinator(); 
 		
 		LiveEditUnits liveEditUnits = new LiveEditUnits(liveEditCoordinator, repository);
-		new ContentAssistService(liveEditUnits);
-		new NavigationService(liveEditUnits);
-		new RenameService(liveEditUnits);
+//		new ContentAssistService(liveEditUnits);
+//		new NavigationService(liveEditUnits);
+//		new RenameService(liveEditUnits);
 		
 		if (Boolean.getBoolean("flight-initjdt")) {
 			InitializeServiceEnvironment initializer = new InitializeServiceEnvironment(repository);

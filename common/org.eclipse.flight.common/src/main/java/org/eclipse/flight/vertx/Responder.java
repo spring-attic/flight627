@@ -51,16 +51,18 @@ public abstract class Responder extends FlightHandler {
 		if (objectContents != null) {
 			requestObject = FlightObject.createFromJson(objectContents);
 		}
-		System.err.println("Request: " + requestObject);
+		
+		logger.debug("Request: " + requestObject);
 		FlightObject response = respond(requestObject);
-		System.err.println("Response: " + response);
 		if (response != null) {
 			JsonObject json = new ResponseMessage(id, action, (FlightObject) response)
 					.toJson(thin);
 			modifyJsonResponse(requestObject, json);
 			message.reply(json);
+			logger.debug("Response: " + response);
 		} else {
 			message.fail(404, "Couldn't respond to: " + contents);
+			logger.debug("[Failed]");
 		}
 	}
 
