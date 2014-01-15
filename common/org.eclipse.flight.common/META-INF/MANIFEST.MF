@@ -9,5 +9,5 @@ Export-Package: org.eclipse.flight,
  org.eclipse.flight.objects.services,
  org.eclipse.flight.vertx
 Require-Bundle: org.vertx;bundle-version="2.1.0",
- org.apache.log4j;bundle-version="1.2.15"
+ org.slf4j.api;bundle-version="1.7.2"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7

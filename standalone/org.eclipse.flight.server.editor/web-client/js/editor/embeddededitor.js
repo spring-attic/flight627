@@ -408,6 +408,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 						editor.getModel().setText(text, data.offset, data.offset + data.removeCount);
 						editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 					} else if (msg.action == "live.metadata.changed") {
+						console.log("love.data" + data.markers);
 						if (data.markers) {
 							var markers = [];
 							for (i = 0; i < data.markers.length; i++) {

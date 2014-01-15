@@ -16,13 +16,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.log4j.Logger;
 import org.eclipse.flight.Configuration;
-import org.eclipse.flight.Ids;
 import org.eclipse.flight.messages.NotificationMessage;
 import org.eclipse.flight.messages.RequestMessage;
 import org.eclipse.flight.objects.FlightObject;
 import org.eclipse.flight.objects.JsonWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
@@ -38,7 +38,7 @@ import org.vertx.java.core.json.JsonObject;
  */
 public class VertxManager {
 
-	Logger logger = Logger.getLogger(VertxManager.class);
+	Logger logger = LoggerFactory.getLogger(VertxManager.class);
 
 	private static VertxManager INSTANCE;
 

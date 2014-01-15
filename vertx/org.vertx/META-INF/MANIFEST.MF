@@ -144,3 +144,4 @@ Export-Package: com.fasterxml.jackson.annotation,
  org.vertx.java.platform.impl.resolver,
  org.vertx.java.spi.cluster.impl.hazelcast
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Require-Bundle: org.slf4j.api;bundle-version="1.7.2"
