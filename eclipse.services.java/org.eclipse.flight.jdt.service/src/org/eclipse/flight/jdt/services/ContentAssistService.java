@@ -46,13 +46,6 @@ public class ContentAssistService {
 				return request;
 			}
 		});
-//		IMessageHandler contentAssistRequestHandler = new AbstractMessageHandler("contentassistrequest") {
-//			@Override
-//			public void handleMessage(String messageType, JSONObject message) {
-//				handleContentAssistRequest(message);
-//			}
-//		};
-//		messagingConnector.addMessageHandler(contentAssistRequestHandler);
 	}
 
 	protected void handleContentAssistRequest(ContentAssist request) {

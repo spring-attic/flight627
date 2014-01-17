@@ -28,21 +28,24 @@ define("editor/javaContentAssist", ['orion/Deferred'], function(Deferred) {
     function sendContentAssistRequest(request, eb) {
     	
 		var deferred = new Deferred();
-		eb.send('flight.proposalService', request, function(reply) {
-			var data = JSON.parse(JSON.stringify(reply)).contents;
-			if(callbacks.hasOwnProperty(data.callback_id)) {
-				console.log(callbacks[data.callback_id]);
-				callbacks[data.callback_id].cb.resolve(data.proposals);
-				delete callbacks[data.callback_id];
-			}
-		});
+		console.log("Sent assist request...");
 		var callbackId = getCallbackId();
 		callbacks[callbackId] = {
 			time : new Date(),
 			cb : deferred
 		};
-
-		request.callback_id = callbackId;
+		request.contents.callback = callbackId;
+		eb.send('flight.proposalService', request, function(reply) {
+			var data = JSON.parse(JSON.stringify(reply)).contents;
+			console.log("Recieved reply: ");
+			console.log(data);
+			if(callbacks.hasOwnProperty(data.callback)) {
+				console.log("has!!");
+				console.log(callbacks[data.callback]);
+				callbacks[data.callback].cb.resolve(data.proposals);
+				delete callbacks[data.callback];
+			}
+		});
 
 		return deferred.promise;
     }

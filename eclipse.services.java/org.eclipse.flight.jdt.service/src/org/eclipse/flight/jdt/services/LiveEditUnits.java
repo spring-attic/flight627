@@ -195,8 +195,10 @@ public class LiveEditUnits {
 						remoteContentHash = DigestUtils.shaHex(edit.getData());
 					}
 					if (!liveUnitHash.equals(remoteContentHash)) {
-						liveUnit.getBuffer().setContents(edit.getData());
-						liveUnit.reconcile(ICompilationUnit.NO_AST, true, null, null);
+						if (edit.getData() != null) { //cheat?
+							liveUnit.getBuffer().setContents(edit.getData());
+							liveUnit.reconcile(ICompilationUnit.NO_AST, true, null, null);
+						}
 					}
 				} catch (JavaModelException e) {
 					e.printStackTrace();

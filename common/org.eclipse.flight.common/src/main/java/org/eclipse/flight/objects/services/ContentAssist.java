@@ -243,6 +243,8 @@ public class ContentAssist extends Resource {
 	Integer offset;
 
 	String prefix;
+	
+	Long callback;
 
 	public Integer getOffset() {
 		return offset;
@@ -258,6 +260,14 @@ public class ContentAssist extends Resource {
 
 	public void setPrefix(String prefix) {
 		this.prefix = prefix;
+	}
+
+	public Long getCallback() {
+		return callback;
+	}
+
+	public void setCallback(Long callback) {
+		this.callback = callback;
 	}
 
 	/**
@@ -280,7 +290,7 @@ public class ContentAssist extends Resource {
 	@Override
 	protected void toJson(JsonObject json, boolean thin) {
 		super.toJson(json, thin);
-		json.putNumber("offset", offset).putString("prefix", prefix);
+		json.putNumber("offset", offset).putString("prefix", prefix).putNumber("callback", callback);
 		toJsonArray(json, "proposals", getProposals());
 	}
 
@@ -294,6 +304,7 @@ public class ContentAssist extends Resource {
 	@Override
 	public void fromJson(JsonObject json) {
 		super.fromJson(json);
+		callback = json.getLong("callback");
 		offset = json.getInteger("offset");
 		prefix = json.getString("prefix");
 		// Don't need to handle arrays yet..

@@ -27,7 +27,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 
 	var editorDomNode = document.getElementById("editor");
 
-	var logging = true;
+	var logging = false;
 
 	var textViewFactory = function() {
 		return new mTextView.TextView({
