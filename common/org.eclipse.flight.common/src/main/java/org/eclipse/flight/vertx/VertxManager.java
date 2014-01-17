@@ -61,7 +61,7 @@ public class VertxManager {
 			String action = message.body().getString("action");
 			FlightHandler handler = handlerForAction.get(action);
 			if (handler != null) {
-				logger.debug("Handling " + handler);
+				System.err.println("Handling " + handler);
 				handler.handle(message);
 			} else {
 				logger.warn("No handler for @" + address + " " + action);
@@ -142,35 +142,31 @@ public class VertxManager {
 		}
 		handler.setId(id);
 		multiHandler.handlerForAction.put(handler.getAction(), handler);
-		logger.debug("Registered Handler: " + handler);
+		System.err.println("Registered Handler: " + handler);
 	}
 
 	public void send(String address, String action, FlightObject object) {
-		logger.debug("Sending: " + action + "@" + address + "\n\t\t" + object);
+		System.err.println("Sending: " + action + "@" + address + "\n\t\t" + object);
 		vertx.eventBus().send(address,
 				new RequestMessage(id, action, object).toJson(true));
 	}
 
 	public void publish(String address, String action, FlightObject object) {
-		logger.debug("Publishing: " + action + "@" + address + "\n\t\t" + object);
+		System.err.println("Publishing: " + action + "@" + address + "\n\t\t" + object);
 		vertx.eventBus().publish(address,
 				new NotificationMessage(id, action, object).toJson());
 	}
 
-	public void publish(String address, String action, JsonObject json) {
-		publish(address, action, new JsonWrapper(json));
-	}
-
 	public void request(final String address, final String action, FlightObject object,
 			final Requester requester) {
-		logger.debug("Requesting @" + address + " " + action + "\n\t\t" + object);
+		System.err.println("Requesting @" + address + " " + action + "\n\t\t" + object);
 		vertx.eventBus().send(address,
 				new RequestMessage(id, action, object).toJson(true),
 				new Handler<Message<JsonObject>>() {
 					@Override
 					public void handle(Message<JsonObject> reply) {
 						JsonObject contents = reply.body().getObject("contents");
-						logger.debug("Accepting: " + action + "@" + address + "\n\t\t"
+						System.err.println("Accepting: " + action + "@" + address + "\n\t\t"
 								+ contents);
 						FlightObject flightObject = FlightObject.createFromJson(contents);
 						requester.accept(flightObject);

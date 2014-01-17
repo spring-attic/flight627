@@ -42,12 +42,12 @@ public abstract class FlightHandler implements Handler<Message<JsonObject>> {
 		JsonObject body = message.body();
 		Long senderId = body.getLong("senderId");
 		if (senderId == id) {
-			logger.debug("Ignoring: " + getAction() + "@" + getAddress() + "  (same source)");
+			System.err.println("Ignoring: " + getAction() + "@" + getAddress() + "  (same source)");
 			return;// Don't send back to ourselves
 		} else {
 			String messageAction = body.getString("action");
 			if (action.equals(messageAction)) {
-				logger.debug("Message: " + getAction() + "@" + getAddress());
+				System.err.println("Message: " + getAction() + "@" + getAddress());
 				JsonObject contents = body.getObject("contents");
 				doHandle(message, contents);
 			}

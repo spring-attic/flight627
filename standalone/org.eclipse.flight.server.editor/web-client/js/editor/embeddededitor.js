@@ -27,12 +27,20 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 
 	var editorDomNode = document.getElementById("editor");
 
+	var logging = true;
+
 	var textViewFactory = function() {
 		return new mTextView.TextView({
 			parent : editorDomNode,
 			tabSize : 4
 		});
 	};
+
+	function log(text) {
+		if (logging) {
+			console.log(text);
+		}
+	}
 
 	var contentAssist;
 	var contentAssistFactory = {
@@ -45,7 +53,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 	};
 
-	 var javaContentAssistProvider = new mJavaContentAssist.JavaContentAssistProvider();
+	var javaContentAssistProvider = new mJavaContentAssist.JavaContentAssistProvider();
 	//	
 	// Canned highlighters for js, java, and css. Grammar-based highlighter
 	// for
@@ -172,30 +180,6 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		start();
 	};
 
-	// socket.on('liveMetadataChanged', function (data) {
-	// if (username === data.username && project === data.project && resource
-	// ===
-	// data.resource && data.problems !== undefined) {
-	// var markers = [];
-	// for(i = 0; i < data.problems.length; i++) {
-	// var lineOffset = editor.getModel().getLineStart(data.problems[i].line -
-	// 1);
-	//				
-	// console.log(lineOffset);
-	//				
-	// markers[i] = {
-	// 'description' : data.problems[i].description,
-	// 'line' : data.problems[i].line,
-	// 'severity' : data.problems[i].severity,
-	// 'start' : (data.problems[i].start - lineOffset) + 1,
-	// 'end' : data.problems[i].end - lineOffset
-	// };
-	// }
-	//			
-	// editor.showProblems(markers);
-	// }
-	// console.log(data);
-	// });
 	//	
 	// socket.on('navigationresponse', function (data) {
 	// if (username === data.username && project === data.project && resource
@@ -262,7 +246,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	var lastSavePointTimestamp = 0;
 
 	function start() {
-		 javaContentAssistProvider.setEventBus(eb);
+		javaContentAssistProvider.setEventBus(eb);
 
 		filePath = window.location.href.split('#')[1];
 
@@ -300,7 +284,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				};
 
 				eb.send('flight.resourceProvider', request, function(reply) {
+
 					var data = JSON.parse(JSON.stringify(reply)).contents;
+					log("Recieved flight.resourceProvider Reply: " + request.action);
+					log(data);
 
 					if (lastSavePointTimestamp != 0 && lastSavePointHash !== '') {
 						return;
@@ -310,7 +297,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 					}
 
 					var text = data.data;
-
+					log("**** " + text);
 					editor.setInput(fileShortName, null, text);
 					syntaxHighlighter.highlight(fileShortName, editor);
 					window.document.title = fileShortName;
@@ -325,44 +312,93 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 						});
 					}
 
-					 javaContentAssistProvider.setProject(project);
-					 javaContentAssistProvider.setResourcePath(resource);
-					 javaContentAssistProvider.setUsername(username);
+					javaContentAssistProvider.setProject(project);
+					javaContentAssistProvider.setResourcePath(resource);
+					javaContentAssistProvider.setUsername(username);
 
 					lastSavePointContent = text;
 					lastSavePointHash = data.hash;
 					lastSavePointTimestamp = data.timestamp;
 
 					jump(jumpTo);
-
 					var notification = {
 						kind : 'notification',
 						action : 'live.resource.started',
 						senderId : editor_id,
 						contents : {
-							"class" : 'org.eclipse.flight.objects.Edit',
+							"class" : 'org.eclipse.flight.objects.services.Edit',
 							'username' : username,
 							'projectName' : project,
 							'path' : resource,
-							'hash' : lastSavePointHash,
+							'data' : text,
 							'offset' : -1,
 							'removeCount' : 0,
 							'editType' : '',
+							'hash' : lastSavePointHash,
 							'savePointTimestamp' : lastSavePointTimestamp,
 							'savePointHash' : lastSavePointHash,
 							'timestamp' : lastSavePointTimestamp
 						}
 					};
+
 					eb.publish('flight.editParticipant', notification);
 
+					log("Published live.resource.started: ");
+					log(notification.contents);
+
 					editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
+				});
+
+				eb.registerHandler('flight.resourceProvider', function(message, replier) {
+					var msg = JSON.parse(JSON.stringify(message));
+					var data = msg.contents;
+					if (data.username !== username || project !== data.projectName || msg.senderId == editor_id) {
+						return;
+					}
+					if (msg.action == "resource.get") {
+						if (data.path === resource && (data.hash === undefined || data.hash === lastSavePointHash)
+								&& (data.timestamp === undefined || data.timestamp === lastSavePointTimestamp)) {
+							var reply = {
+								kind : 'reply',
+								senderId : editor_id,
+								contents : {
+									"class" : 'org.eclipse.flight.objects.Resource',
+									'username' : username,
+									'projectName' : project,
+									'path' : resource,
+									'savePointTimestamp' : lastSavePointTimestamp,
+									'savePointHash' : lastSavePointHash,
+									'timestamp' : lastSavePointTimestamp,
+									'hash' : lastSavePointHash,
+									'data' : lastSavePointContent
+								}
+							};
+							replier(reply);
+
+							log("Replied to resource.get: ");
+							log(reply.contents);
+						}
+					} else if (msg.action == "notify.resource.modified") {
+						if (data.path === resource) {
+							var currentEditorContent = editor.getText();
+							var currentEditorContentHash = CryptoJS.SHA1(currentEditorContent).toString(
+									CryptoJS.enc.Hex);
+
+							if (data.hash === currentEditorContentHash) {
+								lastSavePointContent = currentEditorContent;
+								lastSavePointHash = data.hash;
+								lastSavePointTimestamp = data.timestamp;
+								editor.setDirty(false);
+							}
+						}
+					}
 				});
 
 				eb.registerHandler('flight.editParticipant', function(message, replier) {
 					var msg = JSON.parse(JSON.stringify(message));
 					var data = msg.contents;
-					// console.log(msg.action);
-					// console.log(data);
+					log("Recieved: " + msg.action);
+					log(data);
 					if (data.username !== username || project !== data.projectName || data.path !== resource
 							|| msg.senderId == editor_id) {
 						return;
@@ -376,31 +412,42 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 
 							if (currentEditorContentHash === data.savePointHash) {
 								editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
-								editor.getModel().setText(data.liveContent);
+								editor.getModel().setText(data.data);
 								editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 							}
 						}
 					} else if (msg.action == "live.resource.started") {
 						if ((data.hash === undefined || data.hash === lastSavePointHash)
 								&& (data.timestamp === undefined || data.timestamp === lastSavePointTimestamp)) {
-							eb.publish('flight.editParticipant', {
+
+							var currentEditorContent = editor.getText();
+							var currentEditorContentHash = CryptoJS.SHA1(currentEditorContent).toString(
+									CryptoJS.enc.Hex);
+							log("&&&& " + editor.getText());
+							var notification = {
 								kind : 'notification',
 								action : 'live.resource.startedResponse',
 								senderId : editor_id,
 								contents : {
-									'username' : data.username,
-									'class' : 'org.eclipse.flight.objects.Edit',
-									'projectName' : data.projectName,
-									'path' : data.path,
-									'timestamp' : data.timestamp,
+									"class" : 'org.eclipse.flight.objects.services.Edit',
+									'username' : username,
+									'projectName' : project,
+									'path' : resource,
+									'data' : editor.getText(),
 									'offset' : -1,
 									'removeCount' : 0,
 									'editType' : '',
+									'hash' : currentEditorContentHash,
 									'savePointTimestamp' : lastSavePointTimestamp,
 									'savePointHash' : lastSavePointHash,
-									'data' : editor.getText()
+									'timestamp' : lastSavePointTimestamp
 								}
-							});
+							};
+
+							eb.publish('flight.editParticipant', notification);
+
+							log("Published live.resource.startedResponse: ");
+							log(notification.contents);
 						}
 					} else if (msg.action == "live.resource.changed") {
 						var text = data.data !== undefined ? data.data : "";
@@ -408,7 +455,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 						editor.getModel().setText(text, data.offset, data.offset + data.removeCount);
 						editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 					} else if (msg.action == "live.metadata.changed") {
-						console.log("love.data" + data.markers);
+						log("live.data: " + data.markers);
 						if (data.markers) {
 							var markers = [];
 							for (i = 0; i < data.markers.length; i++) {
@@ -432,30 +479,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			}
 		}
 	}
-	// socket.on('liveMetadataChanged', function (data) {
-	// if (username === data.username && project === data.project && resource
-	// ===
-	// data.resource && data.problems !== undefined) {
-	// var markers = [];
-	// for(i = 0; i < data.problems.length; i++) {
-	// var lineOffset = editor.getModel().getLineStart(data.problems[i].line -
-	// 1);
-	//				
-	// console.log(lineOffset);
-	//				
-	// markers[i] = {
-	// 'description' : data.problems[i].description,
-	// 'line' : data.problems[i].line,
-	// 'severity' : data.problems[i].severity,
-	// 'start' : (data.problems[i].start - lineOffset) + 1,
-	// 'end' : data.problems[i].end - lineOffset
-	// };
-	// }
-	//			
-	// editor.showProblems(markers);
-	// }
-	// console.log(data);
-	// });
+
 	function extractJumpToInformation(hash) {
 		var hashValues = hash.split('#');
 		var offset = undefined;
@@ -498,7 +522,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			contents : {
 				'username' : username,
 				'projectName' : project,
-				'class' : 'org.eclipse.flight.objects.Resource',
+				'class' : 'org.eclipse.flight.objects.services.Edit',
 				'path' : resource,
 				'offset' : evt.start,
 				'timestamp' : lastSavePointTimestamp,
@@ -519,62 +543,26 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		eb.publish('flight.editParticipant', changeData);
 	}
 
-	//	
-	// socket.on('getResourceRequest', function(data) {
-	// if (data.username === username && data.project === project &&
-	// data.resource
-	// === resource && data.callback_id !== undefined) {
-	//			
-	// if ((data.hash === undefined || data.hash === lastSavePointHash)
-	// && data.timestamp === undefined || data.timestamp ===
-	// lastSavePointTimestamp)
-	// {
-	//
-	// socket.emit('getResourceResponse', {
-	// 'callback_id' : data.callback_id,
-	// 'requestSenderID' : data.requestSenderID,
-	// 'username' : data.username,
-	// 'projectName' : project,
-	// 'path' : resource,
-	// 'timestamp' : lastSavePointTimestamp,
-	// 'hash' : lastSavePointHash,
-	// 'content' : lastSavePointContent
-	// });
-	// }
-	//
-	// }
-	// });
-	//	
-	// socket.on('resourceChanged', function(data) {
-	// if (data.username === username && data.project === project &&
-	// data.resource
-	// === resource) {
-	//			
-	// var currentEditorContent = editor.getText();
-	// var currentEditorContentHash =
-	// CryptoJS.SHA1(currentEditorContent).toString(CryptoJS.enc.Hex);
-	//			
-	// if (data.hash === currentEditorContentHash) {
-	// lastSavePointContent = currentEditorContent;
-	// lastSavePointHash = data.hash;
-	// lastSavePointTimestamp = data.timestamp;
-	// editor.setDirty(false);
-	// }
-	// }
-	// });
-
 	function save(editor) {
 		setTimeout(function() {
 			lastSavePointContent = editor.getText();
 			lastSavePointHash = CryptoJS.SHA1(lastSavePointContent).toString(CryptoJS.enc.Hex);
 			lastSavePointTimestamp = Date.now();
 
-			socket.emit('resourceChanged', {
-				'username' : username,
-				'projectName' : project,
-				'path' : resource,
-				'timestamp' : lastSavePointTimestamp,
-				'hash' : lastSavePointHash
+			eb.publish('flight.resourceProvider', {
+				kind : 'notification',
+				action : 'live.resource.changed',
+				senderId : editor_id,
+				contents : {
+					'username' : username,
+					'projectName' : project,
+					'class' : 'org.eclipse.flight.objects.Resource',
+					'path' : resource,
+					'timestamp' : lastSavePointTimestamp,
+					'type' : 'file',
+					'savePointTimestamp' : lastSavePointTimestamp,
+					'savePointHash' : lastSavePointHash,
+				}
 			});
 
 			// this is potentially dangerous because the editor is set to

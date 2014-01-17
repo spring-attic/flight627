@@ -360,8 +360,10 @@ public class LiveEditConnector {
 		String resourcePath = resourceMappings.get(document);
 
 		document.removeDocumentListener(documentListener);
-		documentMappings.remove(resourcePath);
-		resourceMappings.remove(document);
+		if (resourcePath != null) {
+			documentMappings.remove(resourcePath);
+			resourceMappings.remove(document);
+		}
 	}
 
 	protected void connectOpenEditors(IProject project) {
@@ -441,7 +443,7 @@ public class LiveEditConnector {
 		if (resource != null && resource instanceof IFile) {
 			final ConnectedProject connectedProject = (ConnectedProject) repository.getProject(resource.getProject());
 			final String resourcePath = resource.getProjectRelativePath().toString();
-			
+
 //			if (connectedProject != null && connectedProject.containsResource(resourcePath)) {
 //				String key = connectedProject.getName() + "/" + resourcePath;
 //				PendingLiveEditStartedResponse pendingResponse = pendingLiveEditStartedResponses.get(key);

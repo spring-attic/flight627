@@ -11,12 +11,13 @@
 
 package org.eclipse.flight.vertx;
 
+import org.eclipse.flight.objects.FlightObject;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;
 
 /**
  * @author Miles Parker
- *
+ * 
  */
 public abstract class Receiver extends FlightHandler {
 	/**
@@ -27,12 +28,17 @@ public abstract class Receiver extends FlightHandler {
 		super(address, action);
 	}
 
-	public abstract void receive(JsonObject contents);
+	public abstract void receive(FlightObject object);
 
 	@Override
 	public void doHandle(Message<JsonObject> message, JsonObject contents) {
-		logger.debug("Recieved: " + contents);
-		receive(contents);
+		System.err.println("Recieved: " + contents);
+		FlightObject flightObject = FlightObject.createFromJson(contents);
+		if (flightObject != null) {
+			receive(flightObject);
+		} else {
+			throw new RuntimeException("No object in message: " + message);
+		}
 	}
 
 	@Override

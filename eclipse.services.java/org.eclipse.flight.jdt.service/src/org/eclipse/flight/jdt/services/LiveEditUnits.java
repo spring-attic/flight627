@@ -97,28 +97,26 @@ public class LiveEditUnits {
 	protected void startup() {
 		Resource resource = new Resource();
 		resource.setUserName(repository.getUsername());
-		VertxManager.get().request(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_REQUEST, resource,
-				new Requester() {
+		VertxManager.get().request(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_REQUEST, resource, new Requester() {
 
-					@Override
-					public void accept(FlightObject message) {
-						//not sure what to do w/ this yet..
-					}
-				});
+			@Override
+			public void accept(FlightObject message) {
+				//not sure what to do w/ this yet..
+			}
+		});
 	}
 
 	protected void startupConnectedProject(IProject project) {
 		Resource resource = new Resource();
 		resource.setUserName(repository.getUsername());
 		resource.setProjectName(project.getName());
-		VertxManager.get().request(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_REQUEST, resource,
-				new Requester() {
+		VertxManager.get().request(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_REQUEST, resource, new Requester() {
 
-					@Override
-					public void accept(FlightObject message) {
-						//not sure what to do w/ this yet..
-					}
-				});
+			@Override
+			public void accept(FlightObject message) {
+				//not sure what to do w/ this yet..
+			}
+		});
 	}
 
 	protected void disconnect() {
@@ -192,7 +190,10 @@ public class LiveEditUnits {
 					String liveContent = liveUnit.getBuffer().getContents();
 					String liveUnitHash = DigestUtils.shaHex(liveContent);
 
-					String remoteContentHash = DigestUtils.shaHex(edit.getData());
+					String remoteContentHash = "";
+					if (edit.getData() != null) {
+						remoteContentHash = DigestUtils.shaHex(edit.getData());
+					}
 					if (!liveUnitHash.equals(remoteContentHash)) {
 						liveUnit.getBuffer().setContents(edit.getData());
 						liveUnit.reconcile(ICompilationUnit.NO_AST, true, null, null);
@@ -205,9 +206,9 @@ public class LiveEditUnits {
 	}
 
 	protected void modelChanged(Edit edit) {
-		if (repository.getUsername().equals(edit.getUserName()) && liveEditUnits.containsKey(edit.getPath())) {
+		if (repository.getUsername().equals(edit.getUserName()) && liveEditUnits.containsKey(edit.getFullPath())) {
 			System.out.println("live edit compilation unit found");
-			ICompilationUnit unit = liveEditUnits.get(edit.getPath());
+			ICompilationUnit unit = liveEditUnits.get(edit.getFullPath());
 			try {
 				IBuffer buffer = unit.getBuffer();
 				buffer.replace(edit.getOffset(), edit.getRemoveCount(), edit.getData());

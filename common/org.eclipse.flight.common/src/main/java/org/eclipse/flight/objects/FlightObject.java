@@ -19,8 +19,8 @@ import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 
 /**
- * Note that we could handle all of the object coersion through reflection
- * (e.g. GSON) but my assumption is that we don't want that performance hit.
+ * Note that we could handle all of the object coersion through reflection (e.g.
+ * GSON) but my assumption is that we don't want that performance hit.
  * 
  * @author Miles Parker
  * 
@@ -48,14 +48,18 @@ public abstract class FlightObject {
 	// reflective operation once we've nailed down objects.
 	public static FlightObject createFromJson(JsonObject json) {
 		String className = json.getString("class");
+		if (className == null) {
+			throw new RuntimeException("No class defined in: "
+					+ json);
+		}
 		FlightObject result = null;
 		Class<?> clazz = classForName.get(className);
 		if (clazz == null) {
 			try {
 				clazz = Class.forName(className);
 			} catch (ClassNotFoundException e) {
-				throw new RuntimeException("Class doesn't implement MessageObject: "
-						+ clazz);
+				throw new RuntimeException("Class not found: " + className + "\nJson: "
+						+ json);
 			}
 			classForName.put(className, clazz);
 		}
@@ -70,13 +74,14 @@ public abstract class FlightObject {
 		result.fromJson(json);
 		return result;
 	}
-	
-	public void toJsonArray(JsonObject json, String field, Collection<? extends FlightObject> objects) {
+
+	public void toJsonArray(JsonObject json, String field,
+			Collection<? extends FlightObject> objects) {
 		JsonArray jsonArray = new JsonArray();
 		for (FlightObject object : objects) {
 			jsonArray.add(object.toJson());
 		}
-		json.putArray("field", jsonArray);
+		json.putArray(field, jsonArray);
 	}
 
 	@Override

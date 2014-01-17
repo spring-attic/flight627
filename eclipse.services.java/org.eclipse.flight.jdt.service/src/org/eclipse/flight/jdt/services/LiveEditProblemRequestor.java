@@ -16,12 +16,9 @@ import java.util.List;
 import org.eclipse.flight.Ids;
 import org.eclipse.flight.objects.Resource;
 import org.eclipse.flight.objects.ResourceMarker;
-import org.eclipse.flight.objects.services.Edit;
 import org.eclipse.flight.vertx.VertxManager;
 import org.eclipse.jdt.core.IProblemRequestor;
 import org.eclipse.jdt.core.compiler.IProblem;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  * @author Martin Lippert

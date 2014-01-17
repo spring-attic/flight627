@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.flight.Ids;
+import org.eclipse.flight.objects.FlightObject;
 import org.eclipse.flight.objects.services.Edit;
 import org.eclipse.flight.vertx.Receiver;
 import org.eclipse.flight.vertx.VertxManager;
@@ -32,28 +33,22 @@ public class LiveEditCoordinator {
 		VertxManager.get().register(new Receiver(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_STARTED) {
 
 			@Override
-			public void receive(JsonObject contents) {
-				Edit edit = new Edit();
-				edit.fromJson(contents);
-				startLiveUnit(edit);
+			public void receive(FlightObject edit) {
+				startLiveUnit((Edit) edit);
 			}
 		});
 		VertxManager.get().register(new Receiver(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_RESPONSE) {
 
 			@Override
-			public void receive(JsonObject contents) {
-				Edit edit = new Edit();
-				edit.fromJson(contents);
-				startLiveUnitResponse(edit);
+			public void receive(FlightObject edit) {
+				startLiveUnitResponse((Edit) edit);
 			}
 		});
 		VertxManager.get().register(new Receiver(Ids.EDIT_PARTICIPANT, Ids.LIVE_RESOURCE_CHANGED) {
 
 			@Override
-			public void receive(JsonObject contents) {
-				Edit edit = new Edit();
-				edit.fromJson(contents);
-				modelChanged(edit);
+			public void receive(FlightObject edit) {
+				modelChanged((Edit) edit);
 			}
 		});
 	}
