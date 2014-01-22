@@ -16,5 +16,5 @@ Require-Bundle: org.json,
 Bundle-ClassPath: lib/socketio.jar,
  .
 Export-Package: org.eclipse.flight.core
-Bundle-ActivationPolicy: lazy
+Bundle-ActivationPolicy: lazy; exclude:="io.socket, org.java_websocket, org.java_websocket.client, org.java_websocket.drafts, org.java_websocket.exceptions, org.java_websocket.framing, org.java_websocket.handshake, org.java_websocket.server, org.java_websocket.util, org.json"
 Bundle-Activator: org.eclipse.flight.core.Activator
