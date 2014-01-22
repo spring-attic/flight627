@@ -15,8 +15,15 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IMarkerDelta;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IResourceChangeEvent;
+import org.eclipse.core.resources.IResourceChangeListener;
+import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.resources.IResourceDeltaVisitor;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.flight.core.CallbackIDAwareMessageHandler;
 import org.eclipse.flight.core.IConnectionListener;
@@ -110,6 +117,24 @@ public class LiveEditUnits {
 				startupLiveUnits(message);
 			}
 		});
+		
+		IResourceChangeListener metadataChangeListener = new IResourceChangeListener() {
+			@Override
+			public void resourceChanged(IResourceChangeEvent event) {
+				try {
+					event.getDelta().accept(new IResourceDeltaVisitor() {
+						@Override
+						public boolean visit(IResourceDelta delta) throws CoreException {
+							checkForLiveUnitsInvolved(delta);
+							return true;
+						}
+					});
+				} catch (CoreException e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		ResourcesPlugin.getWorkspace().addResourceChangeListener(metadataChangeListener, IResourceChangeEvent.POST_BUILD);
 	}
 	
 	protected void startup() {
@@ -263,6 +288,24 @@ public class LiveEditUnits {
 
 			} catch (JavaModelException e) {
 				e.printStackTrace();
+			}
+		}
+	}
+	
+	protected void checkForLiveUnitsInvolved(IResourceDelta delta) {
+		IProject project = delta.getResource().getProject();
+		IMarkerDelta[] markerDeltas = delta.getMarkerDeltas();
+		if (project != null && repository.isConnected(project) && markerDeltas != null && markerDeltas.length > 0) {
+			IResource resource = delta.getResource();
+			String resourcePath = project.getName() + "/" + resource.getProjectRelativePath().toString();
+			
+			ICompilationUnit unit = getLiveEditUnit(repository.getUsername(), resourcePath);
+			if (unit != null) {
+				try {
+					unit.reconcile(ICompilationUnit.NO_AST, true, null, null);
+				} catch (JavaModelException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
