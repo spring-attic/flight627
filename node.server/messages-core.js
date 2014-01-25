@@ -58,37 +58,37 @@ MessageCore.prototype.initialize = function(socket, sockets) {
 	socket.on('disconnect', function () {
 		console.log('client disconnected from update notifications');
 	});
+	
+	socket.on('connectToChannel', function(data, fn) {
+		// TODO: is user allowed to join this user space?
+		socket.join(data.channel);
+		fn({
+			'connectedToChannel' : true
+		});
+	});
 };
 
 MessageCore.prototype.configureBroadcast = function(socket, messageName) {
 	socket.on(messageName, function(data) {
-		console.log(messageName + data);
-		socket.broadcast.emit(messageName, data);
+		if (data.username !== undefined) {
+			socket.broadcast.to(data.username).emit(messageName, data);
+		}
+		socket.broadcast.to('internal').emit(messageName, data);
 	});
 };
 
 MessageCore.prototype.configureRequest = function(socket, messageName) {
 	socket.on(messageName, function(data) {
-		console.log(messageName + data);
 		data.requestSenderID = socket.id;
-		socket.broadcast.emit(messageName, data);
+		if (data.username !== undefined) {
+			socket.broadcast.to(data.username).emit(messageName, data);
+		}
+		socket.broadcast.to('internal').emit(messageName, data);
 	});
 };
 
 MessageCore.prototype.configureResponse = function(socket, sockets, messageName) {
 	socket.on(messageName, function(data) {
-		console.log(messageName + data);
-		
-		var requester = sockets.sockets[data.requestSenderID];
-		if (requester !== undefined) {
-			requester.emit(messageName, data);
-		}
-		else {
-			sockets.clients().forEach(function(client) {
-				if (client.id === data.requestSenderID) {
-					client.emit(messageName, data);
-				}
-			});
-		}
+		sockets.socket(data.requestSenderID).emit(messageName, data);
 	});
 };

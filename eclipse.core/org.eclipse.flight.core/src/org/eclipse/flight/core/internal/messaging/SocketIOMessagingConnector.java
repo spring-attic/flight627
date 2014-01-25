@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -34,8 +34,9 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 	}
 
 	private SocketIO socket;
+	private boolean connectedToUserspace;
 	
-	public SocketIOMessagingConnector(String username) {
+	public SocketIOMessagingConnector(final String username) {
 		String host = System.getProperty("flight-host", "http://localhost:3000");
 		
 		try {
@@ -58,7 +59,28 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 
 				@Override
 				public void onConnect() {
-					notifyConnected();
+					try {
+						JSONObject message = new JSONObject();
+						message.put("channel", username);
+
+						socket.emit("connectToChannel", new IOAcknowledge() {
+							@Override
+							public void ack(Object... answer) {
+								try {
+									if (answer.length == 1 && answer[0] instanceof JSONObject && ((JSONObject)answer[0]).getBoolean("connectedToChannel")) {
+										connectedToUserspace = true;
+										notifyConnected();
+									}
+								}
+								catch (Exception e) {
+									e.printStackTrace();
+								}
+							}
+						}, message);
+					}
+					catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 
 				@Override
@@ -86,7 +108,7 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 
 	@Override
 	public boolean isConnected() {
-		return socket.isConnected();
+		return socket.isConnected() && connectedToUserspace;
 	}
 	
 }

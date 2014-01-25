@@ -281,12 +281,18 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				lastSavePointContent = '';
 				lastSavePointHash = '';
 				lastSavePointTimestamp = 0;
-
-				socket.emit('getResourceRequest', {
-					'callback_id' : 0,
-					'username' : username,
-					'project' : project,
-					'resource' : resource
+				
+				socket.emit('connectToChannel', {
+					'channel' : username
+				}, function(answer) {
+					if (answer.connectedToChannel) {
+						socket.emit('getResourceRequest', {
+							'callback_id' : 0,
+							'username' : username,
+							'project' : project,
+							'resource' : resource
+						});
+					}
 				});
 			}
 			else {

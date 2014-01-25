@@ -1,6 +1,6 @@
 /*******************************************************************************
  * @license
- * Copyright (c) 2013 Pivotal Software, Inc. and others.
+ * Copyright (c) 2013, 2014 Pivotal Software, Inc. and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -71,8 +71,15 @@ MongoClient.connect("mongodb://localhost:27017/flight-db", function(err, db) {
 	
 	client_socket.on('connect', function() {
 		console.log('client socket connected');
-		repository.setNotificationSender.call(repository, client_socket);
-		messagesrepository.setSocket.call(messagesrepository, client_socket);
+		
+		client_socket.emit('connectToChannel', {
+			'channel' : 'internal'
+		}, function(answer) {
+			if (answer.connectedToChannel) {
+				repository.setNotificationSender.call(repository, client_socket);
+				messagesrepository.setSocket.call(messagesrepository, client_socket);
+			}
+		});
 	});
 
 });
