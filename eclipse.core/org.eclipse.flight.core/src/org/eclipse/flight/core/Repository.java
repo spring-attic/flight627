@@ -631,6 +631,8 @@ public class Repository {
 
 			ConnectedProject connectedProject = this.syncedProjects.get(projectName);
 			if (this.username.equals(username) && connectedProject != null) {
+				boolean stored = false;
+				
 				IProject project = connectedProject.getProject();
 				IResource resource = project.findMember(resourcePath);
 				
@@ -648,6 +650,7 @@ public class Repository {
 
 							file.setContents(new ByteArrayInputStream(newResourceContent.getBytes()), true, true, null);
 							file.setLocalTimeStamp(updateTimestamp);
+							stored = true;
 						}
 					}
 				}
@@ -660,15 +663,18 @@ public class Repository {
 
 					newFile.create(new ByteArrayInputStream(newResourceContent.getBytes()), true, null);
 					newFile.setLocalTimeStamp(updateTimestamp);
+					stored = true;
 				}
 				
-				JSONObject message = new JSONObject();
-				message.put("username", this.username);
-				message.put("project", connectedProject.getName());
-				message.put("resource", resourcePath);
-				message.put("timestamp", updateTimestamp);
-				message.put("hash", updateHash);
-				messagingConnector.send("resourceStored", message);
+				if (stored) {
+					JSONObject message = new JSONObject();
+					message.put("username", this.username);
+					message.put("project", connectedProject.getName());
+					message.put("resource", resourcePath);
+					message.put("timestamp", updateTimestamp);
+					message.put("hash", updateHash);
+					messagingConnector.send("resourceStored", message);
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
