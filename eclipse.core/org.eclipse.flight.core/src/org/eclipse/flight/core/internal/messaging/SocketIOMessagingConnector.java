@@ -15,6 +15,8 @@ import io.socket.IOCallback;
 import io.socket.SocketIO;
 import io.socket.SocketIOException;
 
+import java.net.MalformedURLException;
+
 import javax.net.ssl.SSLContext;
 
 import org.eclipse.flight.core.IMessagingConnector;
@@ -34,11 +36,13 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 	}
 
 	private SocketIO socket;
+	private String host;
+
 	private boolean connectedToUserspace;
 	
 	public SocketIOMessagingConnector(final String username) {
-		String host = System.getProperty("flight-host", "http://localhost:3000");
-		
+		host = System.getProperty("flight-host", "http://localhost:3000");
+
 		try {
 			SocketIO.setDefaultSSLSocketFactory(SSLContext.getInstance("Default"));
 			socket = new SocketIO(host);
@@ -55,6 +59,13 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 				@Override
 				public void onError(SocketIOException ex) {
 					ex.printStackTrace();
+					
+					try {
+						socket = new SocketIO(host);
+						socket.connect(this);
+					} catch (MalformedURLException e) {
+						e.printStackTrace();
+					}
 				}
 
 				@Override
