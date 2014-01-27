@@ -66,6 +66,14 @@ MessageCore.prototype.initialize = function(socket, sockets) {
 			'connectedToChannel' : true
 		});
 	});
+	
+	socket.on('disconnectFromChannel', function(data, fn) {
+		socket.leave(data.channel);
+		fn({
+			'disconnectedFromChannel' : true
+		});
+	});
+
 };
 
 MessageCore.prototype.configureBroadcast = function(socket, messageName) {
