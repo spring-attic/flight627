@@ -53,6 +53,15 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	};
 	
 	var socket = io.connect();
+	
+	socket.on('connect', function() {
+		connected();
+	});
+	
+	socket.on('disconnect', function() {
+		disconnected();
+	});
+	
 	var javaContentAssistProvider = new mJavaContentAssist.JavaContentAssistProvider(socket);
 	javaContentAssistProvider.setSocket(socket);
 	
@@ -260,6 +269,18 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 	var lastSavePointHash = '';
 	var lastSavePointTimestamp = 0;
 	
+	function connected() {
+		if (username) {
+			socket.emit('connectToChannel', {
+				'channel' : username
+			}, function(answer) {
+			});
+		}
+	}
+	
+	function disconnected() {
+	}
+	
 	function start() {
 		filePath = window.location.href.split('#')[1];
 		
@@ -269,7 +290,13 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			var newProject = sections[1];
 			var newResource = filePath.slice(newUsername.length + newProject.length + 2);
 			
-			if (newUsername != username || newProject !== project || newResource !== resource) {
+			if (newUsername !== username || newProject !== project || newResource !== resource) {
+				if (username !== undefined && newUsername !== username) {
+					socket.emit('disconnectFromChannel', {
+						'channel' : username
+					});
+				}
+				
 				username = newUsername;
 				project = newProject;
 				resource = newResource;
