@@ -3,12 +3,12 @@
  * Copyright (c) 2010, 2011 IBM Corporation and others.
  * Copyright (c) 2012 VMware, Inc.
  * Copyright (c) 2013, 2014 Pivotal Software, Inc.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
  *
- * Contributors: 
+ * Contributors:
  *     IBM Corporation - initial API and implementation
  *     Andrew Eisenberg - rename jsContentAssist to jsTemplateContentAssist
  *     Martin Lippert - flight prototype work
@@ -17,7 +17,7 @@
 /*jslint browser:true devel:true*/
 
 define([
-	"require", 
+	"require",
 	"orion/editor/textView",
 	"orion/keyBinding",
 	"editor/textview/textStyler",
@@ -33,7 +33,7 @@ define([
 
 function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGrammar, mEditor, mEditorFeatures, mContentAssist, mJavaContentAssist, mLinkedMode) {
 	var editorDomNode = document.getElementById("editor");
-	
+
 	var textViewFactory = function() {
 		return new mTextView.TextView({
 			parent: editorDomNode,
@@ -51,24 +51,24 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			return result;
 		}
 	};
-	
+
 	var socket = io.connect();
-	
+
 	socket.on('connect', function() {
 		connected();
 	});
-	
+
 	socket.on('disconnect', function() {
 		disconnected();
 	});
-	
+
 	var javaContentAssistProvider = new mJavaContentAssist.JavaContentAssistProvider(socket);
 	javaContentAssistProvider.setSocket(socket);
-	
+
 	// Canned highlighters for js, java, and css. Grammar-based highlighter for html
 	var syntaxHighlighter = {
-		styler: null, 
-		
+		styler: null,
+
 		highlight: function(fileName, editor) {
 			if (this.styler) {
 				this.styler.destroy();
@@ -95,17 +95,17 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			}
 		}
 	};
-	
+
 	var annotationFactory = new mEditorFeatures.AnnotationFactory();
-	
+
 	var linkedMode;
-	
+
 	var keyBindingFactory = function(editor, keyModeStack, undoStack, contentAssist) {
-		
+
 		// Create keybindings for generic editing
 		var genericBindings = new mEditorFeatures.TextActions(editor, undoStack);
 		keyModeStack.push(genericBindings);
-		
+
 		// Linked Mode
 		linkedMode = new mLinkedMode.LinkedMode(editor, undoStack, contentAssist);
 		keyModeStack.push(linkedMode);
@@ -113,14 +113,14 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		// create keybindings for source editing
 		var codeBindings = new mEditorFeatures.SourceCodeActions(editor, undoStack, contentAssist, linkedMode);
 		keyModeStack.push(codeBindings);
-		
+
 		// save binding
 		editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding("s", true), "save");
 		editor.getTextView().setAction("save", function(){
 				save(editor);
 				return true;
 		});
-		
+
 		editor.getTextView().setKeyBinding(new mKeyBinding.KeyBinding(114), "navigate");
 		editor.getTextView().setAction("navigate", function(){
 				navigate(editor);
@@ -134,10 +134,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		});
 
 	};
-		
+
 	var dirtyIndicator = "";
 	var status = "";
-	
+
 	var statusReporter = function(message, isError) {
 		/*if (isError) {
 			status =  "ERROR: " + message;
@@ -146,18 +146,18 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 		document.getElementById("status").innerHTML = dirtyIndicator + status;*/
 	};
-	
+
 	var editor = new mEditor.Editor({
 		textViewFactory: textViewFactory,
 		undoStackFactory: new mEditorFeatures.UndoFactory(),
 		annotationFactory: annotationFactory,
 		lineNumberRulerFactory: new mEditorFeatures.LineNumberRulerFactory(),
 		contentAssistFactory: contentAssistFactory,
-		keyBindingFactory: keyBindingFactory, 
+		keyBindingFactory: keyBindingFactory,
 		statusReporter: statusReporter,
 		domNode: editorDomNode
 	});
-		
+
 	editor.addEventListener("DirtyChanged", function(evt) {
 		if (editor.isDirty()) {
 			dirtyIndicator = "*";
@@ -166,37 +166,37 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			dirtyIndicator = "";
 			window.document.title = fileShortName;
 		}
-		
+
 		// alert("Dirty changes: " + editor.__javaObject);
 		// document.getElementById("status").innerHTML = dirtyIndicator + status;
 	});
-	
+
 	editor.installTextView();
-	
+
 	contentAssist.addEventListener("Activating", function() {
 		contentAssist.setProviders([javaContentAssistProvider]);
 	});
-	
+
 	window.onbeforeunload = function() {
 		if (editor.isDirty()) {
 			 return "There are unsaved changes.";
 		}
 	};
-	
+
 	window.onhashchange = function() {
 		console.log("hash changed: " + window.location.hash);
 		start();
 	};
-	
+
 	socket.on('liveMetadataChanged', function (data) {
 		if (username === data.username && project === data.project && resource === data.resource && data.problems !== undefined) {
 			var markers = [];
 			var i;
 			for(i = 0; i < data.problems.length; i++) {
 				var lineOffset = editor.getModel().getLineStart(data.problems[i].line - 1);
-				
+
 				console.log(lineOffset);
-				
+
 				markers[i] = {
 					'description' : data.problems[i].description,
 					'line' : data.problems[i].line,
@@ -205,43 +205,43 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 					'end' : data.problems[i].end - lineOffset
 				};
 			}
-			
+
 			editor.showProblems(markers);
 		}
 		console.log(data);
 	});
-	
+
 	socket.on('navigationresponse', function (data) {
 		if (username === data.username && project === data.project && resource === data.resource && data.navigation !== undefined) {
 			var navigationTarget = data.navigation;
 			if (navigationTarget.project === project && navigationTarget.resource === resource) {
 				var offset = navigationTarget.offset;
 				var length = navigationTarget.length;
-				
+
 				editor.setSelection(offset, offset + length, true);
 			}
 			else {
 				var baseURL = window.location.origin + window.location.pathname;
 				var resourceID = data.username + "/" + navigationTarget.project + "/" + navigationTarget.resource;
-				
+
 				if (navigationTarget.offset !== undefined) {
 					resourceID += '#offset=' + navigationTarget.offset;
 				}
-				
+
 				if (navigationTarget.length !== undefined) {
 					resourceID += '#length=' + navigationTarget.length;
 				}
-				
+
 				window.location.hash = resourceID;
 			}
 		}
 		console.log(data);
 	});
-	
+
 	socket.on('renameinfileresponse', function (data) {
 		if (username === data.username && project === data.project && resource === data.resource && data.references !== undefined) {
 			var references = data.references;
-			
+
 			var positionGroups = [];
 			positionGroups.push({
 				'positions' : references
@@ -255,20 +255,20 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 		}
 		console.log(data);
 	});
-	
+
 	var username = "defaultuser";
-	
+
 	var filePath;
 	var project;
 	var resource;
 	var fileShortName;
-	
+
 	var jumpTo;
-	
+
 	var lastSavePointContent = '';
 	var lastSavePointHash = '';
 	var lastSavePointTimestamp = 0;
-	
+
 	function connected() {
 		if (username) {
 			socket.emit('connectToChannel', {
@@ -277,26 +277,28 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			});
 		}
 	}
-	
+
 	function disconnected() {
 	}
-	
+
 	function start() {
+		console.log('Starting');
 		filePath = window.location.href.split('#')[1];
-		
+
 		if (filePath !== undefined) {
 			var sections = filePath.split('/');
-			var newUsername = sections[0];
+			var newUsername = sections[0] || "defaultuser";
 			var newProject = sections[1];
-			var newResource = filePath.slice(newUsername.length + newProject.length + 2);
-			
+			sections.splice(0,2);
+			var newResource = sections.join('/');
+
 			if (newUsername !== username || newProject !== project || newResource !== resource) {
 				if (username !== undefined && newUsername !== username) {
 					socket.emit('disconnectFromChannel', {
 						'channel' : username
 					});
 				}
-				
+
 				username = newUsername;
 				project = newProject;
 				resource = newResource;
@@ -304,15 +306,21 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				jumpTo = extractJumpToInformation(window.location.hash);
 
 				editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
-		
+
 				lastSavePointContent = '';
 				lastSavePointHash = '';
 				lastSavePointTimestamp = 0;
-				
+
 				socket.emit('connectToChannel', {
 					'channel' : username
 				}, function(answer) {
 					if (answer.connectedToChannel) {
+						console.log({
+							'callback_id' : 0,
+							'username' : username,
+							'project' : project,
+							'resource' : resource
+						});
 						socket.emit('getResourceRequest', {
 							'callback_id' : 0,
 							'username' : username,
@@ -328,12 +336,12 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			}
 		}
 	}
-	
+
 	function extractJumpToInformation(hash) {
 		var hashValues = hash.split('#');
 		var offset;
 		var length;
-		
+
 		var i;
 		for (i = 0; i < hashValues.length; i++) {
 			var param = hashValues[i];
@@ -347,7 +355,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				}
 			}
 		}
-		
+
 		if (offset !== undefined) {
 			return {
 				'offset' : offset,
@@ -355,45 +363,45 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			};
 		}
 	}
-	
+
 	function jump(selection) {
 		if (selection !== undefined) {
 			editor.setSelection(selection.offset, selection.offset + selection.length, true);
 		}
 	}
-	
+
 	start();
-	
+
 	socket.on('getResourceResponse', function(data) {
 		if (lastSavePointTimestamp !== 0 && lastSavePointHash !== '') {
 			return;
 		}
-		
+
 		if (data.username !== username) {
 			return;
 		}
 
 		var text = data.content;
-		
+
 		editor.setInput(fileShortName, null, text);
 		syntaxHighlighter.highlight(fileShortName, editor);
 		window.document.title = fileShortName;
-		
+
 		if (data.readonly) {
 			editor.getTextView().setOptions({'readonly' : true});
 		}
 		else {
 			editor.getTextView().setOptions({'readonly' : false});
 		}
-		
+
 		javaContentAssistProvider.setProject(project);
 		javaContentAssistProvider.setResourcePath(resource);
 		javaContentAssistProvider.setUsername(username);
-		
+
 		lastSavePointContent = text;
 		lastSavePointHash = data.hash;
 		lastSavePointTimestamp = data.timestamp;
-		
+
 		jump(jumpTo);
 
 		socket.emit('liveResourceStarted', {
@@ -404,16 +412,16 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			'hash' : lastSavePointHash,
 			'timestamp' : lastSavePointTimestamp
 		});
-		
+
 		editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 	});
-	
+
 	socket.on('liveResourceStartedResponse', function(data) {
 		if (data.username === username && data.project === project && data.resource === resource && data.callback_id !== undefined) {
 			if (lastSavePointTimestamp === data.savePointTimestamp && lastSavePointHash === data.savePointHash) {
 				var currentEditorContent = editor.getText();
 				var currentEditorContentHash = CryptoJS.SHA1(currentEditorContent).toString(CryptoJS.enc.Hex);
-				
+
 				if (currentEditorContentHash === data.savePointHash) {
 					editor.getTextView().removeEventListener("ModelChanged", sendModelChanged);
 					editor.getModel().setText(data.liveContent);
@@ -422,10 +430,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			}
 		}
 	});
-	
+
 	socket.on('liveResourceStarted', function(data) {
 		if (data.username === username && data.project === project && data.resource === resource && data.callback_id !== undefined) {
-			
+
 			if ((data.hash === undefined || data.hash === lastSavePointHash) &&
 					data.timestamp === undefined || data.timestamp === lastSavePointTimestamp) {
 
@@ -442,7 +450,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			}
 		}
 	});
-	
+
 	socket.on('getLiveResourcesRequest', function(data) {
 		if (data.username === username && data.callback_id !== undefined) {
 			if (data.project === undefined || data.project === project) {
@@ -460,7 +468,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			}
 		}
 	});
-	
+
 	function sendModelChanged(evt) {
 		var changeData = {
 			'username' : username,
@@ -469,17 +477,17 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			'offset' : evt.start,
 			'removedCharCount' : evt.removedCharCount
 		};
-						
+
 		if (evt.addedCharCount > 0) {
 			changeData.addedCharacters = editor.getModel().getText(evt.start, evt.start + evt.addedCharCount);
 		}
 		else {
 			changeData.addedCharacters = "";
 		}
-		
+
 		socket.emit('liveResourceChanged', changeData);
 	}
-	
+
 	socket.on('liveResourceChanged', function(data) {
 		if (data.username === username && data.project === project && data.resource === resource) {
 			var text = data.addedCharacters !== undefined ? data.addedCharacters : "";
@@ -488,10 +496,10 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			editor.getTextView().addEventListener("ModelChanged", sendModelChanged);
 		}
 	});
-	
+
 	socket.on('getResourceRequest', function(data) {
 		if (data.username === username && data.project === project && data.resource === resource && data.callback_id !== undefined) {
-			
+
 			if ((data.hash === undefined || data.hash === lastSavePointHash) &&
 					data.timestamp === undefined || data.timestamp === lastSavePointTimestamp) {
 
@@ -508,13 +516,13 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			}
 		}
 	});
-	
+
 	socket.on('resourceStored', function(data) {
 		if (data.username === username && data.project === project && data.resource === resource) {
-			
+
 			var currentEditorContent = editor.getText();
 			var currentEditorContentHash = CryptoJS.SHA1(currentEditorContent).toString(CryptoJS.enc.Hex);
-			
+
 			if (data.hash === currentEditorContentHash) {
 				lastSavePointContent = currentEditorContent;
 				lastSavePointHash = data.hash;
@@ -523,13 +531,13 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			}
 		}
 	});
-	
+
 	function save(editor) {
 		setTimeout(function() {
 			lastSavePointContent = editor.getText();
 			lastSavePointHash = CryptoJS.SHA1(lastSavePointContent).toString(CryptoJS.enc.Hex);
 			lastSavePointTimestamp = Date.now();
-			
+
 			socket.emit('resourceChanged', {
 				'username' : username,
 				'project' : project,
@@ -537,7 +545,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 				'timestamp' : lastSavePointTimestamp,
 				'hash' : lastSavePointHash
 			});
-			
+
 			// we don't reset the dirty flag here because we don't know whether this resource will
 			// be stored by another participant in the system. Instead we wait for the "resourceStored"
 			// message to arrive
@@ -549,7 +557,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			var selection = editor.getSelection();
 			var offset = selection.start;
 			var length = selection.end - selection.start;
-			
+
 			socket.emit('navigationrequest', {
 				'username' : username,
 				'project' : project,
@@ -566,7 +574,7 @@ function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGra
 			var selection = editor.getSelection();
 			var offset = selection.start;
 			var length = selection.end - selection.start;
-			
+
 			socket.emit('renameinfilerequest', {
 				'username' : username,
 				'project' : project,
