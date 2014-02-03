@@ -85,15 +85,19 @@
   -Dflight627-host=https://flight627.cfapps.io:4443
   ```
   
+  To enable the 'live edit' connector that syncs between the webeditor and the eclipse editor as you type,
+  add the following system property:
+  
+  ```
+  -Dflight-eclipse-editor-connect=true
+  ```
+  
   Once you are running your runtime workbench and the node server you can:
   
      - create a test project
      - Use context menu 'Flight >> Connect' to connect it to Flight.
      - open a resource in the web-editor at a url like the following:
          http://localhost:3000/client/html/editor.html#/test-flight/src/flight/test/Main.java
-         
-  The edits in both editors should now be synched. You should also see errors from the Eclipse editor
-  show up in the Web Editor.
 
 ## Status
 
