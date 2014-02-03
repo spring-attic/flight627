@@ -60,8 +60,14 @@
   
 ## Running the prototype
 
-  The node.js-based server can be found in the "node-sync-server" folder. In that folder, you can start the
-  node app:
+  The node.js-based server can be found in the "node.server" folder. In that folder, you install the 
+  needed node dependencies:
+  
+  ```
+  npm install
+  ```
+  
+  Now you can start the node app:
   
   ```
   npm start
@@ -78,6 +84,16 @@
   ```
   -Dflight627-host=https://flight627.cfapps.io:4443
   ```
+  
+  Once you are running your runtime workbench and the node server you can:
+  
+     - create a test project
+     - Use context menu 'Flight >> Connect' to connect it to Flight.
+     - open a resource in the web-editor at a url like the following:
+         http://localhost:3000/client/html/editor.html#/test-flight/src/flight/test/Main.java
+         
+  The edits in both editors should now be synched. You should also see errors from the Eclipse editor
+  show up in the Web Editor.
 
 ## Status
 
