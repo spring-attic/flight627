@@ -1,3 +1,4 @@
 target/
 bin/
 node_modules/
+/node.server/plugable-fs/github-fs/secret.json
