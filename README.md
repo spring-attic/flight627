@@ -33,14 +33,18 @@
   The underlying mechanisms are language neutral. Specific services can provide different services for
   different languages or language versions.
 
-## The Eclipse plugin
+## The Eclipse UI plugin
 
-  The Eclipse plugin allows you to sync the projects in your workspace with the cloud-based sync backbone
-  mechanism. It is the central element to provide a smooth and seamless transition from using Eclipse towards
-  using more and more cloud-based tooling.
+  The Eclipse UI plugin (org.eclipse.flight.ui.integration) allows you to sync the projects in your workspace with
+  the cloud-based sync backbone mechanism. It is the central element to provide a smooth and seamless transition
+  from using Eclipse towards using more and more cloud-based tooling.
 
-  At the moment the Eclipse plugin also acts as a service that reacts to changes and stores metadata (compilation
-  and reconciling results) back into the cloud. It can also answer content-assist requests.
+## The Eclipse JDT service
+
+  The Eclipse JDT service project (org.eclipse.flight.jdt.service) is the service that provides a number of
+  Java related services (like reconciling, navigation, rename in file, and content-assist). It ran be used within
+  a running Eclipse IDE (in that case the running Eclipse IDE serves also as the host for the JDT cloud service)
+  or within a headless environment on a cloud machine.
 
 ## The web editor
 
@@ -55,8 +59,12 @@
   The current focus of the prototype work is to figure out what is possible to realize on top of this design
   and what makes sense to develop further.
 
-  The sync backbone provides a RESTful API to access and change resources and metadata. Additional communication
-  (announcing changes, sending around metadata) is implemented using WebSockets.
+  The sync backbone is implemented on top of node.js, socket.io, and websockets, and provides a channel to
+  exchange JSON messages among the participants. The rest is implemented on top of this idea of sending around
+  (broadcasting or one-to-one) those JSON messages asynchronously.
+  
+  In addition to that the node.js server process also includes a backup repository that either stores resources
+  in memory or in a MongoDB, if one is up and running.
   
 ## Running the prototype
 
@@ -102,9 +110,9 @@
 ## Status
 
   This is prototype work and by no means meant to be used in production. It misses important features, good
-  error handling and a persistent storage on the backend.
+  error handling, user authentication, and extensive unit testing.
 
 ## License
 
-  Not yet defined
+  Dual licensed under EPL 1.0 & EDL 1.0.
 
