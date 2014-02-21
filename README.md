@@ -42,7 +42,7 @@
 ## The Eclipse JDT service
 
   The Eclipse JDT service project (org.eclipse.flight.jdt.service) is the service that provides a number of
-  Java related services (like reconciling, navigation, rename in file, and content-assist). It ran be used within
+  Java related services (like reconciling, navigation, rename in file, and content-assist). It can be used within
   a running Eclipse IDE (in that case the running Eclipse IDE serves also as the host for the JDT cloud service)
   or within a headless environment on a cloud machine.
 
