@@ -36,8 +36,8 @@ public class CloudProjectDecorator extends LabelProvider implements ILightweight
 	@Override
 	public void decorate(Object element, IDecoration decoration) {
 		if (element instanceof IProject && org.eclipse.flight.core.Activator.getDefault().getRepository().isConnected((IProject) element)) {
-			decoration.addSuffix(" [flight connected]");
-			decoration.addOverlay(FlightUiPlugin.getImageDescriptor("icons/ovr16/flight_ovr.png"), IDecoration.TOP_LEFT);
+			decoration.addSuffix(" [connected to flux]");
+//			decoration.addOverlay(FlightUiPlugin.getImageDescriptor("icons/ovr16/flight_ovr.png"), IDecoration.TOP_LEFT);
 		}
 	}
 
