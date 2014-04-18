@@ -1,6 +1,6 @@
-# Flight 627
+# Eclipse Flux
 
-  Project "Flight 627" is prototype work to evaluate possible future cloud-based developer
+  Project "Eclipse Flux" is prototype work to evaluate possible future cloud-based developer
   tooling.
 
   The underlying idea is based on a Git-aware project sync mechanism (you can think of it as
@@ -35,13 +35,13 @@
 
 ## The Eclipse UI plugin
 
-  The Eclipse UI plugin (org.eclipse.flight.ui.integration) allows you to sync the projects in your workspace with
+  The Eclipse UI plugin (org.eclipse.flux.ui.integration) allows you to sync the projects in your workspace with
   the cloud-based sync backbone mechanism. It is the central element to provide a smooth and seamless transition
   from using Eclipse towards using more and more cloud-based tooling.
 
 ## The Eclipse JDT service
 
-  The Eclipse JDT service project (org.eclipse.flight.jdt.service) is the service that provides a number of
+  The Eclipse JDT service project (org.eclipse.flux.jdt.service) is the service that provides a number of
   Java related services (like reconciling, navigation, rename in file, and content-assist). It can be used within
   a running Eclipse IDE (in that case the running Eclipse IDE serves also as the host for the JDT cloud service)
   or within a headless environment on a cloud machine.
@@ -90,14 +90,14 @@
   launch config of your runtime workbench to direct the plugin towards the right server:
   
   ```
-  -Dflight627-host=https://flight627.cfapps.io:4443
+  -Dflux-host=https://flight627.cfapps.io:4443
   ```
   
   To enable the 'live edit' connector that syncs between the webeditor and the eclipse editor as you type,
   add the following system property:
   
   ```
-  -Dflight-eclipse-editor-connect=true
+  -Dflux-eclipse-editor-connect=true
   ```
   
   Once you are running your runtime workbench and the node server you can:
