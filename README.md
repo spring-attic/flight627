@@ -68,22 +68,41 @@
   
 ## Running the prototype
 
-  The node.js-based server can be found in the "node.server" folder. In that folder, you install the 
-  needed node dependencies:
+### Running the node-js server
+
+  The node.js-based server can be found in the "node.server" folder. Switch to that directory and install the
+  necessary dependencies via npm:
   
   ```
   npm install
   ```
   
-  Now you can start the node app:
+  Then you can star the node.js server application:
   
   ```
   npm start
   ```
   
-  The Eclipse plugin can be found in the folder "eclipse-plugin" and is just an Eclipse project at the moment.
-  That means you have to import it into a workspace and start a runtime workbench from there.
+  This runs the node.js-based messaging server that does not only contain the websocket-based messaging
+  implementation, but also an in-memory backup repository that keeps track of connected projects.
   
+  In case you have a MongoDB running, the in-memory repository is replaced by a MongoDB-based implementation
+  that reads and writes your projects from/to a MongoDB database.
+  
+### Running the Eclipse plugin
+
+  At the moment there is no update site available from which you can install the Eclipse plugins into
+  an existing Eclipse installation. Instead you have to import all three projects into a workspace and
+  start a runtime workbench from there. 
+  
+  So please import all three Eclipse projects into an empty workspace. There is a forth project that is
+  called "eclipse.releng" that contains a target platform definition. Please import that project as well and
+  set the contained target definition as your target platform. After that everything should compile fine.
+  
+  If you want the JDT service to run inside your Eclipse IDE (instead of as a headless service), you should
+  set a start level of 4 and auto-start:true for the org.eclipse.flux.jdt.service bundle in your launch
+  configuration. This will startup all the JDT services inside your Eclipse IDE.
+
   In case you target the locally running node server, you don't have to specify anything. The node server will
   listen on port 3000 and the Eclipse plugin will use http://localhost:3000 for all the server
   communication. In case you have the server running somewhere else, you can set this system property in the
@@ -103,9 +122,9 @@
   Once you are running your runtime workbench and the node server you can:
   
      - create a test project
-     - Use context menu 'Flight >> Connect' to connect it to Flight.
+     - Use context menu 'Flux >> Connect' to connect it to Flux.
      - open a resource in the web-editor at a url like the following:
-         http://localhost:3000/client/html/editor.html#/test-flight/src/flight/test/Main.java
+         http://localhost:3000/client/html/editor.html#defaultuser/test-project/src/flux/test/Main.java
 
 ## Status
 
