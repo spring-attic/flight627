@@ -1,24 +1,17 @@
 {
-  "name": "flight-server",
+  "name": "flux-server",
   "preferGlobal": true,
   "version": "0.1.0",
   "author": "Martin Lippert <mlippert@gopivotal.com>",
-  "description": "Project Flight - Server",
+  "description": "Project Flux - Server",
   "dependencies" : {
     "express"          :  "3.0.x",
     "socket.io"        :  "0.9.x",
     "socket.io-client" :  "0.9.x",
-	"mongodb"          :  "1.3.x",
-	"rest"			   : "0.8.4",
-	"when"             : "3.0.1"
+	"mongodb"          :  "1.3.x"
   },
-  "devDependencies": {
-	"fake-fs": "https://github.com/eldargab/node-fake-fs/archive/50f54e9551d9ece5578213564268021d4976db26.tar.gz",
-	"nodeunit": "0.7.4"
-  },
-  
+
   "scripts": {
-  		"start": "node startup-all-in-one.js",
-		"test": "node tests/run-all.js"
+  		"start": "node startup-all-in-one.js"
   }
 }

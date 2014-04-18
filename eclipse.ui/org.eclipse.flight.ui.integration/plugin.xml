@@ -8,10 +8,10 @@
       		allPopups="false"
             locationURI="popup:org.eclipse.ui.popup.any?after=additions">
           <menu
-                id="org.eclipse.flight.ui.integration"
+                id="org.eclipse.flux.ui.integration"
                 label="Flux">
 	         <command
-	               commandId="org.eclipse.flight.ui.integration.connect"
+	               commandId="org.eclipse.flux.ui.integration.connect"
 	               style="push">
 	            <visibleWhen
 	                  checkEnabled="false">
@@ -28,7 +28,7 @@
 	            </visibleWhen>
 	         </command>
 	         <command
-	               commandId="org.eclipse.flight.ui.integration.disconnect"
+	               commandId="org.eclipse.flux.ui.integration.disconnect"
 	               style="push">
 	            <visibleWhen
 	                  checkEnabled="false">
@@ -45,7 +45,7 @@
 	            </visibleWhen>
 	         </command>
 	         <command
-	               commandId="org.eclipse.flight.ui.integration.download"
+	               commandId="org.eclipse.flux.ui.integration.download"
 	               style="push">
 	         </command>
           </menu> 
@@ -55,8 +55,8 @@
    <extension
          point="org.eclipse.ui.commands">
       <command
-            defaultHandler="org.eclipse.flight.ui.integration.handlers.SyncConnectHandler"
-            id="org.eclipse.flight.ui.integration.connect"
+            defaultHandler="org.eclipse.flux.ui.integration.handlers.SyncConnectHandler"
+            id="org.eclipse.flux.ui.integration.connect"
             name="Connect">
       </command>
    </extension>
@@ -64,8 +64,8 @@
    <extension
          point="org.eclipse.ui.commands">
       <command
-            defaultHandler="org.eclipse.flight.ui.integration.handlers.SyncDisconnectHandler"
-            id="org.eclipse.flight.ui.integration.disconnect"
+            defaultHandler="org.eclipse.flux.ui.integration.handlers.SyncDisconnectHandler"
+            id="org.eclipse.flux.ui.integration.disconnect"
             name="Disconnect">
       </command>
    </extension>
@@ -73,18 +73,18 @@
    <extension
          point="org.eclipse.ui.commands">
       <command
-            defaultHandler="org.eclipse.flight.ui.integration.handlers.SyncDownloadHandler"
-            id="org.eclipse.flight.ui.integration.download"
+            defaultHandler="org.eclipse.flux.ui.integration.handlers.SyncDownloadHandler"
+            id="org.eclipse.flux.ui.integration.download"
             name="Download">
       </command>
    </extension>
 
    <extension point="org.eclipse.ui.decorators">
       <decorator
-            id="org.eclipse.flight.ui.integration.projectdecorator"
+            id="org.eclipse.flux.ui.integration.projectdecorator"
             label="Cloud Sync Project Decorator"
             state="true"
-            class="org.eclipse.flight.ui.integration.CloudProjectDecorator"
+            class="org.eclipse.flux.ui.integration.CloudProjectDecorator"
             adaptable="true"
             lightweight="true">
             <enablement>
@@ -95,7 +95,7 @@
    <extension
          point="org.eclipse.ui.startup">
       <startup
-            class="org.eclipse.flight.ui.integration.FlightUiPlugin">
+            class="org.eclipse.flux.ui.integration.FluxUiPlugin">
       </startup>
    </extension>
 
