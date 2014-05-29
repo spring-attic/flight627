@@ -29,7 +29,7 @@ define([
 	"editor/javaContentAssist",
 	"orion/editor/linkedMode",
 	"editor/sha1",
-	"editor/socket.io"],
+	"socketio"],
 
 function(require, mTextView, mKeyBinding, mTextStyler, mTextMateStyler, mHtmlGrammar, mEditor, mEditorFeatures, mContentAssist, mJavaContentAssist, mLinkedMode) {
 	var editorDomNode = document.getElementById("editor");
