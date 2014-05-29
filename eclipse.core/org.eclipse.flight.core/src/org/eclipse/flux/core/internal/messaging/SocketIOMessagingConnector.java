@@ -38,7 +38,8 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 	private SocketIO socket;
 	private String host;
 
-	private boolean connectedToUserspace;
+	private transient boolean connectedToUserspace;
+	private transient boolean connected;
 	
 	public SocketIOMessagingConnector(final String username) {
 		host = System.getProperty("flux-host", "http://localhost:3000");
@@ -71,6 +72,8 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 				@Override
 				public void onConnect() {
 					try {
+						connected = true;
+						
 						JSONObject message = new JSONObject();
 						message.put("channel", username);
 
@@ -96,6 +99,7 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 
 				@Override
 				public void onDisconnect() {
+					connected = false;
 					notifyDisconnected();
 				}
 
@@ -119,7 +123,7 @@ public class SocketIOMessagingConnector extends AbstractMessagingConnector imple
 
 	@Override
 	public boolean isConnected() {
-		return socket.isConnected() && connectedToUserspace;
+		return connected && connectedToUserspace;
 	}
 	
 }
