@@ -8,7 +8,7 @@ Pivotal Software Inc. makes available all content in this download ("Content").
 Unless otherwise indicated below, the Content is provided to you under
 the terms and conditions of either the Eclipse Public License Version 1.0 ("EPL") or the
 Eclipse Distribution License - v 1.0. A copy of the EPL v1.0 and the EDL v1.0 are available
-in the file called “EPL v1.0 license.txt” and “EDL v1.0 license text”. For
+in the file called ï¿½EPL v1.0 license.txtï¿½ and ï¿½EDL v1.0 license textï¿½. For
 purposes of the EPL v1.0 and EDL v1.0;, "Program" will mean the Content.
  
 The following copyright statements and licenses apply to various open
@@ -105,10 +105,10 @@ ADDITIONAL LICENSE INFORMATION:
 
 Java-WebSocket-master.zip\Java-WebSocket-master\src\main\example\web-socket-js\web_socket.js
 
-Copyright: Hiroshi Ichikawa <http://gimite.net/en/>
+Copyright: Hiroshi Ichikawa <https://gimite.net/en/>
 License: New BSD License
-Reference: http://dev.w3.org/html5/websockets/
-Reference: http://tools.ietf.org/html/rfc6455
+Reference: https://dev.w3.org/html5/websockets/
+Reference: https://tools.ietf.org/html/rfc6455
 
 
 >>> orion-editor.js-4.0.0
@@ -118,7 +118,7 @@ Reference: http://tools.ietf.org/html/rfc6455
 
 almond 0.2.4 Copyright (c) 2011-2012, The Dojo Foundation All Rights Reserved.
  Available via the MIT or new BSD license.
- see: http://github.com/jrburke/almond for details
+ see: https://github.com/jrburke/almond for details
 
 
 >>> socket.io-client-0.9.16
@@ -163,10 +163,10 @@ About This Content
 February 26, 2010
 License
 The Eclipse Foundation makes available all content in this plug-in ("Content"). Unless otherwise indicated below, the Content is provided to you under the terms and conditions of the Eclipse Public License Version 1.0 ("EPL"). A copy of the EPL is available at 
-http://www.eclipse.org/legal/epl-v10.html
+https://www.eclipse.org/legal/epl-v10.html
 . For purposes of the EPL, "Program" will mean the Content.
 If you did not receive this Content directly from the Eclipse Foundation, the Content is being redistributed by another party ("Redistributor") and different terms and conditions may apply to your use of any object code in the Content. Check the Redistributor's license that was provided with the Content. If no such license exists, contact the Redistributor. Unless otherwise indicated below, the terms and conditions of the EPL still apply to any source code in the Content and such source code may be obtained at 
-http://www.eclipse.org
+https://www.eclipse.org
 .
 Third Party Content
 The Content includes items that have been sourced from third parties as set out below. If you did not receive this Content directly from the Eclipse Foundation, the following is provided for informational purposes only, and you should look to the Redistributor's license for terms and conditions of use.
@@ -174,7 +174,7 @@ JSON Java API
 The plug-in includes the JSON Java API from JSON.org. Your use of JSON Java API is subject to the terms and conditions of the JSON Java API license. A copy of the JSON Java API License can be found in 
 about_files/LICENSE-JSON.txt
  and is also available at 
-http://www.json.org/license.html
+https://www.json.org/license.html
 .
 
 
@@ -417,8 +417,8 @@ source code and/or modifications to source code to be made
 available (as would be noted above), you may obtain a copy of
 the source code corresponding to the binaries for such open
 source components and modifications thereto, if any, (the
-"Source Files"), by downloading the Source Files from Pivotal’s website at
-http://www.gopivotal.com/open-source, or by sending a request, with your name and address 
+"Source Files"), by downloading the Source Files from Pivotalï¿½s website at
+https://pivotal.io/open-source, or by sending a request, with your name and address 
 to: Pivotal Software, Inc., 1900 S. Norfolk Street #125, San Mateo, CA 94403, 
 Attention: General Counsel. All such requests should clearly 
 specify: OPEN SOURCE FILES REQUEST,

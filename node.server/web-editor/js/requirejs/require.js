@@ -1,7 +1,7 @@
 /** vim: et:ts=4:sw=4:sts=4
  * @license RequireJS 2.1.5 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
+ * see: https://github.com/jrburke/requirejs for details
  */
 //Not using strict: uneven strict support in browsers, #392, and causes
 //problems with requirejs.exec()/transpiler plugins that may not be strict.
@@ -1760,7 +1760,7 @@ var requirejs, require, define;
         head = s.head = document.getElementsByTagName('head')[0];
         //If BASE tag is in play, using appendChild is a problem for IE6.
         //When that browser dies, this can be removed. Details in this jQuery bug:
-        //http://dev.jquery.com/ticket/2709
+        //https://dev.jquery.com/ticket/2709
         baseElement = document.getElementsByTagName('base')[0];
         if (baseElement) {
             head = s.head = baseElement.parentNode;

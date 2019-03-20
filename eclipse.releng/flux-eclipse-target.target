@@ -7,7 +7,7 @@
 <unit id="org.json" version="1.0.0.v201011060100"/>
 <unit id="org.apache.commons.io" version="2.0.1.v201105210651"/>
 <unit id="org.apache.commons.lang" version="2.6.0.v201205030909"/>
-<repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20140114142710/repository/"/>
+<repository location="https://download.eclipse.org/tools/orbit/downloads/drops/R20140114142710/repository/"/>
 </location>
 </locations>
 </target>

@@ -3,8 +3,8 @@
  * Copyright (c) 2011, 2012 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * (https://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (https://www.eclipse.org/org/documents/edl-v10.html). 
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
@@ -186,12 +186,12 @@ define(function(){
 	 * string concatenation or other means.</p>
 	 * <p>A URITemplate is created by invoking the constructor, passing a <em>template string</em>:</p>
 	 * <p><code>new URITemplate(template)</code></p>
-	 * <p>The <dfn>template string</dfn> is an expression following a well-defined syntax (see <a href="http://tools.ietf.org/html/rfc6570#section-1.2">here</a>
+	 * <p>The <dfn>template string</dfn> is an expression following a well-defined syntax (see <a href="https://tools.ietf.org/html/rfc6570#section-1.2">here</a>
 	 * for an introduction). Most notably, the template may include variables.</p>
 	 * <p>Once created, a URITemplate's {@link #expand} method can be invoked to generate a URI. Arguments to {@link #expand} give the values to be 
 	 * substituted for the template variables.</p>
 	 * @description Creates a new URITemplate.
-	 * @param {String} template The template string. Refer to <a href="http://tools.ietf.org/html/rfc6570#section-2">RFC 6570</a> for details
+	 * @param {String} template The template string. Refer to <a href="https://tools.ietf.org/html/rfc6570#section-2">RFC 6570</a> for details
 	 * of the template syntax.
 	 */
 	function URITemplate(template) {
@@ -202,7 +202,7 @@ define(function(){
 		/**
 		 * Expands this URITemplate to a URI.
 		 * @param {Object} params The parameters to use for expansion. This object is a map of keys (variable names) to values (the variable's
-		 * value in the <a href="http://tools.ietf.org/html/rfc6570#section-3.2.1">expansion algorithm</a>).
+		 * value in the <a href="https://tools.ietf.org/html/rfc6570#section-3.2.1">expansion algorithm</a>).
 		 * @returns {String} The resulting URI.
 		 */
 		expand: function(params) {
