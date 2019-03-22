@@ -17,7 +17,7 @@
     try {
         var testURL;
         if (typeof window.URL === "function" && window.URL.length !== 0 &&
-                (testURL = new window.URL("https://www.w3.org?q")).protocol === "http:" && testURL.query) {
+                (testURL = new window.URL("http://www.w3.org?q")).protocol === "http:" && testURL.query) {
             return;
         }
     } catch (e) {}
