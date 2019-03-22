@@ -3,8 +3,8 @@
  * Copyright (c) 2011, 2012 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * (https://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (https://www.eclipse.org/org/documents/edl-v10.html). 
  * 
  * Contributors: IBM Corporation - initial API and implementation 
  ******************************************************************************/
@@ -384,7 +384,7 @@ var RegexUtil = {
 	 * <p>bolds only PHP control keywords.</p>
 	 *
 	 * <p>This is useful when using grammars that adhere to TextMate's
-	 * <a href="http://manual.macromates.com/en/language_grammars.html#naming_conventions">scope name conventions</a>,
+	 * <a href="https://manual.macromates.com/en/language_grammars.html#naming_conventions">scope name conventions</a>,
 	 * as a single CSS rule can provide consistent styling to similar constructs across different languages.</p>
 	 * 
 	 * <h4>Top-level grammar constructs:</h4>

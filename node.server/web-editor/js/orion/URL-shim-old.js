@@ -3,18 +3,18 @@
  * Copyright (c) 2012 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * (https://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (https://www.eclipse.org/org/documents/edl-v10.html). 
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 /*global document window StopIteration*/
-// URL Shim -- see http://url.spec.whatwg.org/ and http://dvcs.w3.org/hg/url/raw-file/tip/Overview.html
+// URL Shim -- see https://url.spec.whatwg.org/ and https://dvcs.w3.org/hg/url/raw-file/tip/Overview.html
 
 (function() {
 	try {
-		if (typeof window.URL === "function" && window.URL.length !== 0 && new window.URL("http://www.w3.org").protocol === "http:") {
+		if (typeof window.URL === "function" && window.URL.length !== 0 && new window.URL("https://www.w3.org").protocol === "http:") {
 			return;
 		}
 	} catch (e) {}
@@ -99,7 +99,7 @@
 		return true;
 	}
 
-	// See http://url.spec.whatwg.org/#interface-urlquery
+	// See https://url.spec.whatwg.org/#interface-urlquery
 	function URLQuery(anchor) {
 		Object.defineProperty(this, "_anchor", {
 			value: anchor
@@ -247,7 +247,7 @@
 		}
 	});
 
-	// See http://url.spec.whatwg.org/#api
+	// See https://url.spec.whatwg.org/#api
 	function URL(input, base) {
 		input = input || "";
 		if (typeof input !== "string") {

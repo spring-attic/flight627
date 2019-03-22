@@ -3,8 +3,8 @@
  * Copyright (c) 2011, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * (https://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (https://www.eclipse.org/org/documents/edl-v10.html). 
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
@@ -20,7 +20,7 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 	 * @name orion.mirror.Stream
 	 * @class Encapsulates a line of code and the current position in the line.
 	 * @description An implementation of CodeMirror's "StringStream" API.
-	 * @see <a href="http://codemirror.net/doc/manual.html#StringStream">http://codemirror.net/doc/manual.html#StringStream</a>
+	 * @see <a href="https://codemirror.net/doc/manual.html#StringStream">https://codemirror.net/doc/manual.html#StringStream</a>
 	 */
 	function Stream(/**String*/ str) {
 		// Don't rename these or CodeMirror's "perl" mode will break.
@@ -116,7 +116,7 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 	/**
 	 * @name orion.mirror.Mirror
 	 * @class A shim for CodeMirror's <code>CodeMirror</code> API.
-	 * @description A Mirror is a partial implementation of the API provided by the <code><a href="http://codemirror.net/doc/manual.html#api">CodeMirror object</a></code>.
+	 * @description A Mirror is a partial implementation of the API provided by the <code><a href="https://codemirror.net/doc/manual.html#api">CodeMirror object</a></code>.
 	 * Mirror provides functionality related to mode and MIME management.
 	 * 
 	 * <p>If clients intend to reuse modes provided by CodeMirror without modification, they must expose a Mirror as 
@@ -129,7 +129,7 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 	 * // Now you can load the CodeMirror mode scripts.<br>
 	 * &lt/script&gt;
 	 * </code></p>
-	 * @see <a href="http://codemirror.net/manual.html">http://codemirror.net/manual.html</a>
+	 * @see <a href="https://codemirror.net/manual.html">https://codemirror.net/manual.html</a>
 	 */
 	function Mirror(options) {
 		this._modes = {};
@@ -155,15 +155,15 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 	}
 	Mirror.prototype = /** @lends orion.mirror.Mirror.prototype */ {
 		options: {},
-		/** @see <a href="http://codemirror.net/doc/manual.html#getOption">http://codemirror.net/doc/manual.html#getOption</a> */
+		/** @see <a href="https://codemirror.net/doc/manual.html#getOption">https://codemirror.net/doc/manual.html#getOption</a> */
 		setOption: function(/**String*/ option, /**Object*/ value) { this.options[option] = value; },
 		/**
-		 * @see <a href="http://codemirror.net/doc/manual.html#getOption">http://codemirror.net/doc/manual.html#getOption</a>
+		 * @see <a href="https://codemirror.net/doc/manual.html#getOption">https://codemirror.net/doc/manual.html#getOption</a>
 		 * @returns {Object}
 		 */
 		getOption: function(option) { return this.options[option]; },
 		/** 
-		 * @see <a href="http://codemirror.net/doc/manual.html#modeapi">http://codemirror.net/doc/manual.html#modeapi</a>
+		 * @see <a href="https://codemirror.net/doc/manual.html#modeapi">https://codemirror.net/doc/manual.html#modeapi</a>
 		 * @returns {Object} A copy of <code>state</code>.
 		 */
 		copyState: function(/**Object*/ mode, /**Object*/ state) {
@@ -182,21 +182,21 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 		startState: function(/**Object*/ mode, /**Number?*/ basecolumn) {
 			return mode.startState(basecolumn);
 		},
-		/** @see <a href="http://codemirror.net/doc/manual.html#modeapi">http://codemirror.net/doc/manual.html#modeapi</a> */
+		/** @see <a href="https://codemirror.net/doc/manual.html#modeapi">https://codemirror.net/doc/manual.html#modeapi</a> */
 		defineMode: function(/**String*/ name, /**Function(options, config)*/ modeFactory) {
 			this._modes[name] = modeFactory;
 		},
 		/**
 		 * @param {String} mime
 		 * @param {String|Object} modeSpec
-		 * @see <a href="http://codemirror.net/manual.html#option_mode">http://codemirror.net/manual.html#option_mode</a>
+		 * @see <a href="https://codemirror.net/manual.html#option_mode">https://codemirror.net/manual.html#option_mode</a>
 		 */
 		defineMIME: function(mime, modeSpec) {
 			this.mimeModes[mime] = modeSpec;
 		},
 		/**
 		 * @param {String|Object} modeSpec 
-		 * @see <a href="http://codemirror.net/manual.html#option_mode">http://codemirror.net/manual.html#option_mode</a>
+		 * @see <a href="https://codemirror.net/manual.html#option_mode">https://codemirror.net/manual.html#option_mode</a>
 		 * @returns {Object}
 		 */
 		getMode: function(options, modeSpec) {
@@ -219,14 +219,14 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 			return modeFactory(options, config);
 		},
 		/**
-		 * @see <a href="http://codemirror.net/doc/manual.html#option_mode">http://codemirror.net/doc/manual.html#option_mode</a>
+		 * @see <a href="https://codemirror.net/doc/manual.html#option_mode">https://codemirror.net/doc/manual.html#option_mode</a>
 		 * @returns {String[]} The mode names.
 		 */
 		listModes: function() {
 			return keys(this._modes);
 		},
 		/**
-		 * @see <a href="http://codemirror.net/doc/manual.html#option_mode">http://codemirror.net/doc/manual.html#option_mode</a>
+		 * @see <a href="https://codemirror.net/doc/manual.html#option_mode">https://codemirror.net/doc/manual.html#option_mode</a>
 		 * @returns {String[]} The MIMEs.
 		 */
 		listMIMEs: function() {
