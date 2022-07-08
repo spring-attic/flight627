@@ -1,3 +1,5 @@
+# flight627 is no longer actively maintained by VMware, Inc.
+
 # Eclipse Flux
 
   Project "Eclipse Flux" is prototype work to evaluate possible future cloud-based developer
